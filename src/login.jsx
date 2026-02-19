@@ -1,18 +1,15 @@
 import { useState } from "react";
 import "./styles/login.css";
 
-export default function Login() {
+export default function Login({ onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
 
   const togglePassword = () => setShowPassword((prev) => !prev);
 
   const handleLogin = (e) => {
-    e.preventDefault();
-    const username = e.target.username.value;
-    const password = e.target.password.value;
-    console.log("Login attempted with:", { username, password });
-    alert("Login functionality would go here!");
-  };
+  e.preventDefault();
+  onLogin();
+};
 
   return (
     <div className="login-container">

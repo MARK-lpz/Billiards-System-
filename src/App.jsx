@@ -1,7 +1,13 @@
-import Login from './login'
+import { useState } from 'react'
+import Login from './Login'
+import Dashboard from './dashboard'
 
 function App() {
-  return <Login />
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  return isLoggedIn
+    ? <Dashboard onLogout={() => setIsLoggedIn(false)} />
+    : <Login onLogin={() => setIsLoggedIn(true)} />
 }
 
 export default App
