@@ -31,7 +31,7 @@ export default function Login({ onLogin }) {
       setLoading(true);
       
       // TODO: Replace with your actual API endpoint
-      const response = await fetch('YOUR_API_ENDPOINT/login', {
+      const response = await fetch('/api/log_in.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
