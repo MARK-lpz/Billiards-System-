@@ -21,7 +21,6 @@ export default function Login({ onLogin }) {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    // Prepare data for API
     const loginData = {
       username: username.value.trim(),
       password: password.value,
@@ -29,8 +28,7 @@ export default function Login({ onLogin }) {
 
     try {
       setLoading(true);
-      
-      // TODO: Replace with your actual API endpoint
+
       const response = await fetch('/api/log_in.php', {
         method: 'POST',
         headers: {
@@ -42,15 +40,14 @@ export default function Login({ onLogin }) {
       const data = await response.json();
 
       if (!response.ok) {
-        // Handle error response
-        setErrors({ 
+        setErrors({
           username: data.message || "Invalid credentials",
           password: " "
         });
         return;
       }
 
-      // Store token or user data if needed
+      // Store token and user data
       if (data.token) {
         localStorage.setItem('authToken', data.token);
       }
@@ -58,12 +55,13 @@ export default function Login({ onLogin }) {
         localStorage.setItem('user', JSON.stringify(data.user));
       }
 
-      // Success - navigate to dashboard
-      onLogin();
-      
+      // ✅ FIX: Extract role and pass it to onLogin
+      const role = data.user?.role?.toLowerCase(); // 'admin' or 'employee'
+      onLogin(role);
+
     } catch (error) {
       console.error('Login error:', error);
-      setErrors({ 
+      setErrors({
         username: "Connection error. Please try again.",
         password: " "
       });
@@ -118,9 +116,9 @@ export default function Login({ onLogin }) {
                 onChange={() => clearError("password")}
                 disabled={loading}
               />
-              <button 
-                type="button" 
-                className="password-toggle" 
+              <button
+                type="button"
+                className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={loading}
               >

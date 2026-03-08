@@ -8,13 +8,16 @@ function App() {
   const [userRole, setUserRole] = useState(null) // 'admin' or 'employee'
 
   const handleLogin = (role) => {
-    setUserRole(role)
+    if (!role) return // guard: don't login if no role returned
+    setUserRole(role.toLowerCase())
     setIsLoggedIn(true)
   }
 
   const handleLogout = () => {
     setIsLoggedIn(false)
     setUserRole(null)
+    localStorage.removeItem('authToken') // ✅ clear token on logout
+    localStorage.removeItem('user')       // ✅ clear user on logout
   }
 
   if (!isLoggedIn) {
@@ -22,9 +25,16 @@ function App() {
   }
 
   // Route based on role
-  return userRole === 'admin' 
-    ? <Dashboard onLogout={handleLogout} />
-    : <EmployeeDashboard onLogout={handleLogout} />
+  if (userRole === 'admin') {
+    return <Dashboard onLogout={handleLogout} />
+  }
+
+  if (userRole === 'employee') {
+    return <EmployeeDashboard onLogout={handleLogout} />
+  }
+
+  // Fallback: unknown role
+  return <Login onLogin={handleLogin} />
 }
 
 export default App
