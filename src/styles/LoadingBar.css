@@ -1,0 +1,40 @@
+.loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.loading-bar-progress {
+  height: 100%;
+  background: linear-gradient(90deg, #00c97a, #00e089);
+  box-shadow: 0 0 10px rgba(0, 201, 122, 0.5);
+  animation: loading 2s ease-in-out infinite;
+  transform-origin: left;
+}
+
+@keyframes loading {
+  0% {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  50% {
+    transform: scaleX(0.7);
+    transform-origin: left;
+  }
+  100% {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+.loading-bar.complete .loading-bar-progress {
+  animation: none;
+  transform: scaleX(1);
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
