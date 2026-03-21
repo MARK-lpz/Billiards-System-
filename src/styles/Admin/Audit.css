@@ -1,0 +1,224 @@
+/* Audit Trail Container */
+.audit-trail-container {
+  padding: 20px;
+}
+
+/* Header */
+.audit-trail-header {
+  margin-bottom: 24px;
+}
+
+.audit-trail-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #f0f0f0;
+  margin-bottom: 4px;
+}
+
+.audit-trail-subtitle {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* Stats Cards */
+.audit-stat-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.audit-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.audit-stat-card .card-body {
+  text-align: center;
+  padding: 20px;
+}
+
+.audit-stat-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.audit-stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.audit-stat-label {
+  font-size: 13px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Color Variants */
+.audit-stat-blue .audit-stat-icon {
+  color: #60a5fa;
+}
+
+.audit-stat-yellow .audit-stat-icon {
+  color: #fbbf24;
+}
+
+.audit-stat-green .audit-stat-icon {
+  color: #10b981;
+}
+
+.audit-stat-blue .audit-stat-value {
+  color: #60a5fa;
+}
+
+.audit-stat-yellow .audit-stat-value {
+  color: #fbbf24;
+}
+
+.audit-stat-green .audit-stat-value {
+  color: #10b981;
+}
+
+.audit-stat-blue {
+  border-color: rgba(96, 165, 250, 0.2);
+}
+
+.audit-stat-yellow {
+  border-color: rgba(251, 191, 36, 0.2);
+}
+
+.audit-stat-green {
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+/* Activity Log Card */
+.audit-log-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.audit-log-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+.audit-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Log Item */
+.audit-log-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 13px 0;
+}
+
+.audit-log-item-border {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.audit-log-time {
+  color: #9ca3af;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  min-width: 78px;
+  padding-top: 2px;
+}
+
+.audit-log-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+/* Badge */
+.audit-badge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.audit-badge-auth {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.audit-badge-sale {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.audit-badge-reservation {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.audit-badge-inventory {
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.audit-badge-table {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+/* Log Content */
+.audit-log-content {
+  flex: 1;
+}
+
+.audit-log-staff-action {
+  margin-bottom: 2px;
+}
+
+.audit-log-staff {
+  color: #f0f0f0;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.audit-log-action {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.audit-log-detail {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .audit-trail-title {
+    font-size: 24px;
+  }
+  
+  .audit-log-item {
+    flex-wrap: wrap;
+  }
+  
+  .audit-log-time {
+    min-width: 100%;
+    margin-bottom: 4px;
+  }
+}

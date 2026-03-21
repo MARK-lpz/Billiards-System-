@@ -1,0 +1,334 @@
+/* Pool Tables Container */
+.pool-tables-container {
+  padding: 20px;
+}
+
+/* Header */
+.pool-tables-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.pool-tables-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #f0f0f0;
+  margin-bottom: 4px;
+}
+
+.pool-tables-subtitle {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.pool-tables-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-weight: 600;
+}
+
+/* Stats Pills */
+.pool-table-stats {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.pool-stat-pill {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pool-stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.pool-stat-value {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.pool-stat-label {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+/* Color Variants */
+.pool-stat-green {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.pool-stat-green .pool-stat-dot {
+  background: #10b981;
+}
+
+.pool-stat-green .pool-stat-value {
+  color: #10b981;
+}
+
+.pool-stat-red {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.pool-stat-red .pool-stat-dot {
+  background: #ef4444;
+}
+
+.pool-stat-red .pool-stat-value {
+  color: #ef4444;
+}
+
+.pool-stat-yellow {
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.pool-stat-yellow .pool-stat-dot {
+  background: #fbbf24;
+}
+
+.pool-stat-yellow .pool-stat-value {
+  color: #fbbf24;
+}
+
+/* Tables Grid */
+.pool-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+/* Table Card */
+.pool-table-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 18px;
+  transition: all 0.2s ease;
+}
+
+.pool-table-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.pool-table-available {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.pool-table-occupied {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.06), rgba(255, 255, 255, 0.03));
+}
+
+.pool-table-reserved {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.06), rgba(255, 255, 255, 0.03));
+}
+
+/* Card Header */
+.pool-table-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.pool-table-name {
+  color: #f0f0f0;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.pool-table-rate {
+  color: #6b7280;
+  font-size: 11px;
+}
+
+/* Timer Section */
+.pool-table-timer-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pool-table-timer {
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 6px;
+  padding: 4px 10px;
+  color: #fbbf24;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.pool-table-charge {
+  color: #10b981;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Status */
+.pool-table-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.pool-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.pool-status-available {
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.pool-status-occupied {
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
+  animation: pulse 2s infinite;
+}
+
+.pool-status-reserved {
+  background: #fbbf24;
+  box-shadow: 0 0 6px #fbbf24;
+}
+
+.pool-status-maintenance {
+  background: #60a5fa;
+  box-shadow: 0 0 6px #60a5fa;
+}
+
+.pool-status-text {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.pool-table-available .pool-status-text {
+  color: #10b981;
+}
+
+.pool-table-occupied .pool-status-text {
+  color: #ef4444;
+}
+
+.pool-table-reserved .pool-status-text {
+  color: #fbbf24;
+}
+
+.pool-table-maintenance .pool-status-text {
+  color: #60a5fa;
+}
+
+/* Customer */
+.pool-table-customer {
+  color: #9ca3af;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+/* Actions */
+.pool-table-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pool-table-actions .btn {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pool-table-end-btn {
+  flex: 1 1 100% !important;
+}
+
+.pool-table-edit-btn {
+  flex: 0 0 auto !important;
+  padding: 6px 12px !important;
+}
+
+.pool-table-maintenance-btn {
+  flex: 1 1 100% !important;
+  opacity: 0.7;
+}
+
+/* Pulse Animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Modal */
+.pool-tables-modal {
+  background: #1a1d29;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pool-tables-modal .modal-header {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.pool-tables-modal .modal-footer {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.pool-tables-modal .form-label {
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.pool-tables-modal .form-control {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f0f0f0;
+}
+
+.pool-tables-modal .form-control:focus {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: #10b981;
+  color: #f0f0f0;
+  box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pool-tables-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .pool-tables-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pool-tables-grid {
+    grid-template-columns: 1fr;
+  }
+}

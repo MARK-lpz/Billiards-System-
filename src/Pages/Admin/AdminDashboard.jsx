@@ -1,16 +1,33 @@
 import { useState } from "react";
+// Styles
 import "../../styles/Admin/Dashboard.css";
-import Sidebar from "../../Elements/Admin/Sidebar";
+
+// Global Elements
+import LoadingBar from "../../Elements/Global/Loading";
 import Notification from "../../Elements/Global/Notification";
 import Menu from "../../Elements/Global/Menu";
-import EmployeeStats from "../../Elements/Employee/EmployeeStats";
+
+// Admin Elements
+import Sidebar from "../../Elements/Admin/Sidebar";
 import TaskList from "../../Elements/Admin/TaskList";
 import ActiveTables from "../../Elements/Admin/ActiveTables";
 import TodaySchedule from "../../Elements/Admin/Schedule";
-import QuickActions from "../../Elements/Employee/QuickAction";
 import WeeklyPerformance from "../../Elements/Admin/WeeklyPerformance";
-import LoadingBar from "../../Elements/Global/Loading";
+
+// Employee Elements
+import EmployeeStats from "../../Elements/Employee/EmployeeStats";
+import QuickActions from "../../Elements/Employee/QuickAction";
+
+// Admin Modules (Pages)
 import QRGenerator from "./QrGenerator";
+import SalesPOS from "./SalesPOS";
+import Reservations from "./Reservations";
+import Reports from "./Reports";
+import PoolTables from "./PoolTables";
+import Inventory from "./Inventory";
+import Events from "./Events";
+import Equipment from "./Equipment";
+import AuditTrail from "./AuditTrail";
 
 export default function Dashboard({ onLogout }) {
   const [activeNav, setActiveNav] = useState("dashboard");
