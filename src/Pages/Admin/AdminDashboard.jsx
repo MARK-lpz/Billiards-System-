@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 // Styles
 import "../../styles/Admin/Dashboard.css";
 
@@ -34,12 +35,142 @@ export default function Dashboard({ onLogout }) {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Mock data for modules (replace with actual API calls later)
+  const [products, setProducts] = useState([
+    { id: 1, name: "Coca Cola", category: "Beverage", price: 25, stock: 50, minStock: 10, unit: "pcs" },
+    { id: 2, name: "Chips", category: "Food", price: 15, stock: 30, minStock: 10, unit: "pcs" },
+    { id: 3, name: "Cue Chalk", category: "Equipment", price: 50, stock: 20, minStock: 5, unit: "pcs" },
+  ]);
+
+  const [transactions, setTransactions] = useState([]);
+  const [reservations, setReservations] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [equipment, setEquipment] = useState([
+    { id: 1, name: "Cue Stick #1", type: "Cue Stick", condition: "good", lastMaintenance: "2026-03-01", status: "active" },
+    { id: 2, name: "Ball Set #1", type: "Ball Set", condition: "fair", lastMaintenance: "2026-02-15", status: "active" },
+  ]);
+  const [tables, setTables] = useState([
+    { id: 1, name: "Table 1", rate: 15, status: "available", timer: 0, running: false, customer: "" },
+    { id: 2, name: "Table 2", rate: 15, status: "occupied", timer: 3600, running: true, customer: "John Doe" },
+  ]);
+  const [logs] = useState([
+    { id: 1, time: "14:32:05", type: "auth", staff: "Admin", action: "logged in", detail: "Successful login from 192.168.1.1" },
+    { id: 2, time: "14:35:12", type: "sale", staff: "Staff A", action: "processed sale", detail: "Transaction #12345 - ₱150.00" },
+  ]);
+
   const handleNavChange = (navId) => {
     setLoading(true);
     setTimeout(() => {
       setActiveNav(navId);
       setLoading(false);
     }, 300);
+  };
+
+  // Render module based on activeNav
+  const renderModule = () => {
+    switch(activeNav) {
+      case 'qr-generator':
+        return <QRGenerator />;
+      
+      case 'sales-pos':
+        return <SalesPOS 
+          products={products} 
+          setProducts={setProducts}
+          transactions={transactions}
+          setTransactions={setTransactions}
+        />;
+      
+      case 'reservations':
+        return <Reservations 
+          reservations={reservations}
+          setReservations={setReservations}
+          tables={tables}
+        />;
+      
+      case 'reports':
+        return <Reports 
+          transactions={transactions}
+          reservations={reservations}
+          products={products}
+        />;
+      
+      case 'pool-tables':
+        return <PoolTables 
+          tables={tables}
+          setTables={setTables}
+        />;
+      
+      case 'inventory':
+        return <Inventory 
+          products={products}
+          setProducts={setProducts}
+        />;
+      
+      case 'events':
+        return <Events 
+          events={events}
+          setEvents={setEvents}
+          tables={tables}
+        />;
+      
+      case 'equipment':
+        return <Equipment 
+          equipment={equipment}
+          setEquipment={setEquipment}
+        />;
+      
+      case 'audit-trail':
+        return <AuditTrail logs={logs} />;
+      
+      case 'dashboard':
+      default:
+        return (
+          <>
+            <div className="page-header">
+              <div className="page-header-text">
+                <h1 className="page-title">Admin Dashboard</h1>
+                <p className="page-subtitle">Welcome back! Manage your business operations</p>
+              </div>
+              
+              <div className="header-right">
+                <div className="search-wrapper">
+                  <i className="bi bi-search search-icon"></i>
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="Search tasks or tables..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+
+                <div className="header-icons">
+                  <Notification />
+                  <Menu 
+                    onLogout={onLogout}
+                    onProfile={() => handleNavChange('profile')}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <EmployeeStats />
+
+            <div className="employee-content-grid">
+              <div className="employee-left-column">
+                <TaskList />
+                <ActiveTables />
+              </div>
+
+              <div className="employee-right-column">
+                <TodaySchedule />
+                <QuickActions />
+                <WeeklyPerformance />
+              </div>
+            </div>
+          </>
+        );
+    }
   };
 
   return (
@@ -53,54 +184,7 @@ export default function Dashboard({ onLogout }) {
         />
 
         <main className="main-content">
-          {activeNav === 'qr-generator' ? (
-            <QRGenerator />
-          ) : (
-            <>
-              <div className="page-header">
-                <div className="page-header-text">
-                  <h1 className="page-title">Admin Dashboard</h1>
-                  <p className="page-subtitle">Welcome back! Manage your business operations</p>
-                </div>
-                
-                <div className="header-right">
-                  <div className="search-wrapper">
-                    <i className="bi bi-search search-icon"></i>
-                    <input
-                      type="text"
-                      className="search-input"
-                      placeholder="Search tasks or tables..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="header-icons">
-                    <Notification />
-                    <Menu 
-                      onLogout={onLogout}
-                      onProfile={() => handleNavChange('profile')}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <EmployeeStats />
-
-              <div className="employee-content-grid">
-                <div className="employee-left-column">
-                  <TaskList />
-                  <ActiveTables />
-                </div>
-
-                <div className="employee-right-column">
-                  <TodaySchedule />
-                  <QuickActions />
-                  <WeeklyPerformance />
-                </div>
-              </div>
-            </>
-          )}
+          {renderModule()}
         </main>
       </div>
     </>

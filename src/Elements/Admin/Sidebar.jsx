@@ -1,20 +1,24 @@
-
 const navItems = [
   { icon: "bi-speedometer2", label: "Dashboard", id: "dashboard" },
-  { icon: "bi-circle", label: "Pool Tables", id: "tables" },
-  { icon: "bi-calendar-check", label: "My Reservations", id: "reservations" },
+  { icon: "bi-circle", label: "Pool Tables", id: "pool-tables" },
+  { icon: "bi-calendar-check", label: "Reservations", id: "reservations" },
+  { icon: "bi-cart", label: "Sales / POS", id: "sales-pos" },
+  { icon: "bi-box", label: "Inventory", id: "inventory" },
+  { icon: "bi-trophy", label: "Events", id: "events" },
+  { icon: "bi-tools", label: "Equipment", id: "equipment" },
+  { icon: "bi-file-text", label: "Reports", id: "reports" },
+  { icon: "bi-list-check", label: "Audit Trail", id: "audit-trail" },
   { icon: "bi-qr-code", label: "QR Generator", id: "qr-generator" },
 ];
 
-
 export default function Sidebar({ activeNav, setActiveNav, onNavChange }) {
-const handleNavClick = (id) => {
-  if (onNavChange) {
-    onNavChange(id);
-  } else {
-    setActiveNav(id);
-  }
-};
+  const handleNavClick = (id) => {
+    if (onNavChange) {
+      onNavChange(id);
+    } else {
+      setActiveNav(id);
+    }
+  };
 
   return (
     <aside className="sidebar">
