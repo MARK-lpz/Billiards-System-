@@ -30,6 +30,18 @@
   gap: 8px;
   padding: 10px 20px;
   font-weight: 600;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reservations-add-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 /* Filter Tabs */
@@ -229,11 +241,59 @@
 .reservations-actions .btn {
   font-size: 12px;
   padding: 6px 12px;
-  font-weight: 600;
+  font-weight: 700;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.reservations-actions .btn-success {
+  background: #10b981;
+  color: #fff;
+  border: none;
+}
+
+.reservations-actions .btn-success:hover {
+  background: #059669;
+}
+
+.reservations-actions .btn-danger {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+}
+
+.reservations-actions .btn-danger:hover {
+  background: #dc2626;
+}
+
+.reservations-actions .btn-outline-secondary {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.reservations-actions .btn-outline-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f0f0f0;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.reservations-actions .btn-primary {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+}
+
+.reservations-actions .btn-primary:hover {
+  background: #2563eb;
 }
 
 /* Modal */
-
 .reservations-modal .modal-header {
   border-bottom-color: rgba(255, 255, 255, 0.1);
 }

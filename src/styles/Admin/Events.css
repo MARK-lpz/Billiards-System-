@@ -30,13 +30,32 @@
   gap: 8px;
   padding: 10px 20px;
   font-weight: 600;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-/* Stats Cards */
+.events-add-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Stats Cards - COMPACT 3 COLUMNS */
+.row.g-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
 .events-stat-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border-radius: 10px;
   transition: all 0.2s ease;
 }
 
@@ -47,45 +66,31 @@
 
 .events-stat-card .card-body {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
+  justify-content: center;
+  padding: 16px;
+  text-align: center;
 }
 
 .events-stat-value {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
+  margin-bottom: 4px;
 }
 
 .events-stat-label {
-  font-size: 13px;
+  font-size: 12px;
   color: #9ca3af;
 }
 
 /* Color Variants */
-.events-stat-blue {
-  border-color: rgba(96, 165, 250, 0.3);
-}
-
-.events-stat-blue .events-stat-value {
-  color: #60a5fa;
-}
-
-.events-stat-green {
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-.events-stat-green .events-stat-value {
-  color: #10b981;
-}
-
-.events-stat-yellow {
-  border-color: rgba(251, 191, 36, 0.3);
-}
-
-.events-stat-yellow .events-stat-value {
-  color: #fbbf24;
-}
+.events-stat-blue { border-color: rgba(96, 165, 250, 0.3); }
+.events-stat-blue .events-stat-value { color: #60a5fa; }
+.events-stat-green { border-color: rgba(16, 185, 129, 0.3); }
+.events-stat-green .events-stat-value { color: #10b981; }
+.events-stat-yellow { border-color: rgba(251, 191, 36, 0.3); }
+.events-stat-yellow .events-stat-value { color: #fbbf24; }
 
 /* Events List */
 .events-list {
@@ -99,6 +104,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   transition: all 0.2s ease;
+  padding: 20px;
 }
 
 .events-card:hover {
@@ -115,15 +121,22 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 16px;
+  gap: 16px;
+}
+
+.events-card-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .events-name {
   font-size: 18px;
   font-weight: 800;
   color: #f0f0f0;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
 .events-datetime {
@@ -132,27 +145,31 @@
   margin: 0;
   display: flex;
   align-items: center;
+  gap: 6px;
 }
 
 /* Status Badge */
+.events-badge-upcoming,
+.events-badge-completed {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+  padding: 6px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .events-badge-upcoming {
   background: rgba(96, 165, 250, 0.15);
   color: #60a5fa;
   border: 1px solid rgba(96, 165, 250, 0.3);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: capitalize;
-  padding: 4px 12px;
 }
 
 .events-badge-completed {
   background: rgba(16, 185, 129, 0.15);
   color: #10b981;
   border: 1px solid rgba(16, 185, 129, 0.3);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: capitalize;
-  padding: 4px 12px;
 }
 
 /* Event Info Grid */
@@ -165,6 +182,7 @@
 
 .events-info-box {
   background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   padding: 12px;
 }
@@ -174,7 +192,8 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   color: #6b7280;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  display: block;
 }
 
 .events-info-value {
@@ -198,6 +217,7 @@
   letter-spacing: 1px;
   color: #6b7280;
   margin-bottom: 8px;
+  display: block;
 }
 
 .events-participants-list {
@@ -227,18 +247,20 @@
 .events-participant-input {
   flex: 1;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: #f0f0f0;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: 13px;
+  transition: all 0.2s ease;
 }
 
 .events-participant-input:focus {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.08);
   border-color: #10b981;
   color: #f0f0f0;
-  box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.15);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  outline: none;
 }
 
 .events-participant-input::placeholder {
@@ -247,45 +269,43 @@
 
 .events-actions .btn {
   font-size: 13px;
-  padding: 8px 16px;
+  padding: 10px 18px;
   white-space: nowrap;
+  font-weight: 700;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-/* Modal */
-.events-modal {
-  background: #1a1d29;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.events-actions .btn-success {
+  background: #10b981;
+  color: #fff;
+  border: none;
 }
 
-.events-modal .modal-header {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
+.events-actions .btn-success:hover {
+  background: #059669;
 }
 
-.events-modal .modal-footer {
-  border-top-color: rgba(255, 255, 255, 0.1);
-}
-
-.events-modal .form-label {
+.events-actions .btn-outline-secondary {
+  background: transparent;
   color: #9ca3af;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.events-modal .form-control {
+.events-actions .btn-outline-secondary:hover {
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #f0f0f0;
-}
-
-.events-modal .form-control:focus {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: #10b981;
-  color: #f0f0f0;
-  box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+  .events-info-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .events-header {
     flex-direction: column;
@@ -295,6 +315,10 @@
   .events-add-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .row.g-3 {
+    grid-template-columns: 1fr;
   }
 
   .events-info-grid {

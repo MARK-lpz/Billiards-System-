@@ -1,9 +1,8 @@
-/* Pool Tables Container */
+/* Container & Header */
 .pool-tables-container {
   padding: 20px;
 }
 
-/* Header */
 .pool-tables-header {
   display: flex;
   justify-content: space-between;
@@ -30,6 +29,18 @@
   gap: 8px;
   padding: 10px 20px;
   font-weight: 600;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pool-tables-add-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 /* Stats Pills */
@@ -66,48 +77,24 @@
   font-size: 12px;
 }
 
-/* Color Variants */
-.pool-stat-green {
-  border-color: rgba(16, 185, 129, 0.3);
-}
+/* Stat Color Variants */
+.pool-stat-green { border-color: rgba(16, 185, 129, 0.3); }
+.pool-stat-green .pool-stat-dot { background: #10b981; }
+.pool-stat-green .pool-stat-value { color: #10b981; }
 
-.pool-stat-green .pool-stat-dot {
-  background: #10b981;
-}
+.pool-stat-red { border-color: rgba(239, 68, 68, 0.3); }
+.pool-stat-red .pool-stat-dot { background: #ef4444; }
+.pool-stat-red .pool-stat-value { color: #ef4444; }
 
-.pool-stat-green .pool-stat-value {
-  color: #10b981;
-}
-
-.pool-stat-red {
-  border-color: rgba(239, 68, 68, 0.3);
-}
-
-.pool-stat-red .pool-stat-dot {
-  background: #ef4444;
-}
-
-.pool-stat-red .pool-stat-value {
-  color: #ef4444;
-}
-
-.pool-stat-yellow {
-  border-color: rgba(251, 191, 36, 0.3);
-}
-
-.pool-stat-yellow .pool-stat-dot {
-  background: #fbbf24;
-}
-
-.pool-stat-yellow .pool-stat-value {
-  color: #fbbf24;
-}
+.pool-stat-yellow { border-color: rgba(251, 191, 36, 0.3); }
+.pool-stat-yellow .pool-stat-dot { background: #fbbf24; }
+.pool-stat-yellow .pool-stat-value { color: #fbbf24; }
 
 /* Tables Grid */
 .pool-tables-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
 }
 
 /* Table Card */
@@ -115,16 +102,18 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  padding: 18px;
+  padding: 20px;
   transition: all 0.2s ease;
 }
 
 .pool-table-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
 }
 
 .pool-table-available {
   border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.02);
 }
 
 .pool-table-occupied {
@@ -142,42 +131,45 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .pool-table-name {
   color: #f0f0f0;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .pool-table-rate {
   color: #6b7280;
-  font-size: 11px;
+  font-size: 12px;
 }
 
-/* Timer Section */
+/* Timer */
 .pool-table-timer-section {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .pool-table-timer {
   background: rgba(251, 191, 36, 0.12);
   border: 1px solid rgba(251, 191, 36, 0.3);
   border-radius: 6px;
-  padding: 4px 10px;
+  padding: 6px 12px;
   color: #fbbf24;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   font-family: 'Courier New', monospace;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .pool-table-charge {
   color: #10b981;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -185,8 +177,8 @@
 .pool-table-status {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
 .pool-status-dot {
@@ -195,54 +187,30 @@
   border-radius: 50%;
 }
 
-.pool-status-available {
-  background: #10b981;
-  box-shadow: 0 0 6px #10b981;
-}
-
-.pool-status-occupied {
-  background: #ef4444;
-  box-shadow: 0 0 6px #ef4444;
-  animation: pulse 2s infinite;
-}
-
-.pool-status-reserved {
-  background: #fbbf24;
-  box-shadow: 0 0 6px #fbbf24;
-}
-
-.pool-status-maintenance {
-  background: #60a5fa;
-  box-shadow: 0 0 6px #60a5fa;
-}
+.pool-status-available { background: #10b981; box-shadow: 0 0 6px #10b981; }
+.pool-status-occupied { background: #ef4444; box-shadow: 0 0 6px #ef4444; animation: pulse 2s infinite; }
+.pool-status-reserved { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+.pool-status-maintenance { background: #60a5fa; box-shadow: 0 0 6px #60a5fa; }
 
 .pool-status-text {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   text-transform: capitalize;
 }
 
-.pool-table-available .pool-status-text {
-  color: #10b981;
-}
-
-.pool-table-occupied .pool-status-text {
-  color: #ef4444;
-}
-
-.pool-table-reserved .pool-status-text {
-  color: #fbbf24;
-}
-
-.pool-table-maintenance .pool-status-text {
-  color: #60a5fa;
-}
+.pool-table-available .pool-status-text { color: #10b981; }
+.pool-table-occupied .pool-status-text { color: #ef4444; }
+.pool-table-reserved .pool-status-text { color: #fbbf24; }
+.pool-table-maintenance .pool-status-text { color: #60a5fa; }
 
 /* Customer */
 .pool-table-customer {
   color: #9ca3af;
-  font-size: 12px;
-  margin-bottom: 12px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Actions */
@@ -256,79 +224,104 @@
   flex: 1;
   font-size: 13px;
   font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 100px;
 }
 
-.pool-table-end-btn {
-  flex: 1 1 100% !important;
+/* Available Table - Reserve (Blue) & Walk-in (Green) */
+.pool-table-available .pool-table-actions .btn-success {
+  background: transparent !important;
+  color: #60a5fa !important;
+  border: 2px solid #60a5fa !important;
 }
 
-.pool-table-edit-btn {
-  flex: 0 0 auto !important;
-  padding: 6px 12px !important;
+.pool-table-available .pool-table-actions .btn-success:hover {
+  background: #60a5fa !important;
+  color: #fff !important;
+  border-color: #60a5fa !important;
 }
 
-.pool-table-maintenance-btn {
-  flex: 1 1 100% !important;
-  opacity: 0.7;
+.pool-table-available .pool-table-actions .btn-outline-success {
+  background: transparent !important;
+  color: #10b981 !important;
+  border: 2px solid #10b981 !important;
 }
 
-/* Pulse Animation */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+.pool-table-available .pool-table-actions .btn-outline-success:hover {
+  background: #10b981 !important;
+  color: #fff !important;
 }
 
-/* Modal */
-.pool-tables-modal {
-  background: #1a1d29;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* Reserved Table - Check In (Green) & Cancel (Red) */
+.pool-table-reserved .pool-table-actions .btn-warning {
+  background: transparent !important;
+  color: #10b981 !important;
+  border: 2px solid #10b981 !important;
 }
 
-.pool-tables-modal .modal-header {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
+.pool-table-reserved .pool-table-actions .btn-warning:hover {
+  background: #10b981 !important;
+  color: #fff !important;
 }
 
-.pool-tables-modal .modal-footer {
-  border-top-color: rgba(255, 255, 255, 0.1);
+.pool-table-reserved .pool-table-actions .btn-outline-danger {
+  background: transparent !important;
+  color: #ef4444 !important;
+  border: 2px solid #ef4444 !important;
 }
 
-.pool-tables-modal .form-label {
+.pool-table-reserved .pool-table-actions .btn-outline-danger:hover {
+  background: #ef4444 !important;
+  color: #fff !important;
+}
+
+/* Occupied Table - End Session (Solid Red) */
+.pool-table-occupied .pool-table-actions .btn-danger {
+  background: #ef4444 !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.pool-table-occupied .pool-table-actions .btn-danger:hover {
+  background: #dc2626 !important;
+}
+
+/* Edit Button */
+.pool-table-actions .btn-outline-secondary {
+  background: transparent;
   color: #9ca3af;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  min-width: auto;
 }
 
-.pool-tables-modal .form-control {
+.pool-table-actions .btn-outline-secondary:hover {
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #f0f0f0;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
-.pool-tables-modal .form-control:focus {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: #10b981;
-  color: #f0f0f0;
-  box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.15);
+.pool-table-end-btn { flex: 1 1 100% !important; }
+.pool-table-maintenance-btn { flex: 1 1 100% !important; opacity: 0.8; }
+
+/* Animation */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .pool-tables-header {
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .pool-tables-add-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .pool-tables-grid {
-    grid-template-columns: 1fr;
-  }
+  .pool-tables-header { flex-direction: column; gap: 16px; }
+  .pool-tables-add-btn { width: 100%; justify-content: center; }
+  .pool-tables-grid { grid-template-columns: 1fr; }
+  .pool-table-actions .btn { width: 100%; }
 }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import "../../styles/Admin/Reports.css";
 import DailyReport from "../../Elements/Admin/DailyReport";
 import MonthlyReport from "../../Elements/Admin/MonthlyReport";
-import ReservationReport from "../../Elements/Admin/ReservationReport";
+import ReservationReport from "../../Elements/Admin/ReservatioReport";
 import InventoryReport from "../../Elements/Admin/InventoryReport";
 
 export default function Reports({ transactions, reservations, products }) {

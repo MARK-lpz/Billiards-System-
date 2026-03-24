@@ -5,6 +5,7 @@ import EmployeeDashboard from './Pages/Employee/Employeedashboard'
 import TournamentQR from './Pages/Guest/tournament-qr'
 import TournamentForm from './Pages/Guest/billiards-form'
 import LoadingBar from './Elements/Global/Loading'
+import './styles/Modal.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
 
 function App() {

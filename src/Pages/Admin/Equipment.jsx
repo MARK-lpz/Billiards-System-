@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "../../styles/Admin/Equipment.css";
+import "../../styles/Admin/Equipments.css";
 import EquipmentModal from "../../Elements/Admin/EquipmentModal";
 
 export default function Equipment({ equipment, setEquipment }) {

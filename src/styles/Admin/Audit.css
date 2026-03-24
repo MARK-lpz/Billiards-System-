@@ -21,7 +21,15 @@
   margin: 0;
 }
 
-/* Stats Cards */
+/* Stats Cards - 4 COLUMNS */
+.audit-trail-container .row.g-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
 .audit-stat-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -52,54 +60,31 @@
 }
 
 .audit-stat-label {
-  font-size: 13px;
+  font-size: 12px;
   color: #9ca3af;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 /* Color Variants */
-.audit-stat-blue .audit-stat-icon {
-  color: #60a5fa;
-}
+.audit-stat-blue { border-color: rgba(96, 165, 250, 0.3); }
+.audit-stat-blue .audit-stat-icon,
+.audit-stat-blue .audit-stat-value { color: #60a5fa; }
 
-.audit-stat-yellow .audit-stat-icon {
-  color: #fbbf24;
-}
+.audit-stat-yellow { border-color: rgba(251, 191, 36, 0.3); }
+.audit-stat-yellow .audit-stat-icon,
+.audit-stat-yellow .audit-stat-value { color: #fbbf24; }
 
-.audit-stat-green .audit-stat-icon {
-  color: #10b981;
-}
-
-.audit-stat-blue .audit-stat-value {
-  color: #60a5fa;
-}
-
-.audit-stat-yellow .audit-stat-value {
-  color: #fbbf24;
-}
-
-.audit-stat-green .audit-stat-value {
-  color: #10b981;
-}
-
-.audit-stat-blue {
-  border-color: rgba(96, 165, 250, 0.2);
-}
-
-.audit-stat-yellow {
-  border-color: rgba(251, 191, 36, 0.2);
-}
-
-.audit-stat-green {
-  border-color: rgba(16, 185, 129, 0.2);
-}
+.audit-stat-green { border-color: rgba(16, 185, 129, 0.3); }
+.audit-stat-green .audit-stat-icon,
+.audit-stat-green .audit-stat-value { color: #10b981; }
 
 /* Activity Log Card */
 .audit-log-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
+  padding: 20px;
 }
 
 .audit-log-header {
@@ -122,18 +107,20 @@
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 13px 0;
-}
-
-.audit-log-item-border {
+  padding: 14px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.audit-log-item:last-child {
+  border-bottom: none;
+}
+
 .audit-log-time {
-  color: #9ca3af;
+  color: #6b7280;
   font-size: 11px;
   font-family: 'Courier New', monospace;
-  min-width: 78px;
+  min-width: 70px;
+  flex-shrink: 0;
   padding-top: 2px;
 }
 
@@ -146,10 +133,11 @@
 /* Badge */
 .audit-badge {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: capitalize;
   padding: 4px 10px;
   border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .audit-badge-auth {
@@ -182,43 +170,91 @@
   border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
+.audit-badge-other {
+  background: rgba(107, 114, 128, 0.15);
+  color: #9ca3af;
+  border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
 /* Log Content */
 .audit-log-content {
   flex: 1;
+  min-width: 0;
 }
 
 .audit-log-staff-action {
-  margin-bottom: 2px;
+  margin-bottom: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
 .audit-log-staff {
   color: #f0f0f0;
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: 700;
+  font-size: 14px;
 }
 
 .audit-log-action {
-  color: #6b7280;
+  color: #9ca3af;
   font-size: 13px;
 }
 
 .audit-log-detail {
-  color: #9ca3af;
+  color: #6b7280;
   font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Empty State */
+.audit-log-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+}
+
+.audit-log-empty i {
+  font-size: 48px;
+  margin-bottom: 12px;
+  display: block;
+  opacity: 0.3;
+}
+
+.audit-log-empty p {
+  margin: 0;
+  font-size: 14px;
 }
 
 /* Responsive */
+@media (max-width: 1200px) {
+  .audit-trail-container .row.g-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .audit-trail-title {
     font-size: 24px;
   }
+
+  .audit-trail-container .row.g-3 {
+    grid-template-columns: 1fr;
+  }
   
   .audit-log-item {
     flex-wrap: wrap;
+    gap: 8px;
   }
   
   .audit-log-time {
-    min-width: 100%;
+    width: 100%;
     margin-bottom: 4px;
+  }
+
+  .audit-log-staff-action {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import "../../styles/Admin/SalesPOS.css";
+import "../../styles/Admin/CartPanel.css";
+import "../../styles/Admin/RecentTransac.css";
 import ProductGrid from "../../Elements/Admin/ProductGrid";
 import CartPanel from "../../Elements/Admin/CartPanel";
 import ReceiptModal from "../../Elements/Admin/ReceiptModal";

@@ -29,6 +29,25 @@ export default function EventsModal({ form, setForm, tables = [], onClose, onSav
                 />
               </div>
 
+              {/* Game Type - NEW */}
+              <div className="mb-3">
+                <label className="form-label">Game Type</label>
+                <select 
+                  className="form-select" 
+                  value={form.gameType || '8-ball'} 
+                  onChange={e => setForm({ ...form, gameType: e.target.value })}
+                >
+                  <option value="8-ball">8-Ball</option>
+                  <option value="9-ball">9-Ball</option>
+                  <option value="10-ball">10-Ball</option>
+                  <option value="straight-pool">Straight Pool</option>
+                  <option value="one-pocket">One Pocket</option>
+                  <option value="bank-pool">Bank Pool</option>
+                  <option value="rotation">Rotation</option>
+                  <option value="cutthroat">Cutthroat</option>
+                </select>
+              </div>
+
               {/* Date & Time */}
               <div className="row g-3 mb-3">
                 <div className="col-6">
@@ -60,13 +79,14 @@ export default function EventsModal({ form, setForm, tables = [], onClose, onSav
                   value={form.prize} 
                   onChange={e => setForm({ ...form, prize: Number(e.target.value) })}
                   min="0"
+                  placeholder="10000"
                 />
               </div>
 
               {/* Table Assignment */}
               <div className="mb-3">
                 <label className="form-label">Assign Tables</label>
-                <div className="d-flex flex-wrap gap-2">
+                <div className="d-flex flex-wrap gap-3">
                   {tables.length > 0 ? (
                     tables.map((table) => {
                       const tableId = typeof table === 'object' ? table.id || table.name || table : table;

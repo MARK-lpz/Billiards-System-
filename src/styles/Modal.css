@@ -252,6 +252,33 @@
   transform: translateY(0);
 }
 
+/* Table Selection Buttons in Modals */
+/* Table Selection Buttons in Modals */
+.modal-content .btn-outline-secondary.btn-sm {
+  background: rgba(255, 255, 255, 0.05);
+  color: #9ca3af;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  margin-right: 8px; /* ← Horizontal spacing */
+  margin-bottom: 8px; /* ← Vertical spacing when wrapped */
+}
+
+.modal-content .btn-outline-secondary.btn-sm:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f0f0f0;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.modal-content .btn-outline-secondary.btn-sm.active {
+  background: #10b981;
+  color: #fff;
+  border-color: #10b981;
+}
+
 /* Receipt Modal Styles */
 .receipt-header {
   text-align: center;

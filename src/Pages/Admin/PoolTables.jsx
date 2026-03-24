@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "../../styles/Admin/PoolTables.css";
 import PoolTableStats from "../../Elements/Admin/PoolTableStats.jsx";
-import PoolTableCard from "../../Elements/Admin/PoolTableCard";
+import PoolTableCard from "../../Elements/Admin/PoolTableCards";
 import PoolTableModal from "../../Elements/Admin/PoolTableModal";
 import WalkInModal from "../../Elements/Admin/WalkInModal";
 

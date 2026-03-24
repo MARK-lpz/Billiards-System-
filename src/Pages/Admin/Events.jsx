@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "../../styles/Admin/Events.css";
 import EventsModal from "../../Elements/Admin/EventsModal";
-import EventsStats from "../../Elements/Admin/EventsStats";
+import EventsStats from "../../Elements/Admin/EventStats";
 import EventCard from "../../Elements/Admin/EventCard";
 
 export default function Events({ events, setEvents, tables }) {
