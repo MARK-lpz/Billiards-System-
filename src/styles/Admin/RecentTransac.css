@@ -1,0 +1,62 @@
+/* Recent Transactions */
+.recent-transactions-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  max-width: 360px;
+}
+
+.recent-transactions-card .card-body {
+  padding: 16px;
+}
+
+.recent-transactions-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.recent-transaction-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.recent-transaction-item:last-child {
+  border-bottom: none;
+}
+
+.recent-transaction-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.recent-transaction-id {
+  color: #f0f0f0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.recent-transaction-total {
+  color: #10b981;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.recent-transaction-items {
+  color: #6b7280;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .recent-transactions-card {
+    max-width: 100%;
+  }
+}
