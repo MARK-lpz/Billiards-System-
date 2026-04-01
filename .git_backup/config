@@ -1,0 +1,28 @@
+[core]
+	repositoryformatversion = 0
+	filemode = false
+	bare = false
+	logallrefupdates = true
+	symlinks = false
+	ignorecase = true
+[remote "origin"]
+	url = https://github.com/MARK-lpz/Billiards-System-.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+	vscode-merge-base = origin/main
+[branch "ui/dashboard"]
+	vscode-merge-base = origin/main
+	remote = origin
+	merge = refs/heads/ui/dashboard
+[branch "ui/employee-dashboard"]
+	vscode-merge-base = origin/ui/dashboard
+	remote = origin
+	merge = refs/heads/ui/employee-dashboard
+[branch "ui/guest"]
+	vscode-merge-base = origin/ui/employee-dashboard
+[branch "ui/module-admin"]
+	vscode-merge-base = origin/main
+	remote = origin
+	merge = refs/heads/ui/module-admin

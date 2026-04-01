@@ -1,0 +1,42 @@
+0000000000000000000000000000000000000000 cdb9e794fc2976a62062f1b46041caee8000c67f Mark <markzepol15@gmail.com> 1771248698 +0800	commit (initial): Login Page
+cdb9e794fc2976a62062f1b46041caee8000c67f 0000000000000000000000000000000000000000 Mark <markzepol15@gmail.com> 1771248773 +0800	Branch: renamed refs/heads/main to refs/heads/main
+cdb9e794fc2976a62062f1b46041caee8000c67f cdb9e794fc2976a62062f1b46041caee8000c67f Mark <markzepol15@gmail.com> 1771248773 +0800	Branch: renamed refs/heads/main to refs/heads/main
+cdb9e794fc2976a62062f1b46041caee8000c67f 0000000000000000000000000000000000000000 Mark <markzepol15@gmail.com> 1771248955 +0800	Branch: renamed refs/heads/main to refs/heads/main
+cdb9e794fc2976a62062f1b46041caee8000c67f cdb9e794fc2976a62062f1b46041caee8000c67f Mark <markzepol15@gmail.com> 1771248955 +0800	Branch: renamed refs/heads/main to refs/heads/main
+cdb9e794fc2976a62062f1b46041caee8000c67f cdb9e794fc2976a62062f1b46041caee8000c67f Mark <markzepol15@gmail.com> 1771540163 +0800	checkout: moving from main to ui/dashboard
+cdb9e794fc2976a62062f1b46041caee8000c67f dd34b85f6905c180346db2979b4fa710ade32f33 Mark <markzepol15@gmail.com> 1771540221 +0800	commit: dashboard
+dd34b85f6905c180346db2979b4fa710ade32f33 486cf9768c497f3d9797fa66000bf2ed4581d65e Mark <markzepol15@gmail.com> 1772263755 +0800	commit: Updated login and dashboard
+486cf9768c497f3d9797fa66000bf2ed4581d65e 8d39183c6e8836330abc536a45d58e72824b7962 Mark <markzepol15@gmail.com> 1772438515 +0800	commit: new file paths
+8d39183c6e8836330abc536a45d58e72824b7962 3a05bcf1dc70571e2b4b551e0922545a7ae34129 Mark <markzepol15@gmail.com> 1772439692 +0800	commit: backend
+3a05bcf1dc70571e2b4b551e0922545a7ae34129 392530635f4bdcb9e46fd636240342530a53e219 Mark <markzepol15@gmail.com> 1772552508 +0800	pull origin ui/dashboard: Fast-forward
+392530635f4bdcb9e46fd636240342530a53e219 392530635f4bdcb9e46fd636240342530a53e219 Mark <markzepol15@gmail.com> 1772857837 +0800	checkout: moving from ui/dashboard to ui/employee-dashboard
+392530635f4bdcb9e46fd636240342530a53e219 34027ca33f71cc472a5005085e9f88353db35a28 Mark <markzepol15@gmail.com> 1772857953 +0800	commit: EmployeeDashboard
+34027ca33f71cc472a5005085e9f88353db35a28 990f18f434c7a85b38f95394620bce9cd1a1e35c Mark <markzepol15@gmail.com> 1772955459 +0800	commit: Wala to
+990f18f434c7a85b38f95394620bce9cd1a1e35c cdb9e794fc2976a62062f1b46041caee8000c67f Mark <markzepol15@gmail.com> 1772955684 +0800	checkout: moving from ui/employee-dashboard to main
+cdb9e794fc2976a62062f1b46041caee8000c67f 990f18f434c7a85b38f95394620bce9cd1a1e35c Mark <markzepol15@gmail.com> 1772955931 +0800	checkout: moving from main to ui/employee-dashboard
+990f18f434c7a85b38f95394620bce9cd1a1e35c c91513ae7cb5c4357eb499b2f5daa9bd7feec354 Mark <markzepol15@gmail.com> 1772956366 +0800	commit (merge): Merge branch 'ui/employee-dashboard' of https://github.com/MARK-lpz/Billiards-System- into ui/employee-dashboard
+c91513ae7cb5c4357eb499b2f5daa9bd7feec354 c91513ae7cb5c4357eb499b2f5daa9bd7feec354 Mark <markzepol15@gmail.com> 1774015966 +0800	checkout: moving from ui/employee-dashboard to ui/guest
+c91513ae7cb5c4357eb499b2f5daa9bd7feec354 c9c37f91a9d0265b0fc05bb83c9f058034492c61 Mark <markzepol15@gmail.com> 1774018273 +0800	commit: New paths and ui/guest
+c9c37f91a9d0265b0fc05bb83c9f058034492c61 c9c37f91a9d0265b0fc05bb83c9f058034492c61 Mark <markzepol15@gmail.com> 1774350709 +0800	reset: moving to HEAD
+c9c37f91a9d0265b0fc05bb83c9f058034492c61 76f358a99f31bc17630c66f6b610e0a8ad4b44a3 Mark <markzepol15@gmail.com> 1774350734 +0800	checkout: moving from ui/guest to ui/modules-admin
+76f358a99f31bc17630c66f6b610e0a8ad4b44a3 76f358a99f31bc17630c66f6b610e0a8ad4b44a3 Mark <markzepol15@gmail.com> 1774351178 +0800	reset: moving to HEAD
+76f358a99f31bc17630c66f6b610e0a8ad4b44a3 cdb9e794fc2976a62062f1b46041caee8000c67f Mark <markzepol15@gmail.com> 1774351237 +0800	checkout: moving from ui/modules-admin to main
+cdb9e794fc2976a62062f1b46041caee8000c67f cdb9e794fc2976a62062f1b46041caee8000c67f Mark <markzepol15@gmail.com> 1774351321 +0800	reset: moving to HEAD
+cdb9e794fc2976a62062f1b46041caee8000c67f c9c37f91a9d0265b0fc05bb83c9f058034492c61 Mark <markzepol15@gmail.com> 1774351343 +0800	checkout: moving from main to ui/guest
+c9c37f91a9d0265b0fc05bb83c9f058034492c61 c9c37f91a9d0265b0fc05bb83c9f058034492c61 Mark <markzepol15@gmail.com> 1774351488 +0800	reset: moving to HEAD
+c9c37f91a9d0265b0fc05bb83c9f058034492c61 c9c37f91a9d0265b0fc05bb83c9f058034492c61 Mark <markzepol15@gmail.com> 1774351542 +0800	reset: moving to HEAD
+c9c37f91a9d0265b0fc05bb83c9f058034492c61 2bde74dc228aec74096827389ab546bc0d0db592 Mark <markzepol15@gmail.com> 1774353948 +0800	commit: Complete admin dashboard and related components, pages, and styles.
+2bde74dc228aec74096827389ab546bc0d0db592 02f8e39fee2b9d7576db750b9103bc8c6605b444 Mark <markzepol15@gmail.com> 1774354011 +0800	commit: Complete
+02f8e39fee2b9d7576db750b9103bc8c6605b444 02f8e39fee2b9d7576db750b9103bc8c6605b444 Mark <markzepol15@gmail.com> 1774393976 +0800	reset: moving to HEAD
+02f8e39fee2b9d7576db750b9103bc8c6605b444 76f358a99f31bc17630c66f6b610e0a8ad4b44a3 Mark <markzepol15@gmail.com> 1774394015 +0800	checkout: moving from ui/guest to ui/modules-admin
+76f358a99f31bc17630c66f6b610e0a8ad4b44a3 02f8e39fee2b9d7576db750b9103bc8c6605b444 Mark <markzepol15@gmail.com> 1774394068 +0800	checkout: moving from ui/modules-admin to ui/guest
+02f8e39fee2b9d7576db750b9103bc8c6605b444 cdb9e794fc2976a62062f1b46041caee8000c67f Mark <markzepol15@gmail.com> 1774394083 +0800	checkout: moving from ui/guest to main
+cdb9e794fc2976a62062f1b46041caee8000c67f 02f8e39fee2b9d7576db750b9103bc8c6605b444 Mark <markzepol15@gmail.com> 1774394136 +0800	checkout: moving from main to ui/guest
+02f8e39fee2b9d7576db750b9103bc8c6605b444 02f8e39fee2b9d7576db750b9103bc8c6605b444 Mark <markzepol15@gmail.com> 1774495526 +0800	reset: moving to HEAD
+02f8e39fee2b9d7576db750b9103bc8c6605b444 02f8e39fee2b9d7576db750b9103bc8c6605b444 Mark <markzepol15@gmail.com> 1774495583 +0800	reset: moving to HEAD
+02f8e39fee2b9d7576db750b9103bc8c6605b444 76f358a99f31bc17630c66f6b610e0a8ad4b44a3 Mark <markzepol15@gmail.com> 1774495628 +0800	checkout: moving from ui/guest to ui/modules-admin
+76f358a99f31bc17630c66f6b610e0a8ad4b44a3 91f3c4ecfbadac0a127eb463744989d0808bbde7 Mark <markzepol15@gmail.com> 1774495686 +0800	pull origin ui/modules-admin: Fast-forward
+91f3c4ecfbadac0a127eb463744989d0808bbde7 02f8e39fee2b9d7576db750b9103bc8c6605b444 Mark <markzepol15@gmail.com> 1774495711 +0800	checkout: moving from ui/modules-admin to ui/guest
+02f8e39fee2b9d7576db750b9103bc8c6605b444 02f8e39fee2b9d7576db750b9103bc8c6605b444 Mark <markzepol15@gmail.com> 1774496151 +0800	checkout: moving from ui/guest to ui/module-admin
+02f8e39fee2b9d7576db750b9103bc8c6605b444 4ea06b2c5878449c3b91bbe88889a1e927224dc5 Mark <markzepol15@gmail.com> 1774676933 +0800	commit: Updated
+4ea06b2c5878449c3b91bbe88889a1e927224dc5 810bfbd76ba03164c3bb34bc3e04e759f8f7b441 Mark <markzepol15@gmail.com> 1774677435 +0800	pull origin ui/module-admin: Fast-forward
