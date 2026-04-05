@@ -1,25 +1,54 @@
-/* ─── Tablet (≤768px) ─────────────────────────────────────── */
-@media (max-width: 768px) {
-  .qr-container {
-    padding: 16px 12px;
-    height: auto;
-    min-height: 100vh;
-    min-height: 100dvh;
-  }
+/* ─── QR Base Fixes ──────────────────────────────────────── */
+.qr-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: auto !important;
+  max-height: none !important;
+  padding: 20px 16px;
+  overflow-y: auto !important;
+}
 
+.qr-container.guest-view {
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: auto !important;
+  padding: 32px 16px;
+  overflow-y: auto !important;
+}
+
+.qr-wrapper {
+  width: 100%;
+  max-width: 480px;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.qr-glow {
+  max-width: 100%;
+  height: auto !important;
+}
+
+/* ─── Tablet (≤1024px) ───────────────────────────────────── */
+@media (max-width: 1024px) {
+  .qr-wrapper {
+    max-width: 420px;
+  }
+}
+
+/* ─── Tablet (≤768px) ────────────────────────────────────── */
+@media (max-width: 768px) {
+  .qr-container,
   .qr-container.guest-view {
-    padding: 24px 12px;
+    padding: 20px 12px;
     align-items: flex-start;
   }
 
   .qr-wrapper {
     max-width: 100%;
-    max-height: none;
-    overflow: visible;
   }
 
   .qr-card {
-    padding: clamp(16px, 4vw, 24px);
+    padding: clamp(14px, 4vw, 24px);
     border-radius: 14px;
   }
 
@@ -42,32 +71,22 @@
 
   .qr-glow {
     width: 100% !important;
-    height: auto !important;
     max-width: 240px;
   }
 
   .qr-scan-label {
-    margin-bottom: 14px;
     font-size: 11px;
-  }
-
-  .qr-section {
     margin-bottom: 14px;
   }
 
-  .qr-size-buttons {
-    flex-wrap: wrap;
-  }
+  .qr-section { margin-bottom: 14px; }
+
+  .qr-size-buttons { flex-wrap: wrap; }
 
   .size-btn {
     flex: 1;
     text-align: center;
     padding: 6px 10px;
-  }
-
-  .qr-input-wrapper {
-    flex-direction: row;
-    gap: 6px;
   }
 
   .url-input {
@@ -79,11 +98,6 @@
     padding: 9px 12px;
     font-size: 11px;
     white-space: nowrap;
-  }
-
-  .qr-actions {
-    flex-direction: row;
-    gap: 8px;
   }
 
   .action-btn {
@@ -103,24 +117,19 @@
   }
 }
 
-/* ─── Mobile (≤480px) ─────────────────────────────────────── */
+/* ─── Mobile (≤480px) ────────────────────────────────────── */
 @media (max-width: 480px) {
-  .qr-container {
-    padding: 12px 10px;
-  }
-
+  .qr-container,
   .qr-container.guest-view {
-    padding: 20px 10px;
+    padding: 16px 10px;
   }
 
   .qr-card {
-    padding: 16px;
+    padding: 14px;
     border-radius: 12px;
   }
 
-  .qr-header {
-    margin-bottom: 16px;
-  }
+  .qr-header { margin-bottom: 16px; }
 
   .qr-header-logo {
     width: 75px;
@@ -132,13 +141,9 @@
     letter-spacing: 0.15em;
   }
 
-  .qr-header-est {
-    font-size: 10px;
-  }
+  .qr-header-est { font-size: 10px; }
 
-  .qr-glow {
-    max-width: 200px;
-  }
+  .qr-glow { max-width: 200px; }
 
   .qr-display-box {
     padding: 10px;
@@ -151,9 +156,7 @@
     margin-bottom: 12px;
   }
 
-  .qr-section-label {
-    font-size: 10px;
-  }
+  .qr-section-label { font-size: 10px; }
 
   .size-btn {
     font-size: 11px;
@@ -200,54 +203,11 @@
     height: 60px;
   }
 
-  .qr-glow {
-    max-width: 170px;
-  }
+  .qr-glow { max-width: 170px; }
 
-  .qr-actions {
-    flex-direction: column;
-  }
+  .qr-actions { flex-direction: column; }
+  .action-btn { width: 100%; }
 
-  .action-btn {
-    width: 100%;
-  }
-
-  .qr-input-wrapper {
-    flex-direction: column;
-  }
-
-  .apply-btn {
-    width: 100%;
-  }
-}
-
-/* ─── QrActions responsive fixes ─────────────────────────── */
-@media (max-width: 480px) {
-  .qr-actions {
-    gap: 8px;
-  }
-
-  .action-btn {
-    padding: 10px 8px;
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    border-radius: 6px;
-  }
-
-  .action-btn i {
-    margin-right: 4px;
-  }
-}
-
-@media (max-width: 360px) {
-  .qr-actions {
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .action-btn {
-    width: 100%;
-    padding: 10px;
-    font-size: 10px;
-  }
+  .qr-input-wrapper { flex-direction: column; }
+  .apply-btn { width: 100%; }
 }
