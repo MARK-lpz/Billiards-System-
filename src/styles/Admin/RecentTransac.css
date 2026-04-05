@@ -54,6 +54,8 @@
   white-space: nowrap;
 }
 
+
+
 /* Responsive */
 @media (max-width: 1024px) {
   .recent-transactions-card {

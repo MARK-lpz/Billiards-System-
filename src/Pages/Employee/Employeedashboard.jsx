@@ -7,31 +7,9 @@ import Notification from "../../Elements/Global/Notification";
 import LoadingBar from "../../Elements/Global/Loading";
 import Menu from "../../Elements/Global/Menu";
 
-const initialTables = [
-  { id: 1, status: "available", rate: 15, startTime: null },
-  { id: 2, status: "occupied", rate: 15, startTime: Date.now() - 2700000 },
-  { id: 3, status: "available", rate: 15, startTime: null },
-  { id: 4, status: "reserved", rate: 15, startTime: null },
-  { id: 5, status: "available", rate: 15, startTime: null },
-  { id: 6, status: "occupied", rate: 15, startTime: Date.now() - 4800000 },
-  { id: 7, status: "available", rate: 15, startTime: null },
-  { id: 8, status: "available", rate: 15, startTime: null },
-  { id: 9, status: "occupied", rate: 15, startTime: Date.now() - 1800000 },
-  { id: 10, status: "available", rate: 15, startTime: null },
-  { id: 11, status: "reserved", rate: 15, startTime: null },
-  { id: 12, status: "available", rate: 15, startTime: null },
-];
-
-const notifications = [
-  { id: 1, message: "Your shift starts in 30 minutes", time: "5 min ago", unread: true },
-  { id: 2, message: "Table 3 needs cleaning", time: "15 min ago", unread: true },
-  { id: 3, message: "Break time scheduled", time: "1 hour ago", unread: false },
-];
-
-export default function EmployeeDashboard({ onLogout }) {
+export default function EmployeeDashboard({ onLogout, tables, setTables, setLogs, theme, setTheme }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [search, setSearch] = useState("");
-  const [tables, setTables] = useState(initialTables);
   const [timers, setTimers] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -69,11 +47,45 @@ export default function EmployeeDashboard({ onLogout }) {
     `table ${t.id} ${t.status}`.toLowerCase().includes(search.toLowerCase())
   );
 
+  const getTableLabel = (table) => table?.name || `T${table?.id}`;
+
+  const addLog = (entry) => {
+    setLogs((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+        type: 'table',
+        staff: 'Employee',
+        ...entry,
+      },
+    ]);
+  };
+
   const updateTable = (id, updates) =>
     setTables((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
 
-  const handleReserve = (id) => updateTable(id, { status: "reserved", startTime: null });
-  const handleWalkIn = (id) => updateTable(id, { status: "occupied", startTime: Date.now() });
+  const handleReserve = (id) => {
+    const table = tables.find((t) => t.id === id);
+    updateTable(id, { status: "reserved", startTime: null });
+    if (table) {
+      addLog({
+        action: "Reserved table",
+        detail: `${getTableLabel(table)} reserved by employee`,
+      });
+    }
+  };
+
+  const handleWalkIn = (id) => {
+    const table = tables.find((t) => t.id === id);
+    updateTable(id, { status: "occupied", startTime: Date.now(), customer: "Walk-in Customer" });
+    if (table) {
+      addLog({
+        action: "Started walk-in session",
+        detail: `Walk-in started for ${getTableLabel(table)}`,
+      });
+    }
+  };
 
   const handleEndSession = (id) => {
     const table = tables.find((t) => t.id === id);
@@ -81,14 +93,27 @@ export default function EmployeeDashboard({ onLogout }) {
       const hours = Math.ceil((Date.now() - table.startTime) / 3600000);
       const cost = hours * table.rate;
       if (window.confirm(`Session: ${timers[id]}\nTotal: $${cost}\n\nEnd session?`)) {
-        updateTable(id, { status: "available", startTime: null });
+        updateTable(id, { status: "available", startTime: null, customer: "" });
+        if (table) {
+          addLog({
+            action: "Ended session",
+            detail: `Ended session for ${getTableLabel(table)} (₱${cost})`,
+          });
+        }
       }
     }
   };
 
   const handleCancel = (id) => {
+    const table = tables.find((t) => t.id === id);
     if (window.confirm("Cancel reservation?")) {
-      updateTable(id, { status: "available", startTime: null });
+      updateTable(id, { status: "available", startTime: null, customer: "" });
+      if (table) {
+        addLog({
+          action: "Cancelled reservation",
+          detail: `Cancelled reservation for ${getTableLabel(table)}`,
+        });
+      }
     }
   };
 
@@ -122,7 +147,14 @@ export default function EmployeeDashboard({ onLogout }) {
               </div>
 
               <div className="header-icons">
-                <Notification notifications={notifications} />
+                <button
+                  type="button"
+                  className="theme-toggle-btn"
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                >
+                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                </button>
+                <Notification />
                 <Menu 
                   onLogout={onLogout}
                   onProfile={() => handleNavChange('profile')}

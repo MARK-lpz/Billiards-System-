@@ -9,7 +9,7 @@ export default function TableCard({ table, timer, onReserve, onWalkIn, onEndSess
   return (
     <div className={classes.card}>
       <div className="table-card-header">
-        <h3 className="table-name">Table {table.id}</h3>
+        <h3 className="table-name">{table.name || 'Table'}</h3>
         <div className="table-rate-wrapper">
           <i className="bi bi-currency-dollar rate-icon"></i>
           <span className="table-rate">${table.rate}/hr</span>

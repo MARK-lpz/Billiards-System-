@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 export default function PoolTableCard({ 
   table, 
   onReserve, 
@@ -5,14 +7,24 @@ export default function PoolTableCard({
   onEndSession, 
   onCheckIn, 
   onCancelReserve, 
-  onEdit 
+  onEdit,
+  onDelete 
 }) {
   const isOccupied = table.status === "occupied";
   const isReserved = table.status === "reserved";
   const isAvailable = table.status === "available";
   const isMaintenance = table.status === "maintenance";
 
-  const charge = table.timer > 0 ? ((table.timer / 3600) * table.rate).toFixed(2) : "0.00";
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!table.startTime || !isOccupied) return;
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [table.startTime, isOccupied]);
+
+  const elapsedSeconds = table.startTime ? Math.max(0, Math.floor((now - table.startTime) / 1000)) : 0;
+  const charge = elapsedSeconds > 0 ? ((elapsedSeconds / 3600) * table.rate).toFixed(2) : "0.00";
 
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
@@ -34,7 +46,7 @@ export default function PoolTableCard({
         <div className="pool-table-timer-section">
           <div className="pool-table-timer">
             <i className="bi bi-clock me-2"></i>
-            {formatTime(table.timer)}
+            {formatTime(elapsedSeconds)}
           </div>
           <div className="pool-table-charge">₱{parseFloat(charge).toLocaleString()}</div>
         </div>
@@ -99,6 +111,11 @@ export default function PoolTableCard({
         <button className="btn btn-sm btn-outline-secondary pool-table-edit-btn" onClick={onEdit}>
           <i className="bi bi-pencil"></i>
         </button>
+        {onDelete && (
+          <button className="btn btn-sm btn-outline-secondary pool-table-delete-btn" onClick={onDelete}>
+            <i className="bi bi-trash"></i>
+          </button>
+        )}
       </div>
     </div>
   );

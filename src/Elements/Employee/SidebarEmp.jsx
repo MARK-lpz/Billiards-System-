@@ -21,6 +21,7 @@ export default function Sidebar({ activeNav, setActiveNav, onNavChange }) {
         <div className="sidebar-logo-text">
           <span className="sidebar-brand">BREAK &amp; CHILL</span>
           <span className="sidebar-sub">Billiard Hall</span>
+          <span className="sidebar-sub">Employee Panel </span>  
         </div>
       </div>
 

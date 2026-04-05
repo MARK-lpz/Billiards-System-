@@ -218,13 +218,15 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .pool-table-actions .btn {
-  flex: 1;
+  flex: 0 0 auto;
   font-size: 13px;
   font-weight: 700;
-  padding: 10px 16px;
+  padding: 8px 14px;
   border-radius: 8px;
   transition: all 0.2s ease;
   cursor: pointer;
@@ -232,7 +234,21 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 100px;
+  width: auto;
+  min-width: 0;
+  max-width: 180px;
+}
+
+.pool-table-edit-btn,
+.pool-table-delete-btn {
+  flex: 0 0 auto;
+  min-width: 0;
+  width: auto;
+  padding: 8px 12px;
+}
+
+.pool-table-delete-btn {
+  padding: 10px 12px;
 }
 
 /* Available Table - Reserve (Blue) & Walk-in (Green) */
@@ -241,6 +257,8 @@
   color: #60a5fa !important;
   border: 2px solid #60a5fa !important;
 }
+
+
 
 .pool-table-available .pool-table-actions .btn-success:hover {
   background: #60a5fa !important;

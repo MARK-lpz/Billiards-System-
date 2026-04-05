@@ -282,6 +282,108 @@
 .btn-cancel:hover { background: rgba(239, 68, 68, 0.1); }
 .btn-disabled { background: rgba(71, 85, 105, 0.3) !important; color: #475569 !important; border-color: transparent !important; cursor: not-allowed; box-shadow: none !important; }
 
+.active-tables-card {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  border-radius: 16px;
+  padding: 1.5rem;
+  cursor: pointer;
+}
+
+.active-tables-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.active-tables-card .active-tables-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.active-tables-card .card-title {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.active-tables-card .badge {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.active-tables-card .active-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.active-tables-card .mini-table-card {
+  padding: 1rem;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  transition: transform 0.2s ease;
+}
+
+.active-tables-card .mini-table-card:hover { transform: translateY(-2px); }
+
+.active-tables-card .mini-table-card.occupied {
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.active-tables-card .mini-table-card.available {
+  background: rgba(74, 222, 128, 0.15);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.active-tables-card .mini-table-card.reserved {
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.active-tables-card .table-number {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.active-tables-card .table-status {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.active-tables-card .active-table-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
 @media (max-width: 1024px) {
   .tables-grid { grid-template-columns: repeat(2, 1fr); }
   .stat-cards { grid-template-columns: repeat(3, 1fr); }

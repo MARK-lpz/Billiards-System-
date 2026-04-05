@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "../../styles/Admin/PoolTables.css";
 import PoolTableStats from "../../Elements/Admin/PoolTableStats.jsx";
 import PoolTableCard from "../../Elements/Admin/PoolTableCards";
@@ -11,20 +11,10 @@ export default function PoolTables({ tables, setTables }) {
   const [editId, setEditId] = useState(null);
   const [walkIn, setWalkIn] = useState({ tableId: null, customer: "" });
 
-  // Timer effect - increments every second for running tables
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTables(prev => prev.map(t => 
-        t.running ? { ...t, timer: t.timer + 1 } : t
-      ));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [setTables]);
-
   const startWalkIn = () => {
     const customer = walkIn.customer || "Walk-in Customer";
     setTables(prev => prev.map(t =>
-      t.id === walkIn.tableId ? { ...t, status: "occupied", running: true, customer } : t
+      t.id === walkIn.tableId ? { ...t, status: "occupied", startTime: Date.now(), customer } : t
     ));
     setModal(null);
     setWalkIn({ tableId: null, customer: "" });
@@ -32,26 +22,32 @@ export default function PoolTables({ tables, setTables }) {
 
   const endSession = (id) => {
     setTables(prev => prev.map(t =>
-      t.id === id ? { ...t, running: false, timer: 0, status: "available", customer: "" } : t
+      t.id === id ? { ...t, status: "available", startTime: null, customer: "" } : t
     ));
   };
 
   const reserve = (id) => {
     setTables(prev => prev.map(t => 
-      t.id === id ? { ...t, status: "reserved" } : t
+      t.id === id ? { ...t, status: "reserved", startTime: null } : t
     ));
   };
 
   const checkIn = (id) => {
     setTables(prev => prev.map(t => 
-      t.id === id ? { ...t, status: "occupied", running: true } : t
+      t.id === id ? { ...t, status: "occupied", startTime: Date.now() } : t
     ));
   };
 
   const cancelReserve = (id) => {
     setTables(prev => prev.map(t => 
-      t.id === id ? { ...t, status: "available" } : t
+      t.id === id ? { ...t, status: "available", startTime: null, customer: "" } : t
     ));
+  };
+
+  const deleteTable = (id) => {
+    if (window.confirm("Delete this table?")) {
+      setTables(prev => prev.filter(t => t.id !== id));
+    }
   };
 
   const openWalkInModal = (tableId) => {
@@ -81,8 +77,7 @@ export default function PoolTables({ tables, setTables }) {
         id: Date.now(), 
         ...form, 
         status: "available", 
-        timer: 0, 
-        running: false, 
+        startTime: null, 
         customer: "" 
       }]);
     }
@@ -126,6 +121,7 @@ export default function PoolTables({ tables, setTables }) {
             onCheckIn={() => checkIn(table.id)}
             onCancelReserve={() => cancelReserve(table.id)}
             onEdit={() => openEditModal(table)}
+            onDelete={() => deleteTable(table.id)}
           />
         ))}
       </div>

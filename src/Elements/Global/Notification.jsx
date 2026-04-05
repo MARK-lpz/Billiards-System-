@@ -3,9 +3,10 @@ import "../../styles/Notification.css";
 import { useNotifications } from "./useNotifications";
 
 
-export default function Notification() {
+export default function Notification({ notifications: externalNotifications }) {
   const [show, setShow] = useState(false);
-  const { notifications, markAllAsRead, markAsRead, deleteNotification } = useNotifications();
+  const { notifications: contextNotifications, markAllAsRead, markAsRead, deleteNotification } = useNotifications();
+  const notifications = externalNotifications || contextNotifications;
 
   const unreadCount = notifications.filter(n => n.unread).length;
 

@@ -226,6 +226,8 @@
   font-size: 14px;
 }
 
+
+
 /* Responsive */
 @media (max-width: 1200px) {
   .audit-trail-container .row.g-3 {

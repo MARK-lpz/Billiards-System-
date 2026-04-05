@@ -92,3 +92,17 @@
   max-width: 60%;
   text-align: right;
 }
+
+.light .success-details {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+.light .detail-row {
+  border-color: #e2e8f0;
+}
+.light .detail-label {
+  color: #475569;
+}
+.light .detail-value {
+  color: #0f172a;
+}

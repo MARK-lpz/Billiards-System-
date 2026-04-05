@@ -30,7 +30,7 @@ import Events from "./Events";
 import Equipment from "./Equipment";
 import AuditTrail from "./AuditTrail";
 
-export default function Dashboard({ onLogout }) {
+export default function Dashboard({ onLogout, tables, setTables, logs, theme, setTheme }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,14 +48,6 @@ export default function Dashboard({ onLogout }) {
   const [equipment, setEquipment] = useState([
     { id: 1, name: "Cue Stick #1", type: "Cue Stick", condition: "good", lastMaintenance: "2026-03-01", status: "active" },
     { id: 2, name: "Ball Set #1", type: "Ball Set", condition: "fair", lastMaintenance: "2026-02-15", status: "active" },
-  ]);
-  const [tables, setTables] = useState([
-    { id: 1, name: "Table 1", rate: 15, status: "available", timer: 0, running: false, customer: "" },
-    { id: 2, name: "Table 2", rate: 15, status: "occupied", timer: 3600, running: true, customer: "John Doe" },
-  ]);
-  const [logs] = useState([
-    { id: 1, time: "14:32:05", type: "auth", staff: "Admin", action: "logged in", detail: "Successful login from 192.168.1.1" },
-    { id: 2, time: "14:35:12", type: "sale", staff: "Staff A", action: "processed sale", detail: "Transaction #12345 - ₱150.00" },
   ]);
 
   const handleNavChange = (navId) => {
@@ -145,6 +137,13 @@ export default function Dashboard({ onLogout }) {
                 </div>
 
                 <div className="header-icons">
+                  <button
+                    type="button"
+                    className="theme-toggle-btn"
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  >
+                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                  </button>
                   <Notification />
                   <Menu 
                     onLogout={onLogout}
@@ -159,7 +158,7 @@ export default function Dashboard({ onLogout }) {
             <div className="employee-content-grid">
               <div className="employee-left-column">
                 <TaskList />
-                <ActiveTables />
+                <ActiveTables tables={tables} onViewPoolTables={() => handleNavChange('pool-tables')} />
               </div>
 
               <div className="employee-right-column">

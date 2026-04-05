@@ -2,11 +2,7 @@ import { useState, useEffect } from 'react';
 import { NotificationContext } from './NotificationContext';
 
 export function NotificationProvider({ children }) {
-  const [notifications, setNotifications] = useState([
-    { id: 1, message: "New reservation request", time: "2 min ago", unread: true },
-    { id: 2, message: "Table 2 session ended", time: "10 min ago", unread: true },
-    { id: 3, message: "Payment received for Table 8", time: "1 hour ago", unread: false },
-  ]);
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     const loadNotifications = () => {
