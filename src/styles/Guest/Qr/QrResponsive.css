@@ -211,3 +211,65 @@
   .qr-input-wrapper { flex-direction: column; }
   .apply-btn { width: 100%; }
 }
+
+/* ─── 1366x768 Laptop Screen ─────────────────────────────── */
+@media (max-width: 1366px) and (max-height: 768px) {
+  .qr-container {
+    padding: 12px 16px;
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
+  .qr-container.guest-view {
+    padding: 16px;
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
+  .qr-wrapper {
+    max-width: 420px;
+  }
+
+  .qr-header {
+    margin-bottom: 16px;
+  }
+
+  .qr-header-logo {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 6px;
+  }
+
+  .qr-card {
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .qr-display-wrapper {
+    margin-bottom: 14px;
+  }
+
+  .qr-glow {
+    max-width: 220px;
+  }
+
+  .qr-scan-label {
+    margin-bottom: 12px;
+    font-size: 11px;
+  }
+
+  .qr-section {
+    margin-bottom: 12px;
+  }
+
+  .qr-footer {
+    margin-top: 12px;
+    font-size: 11px;
+  }
+
+  .qr-navigate-btn {
+    margin-top: 12px;
+    padding: 10px 20px;
+    font-size: 12px;
+  }
+}
