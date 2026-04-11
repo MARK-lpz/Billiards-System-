@@ -7,11 +7,17 @@ import Notification from "../../Elements/Global/Notification";
 import LoadingBar from "../../Elements/Global/Loading";
 import Menu from "../../Elements/Global/Menu";
 
-export default function EmployeeDashboard({ onLogout, tables, setTables, setLogs, theme, setTheme }) {
+export default function EmployeeDashboard({ onLogout, onReload, tables, setTables, setLogs, theme, setTheme }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [search, setSearch] = useState("");
   const [timers, setTimers] = useState({});
   const [loading, setLoading] = useState(false);
+
+  const handleReload = () => {
+    setLoading(true);
+    if (onReload) onReload();
+    setTimeout(() => setLoading(false), 300);
+  };
 
   const handleNavChange = (navId) => {
     setLoading(true);
@@ -125,6 +131,7 @@ export default function EmployeeDashboard({ onLogout, tables, setTables, setLogs
           activeNav={activeNav} 
           setActiveNav={setActiveNav}
           onNavChange={handleNavChange}
+          onReload={handleReload}
         />
 
         <main className="main-content">

@@ -79,6 +79,46 @@ function App() {
     }
   }, [theme])
 
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'poolTables') {
+        try {
+          const newTables = JSON.parse(e.newValue);
+          setTables(newTables);
+        } catch (error) {
+          console.warn('Failed to parse poolTables from storage', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [])
+
+  const handleReload = () => {
+    setLoading(true)
+
+    try {
+      const storedTables = localStorage.getItem('poolTables')
+      if (storedTables) {
+        setTables(JSON.parse(storedTables))
+      }
+    } catch (error) {
+      console.warn('Unable to reload pool tables from storage', error)
+    }
+
+    try {
+      const storedLogs = localStorage.getItem('activityLogs')
+      if (storedLogs) {
+        setLogs(JSON.parse(storedLogs))
+      }
+    } catch (error) {
+      console.warn('Unable to reload activity logs from storage', error)
+    }
+
+    setTimeout(() => setLoading(false), 300)
+  }
+
   const handleLogin = (role) => {
     if (!role) return
     setLoading(true)
@@ -130,11 +170,11 @@ function App() {
         )}
 
         {isLoggedIn && userRole === 'admin' && (
-          <Dashboard onLogout={handleLogout} tables={tables} setTables={setTables} logs={logs} theme={theme} setTheme={setTheme} />
+          <Dashboard onLogout={handleLogout} onReload={handleReload} tables={tables} setTables={setTables} logs={logs} theme={theme} setTheme={setTheme} />
         )}
 
         {isLoggedIn && userRole === 'employee' && (
-          <EmployeeDashboard onLogout={handleLogout} tables={tables} setTables={setTables} setLogs={setLogs} theme={theme} setTheme={setTheme} />
+          <EmployeeDashboard onLogout={handleLogout} onReload={handleReload} tables={tables} setTables={setTables} setLogs={setLogs} theme={theme} setTheme={setTheme} />
         )}
       </div>
     </NotificationProvider>

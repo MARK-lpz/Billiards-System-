@@ -1,8 +1,10 @@
 import { useState } from "react";
+import ForgotPassModal from "../Elements/Admin/ForgotPassModal";
 import "../styles/Login.css";
 
 export default function Login({ onLogin, onGoToRegister }) {
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -134,7 +136,16 @@ export default function Login({ onLogin, onGoToRegister }) {
           </div>
 
           <div className="forgot-password-wrapper">
-            <a href="#" className="forgot-password">Forgot Password?</a>
+            <button
+              type="button"
+              className="forgot-password forgot-password-button"
+              onClick={(e) => {
+                e.preventDefault();
+                setShowForgotPassword(true);
+              }}
+            >
+              Forgot Password?
+            </button>
           </div>
 
           <button type="submit" className="login-button" disabled={loading}>
@@ -162,8 +173,10 @@ export default function Login({ onLogin, onGoToRegister }) {
             Tournament Registration
           </button>
         )}
-
-      </div>
+        <ForgotPassModal
+          visible={showForgotPassword}
+          onClose={() => setShowForgotPassword(false)}
+        />      </div>
     </div>
   );
 }

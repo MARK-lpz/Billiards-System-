@@ -1,0 +1,299 @@
+/* Forgot Password Link */
+.forgot-modal .form-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.forgot-modal .forgot-password {
+  background: none;
+  border: none;
+  color: #10b981;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.forgot-modal .forgot-password:hover {
+  color: #059669;
+  text-decoration: underline;
+}
+
+/* Forgot Password Modal Wrapper */
+.forgot-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.forgot-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.forgot-modal-card {
+  position: relative;
+  width: min(520px, 100%);
+  max-width: 520px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 24px;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.45);
+  padding: 32px;
+  z-index: 1;
+}
+
+.forgot-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.forgot-modal-header h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.forgot-close-btn {
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 9999px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.forgot-close-btn:hover {
+  background: rgba(148, 163, 184, 0.12);
+  color: #ffffff;
+}
+
+.forgot-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.forgot-description {
+  color: #9ca3af;
+  font-size: 14px;
+  margin-bottom: 16px;
+  line-height: 1.7;
+}
+
+.forgot-error {
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 12px;
+  color: #f87171;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+
+.forgot-modal .form-label {
+  display: block;
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  margin-bottom: 8px;
+}
+
+.forgot-modal .form-input {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.85);
+  color: #f8fafc;
+  padding: 14px 16px;
+  border-radius: 14px;
+  outline: none;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.forgot-modal .form-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.12);
+}
+
+.forgot-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.forgot-actions .btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.forgot-actions .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.forgot-actions .btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}
+
+.forgot-actions .btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.forgot-actions .btn-success {
+  background: linear-gradient(135deg, #4ade80 0%, #10b981 100%);
+  color: #0f172a;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.forgot-actions .btn-success:hover:not(:disabled) {
+  background: linear-gradient(135deg, #22c55e 0%, #059669 100%);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+  transform: translateY(-1px);
+}
+
+.forgot-success {
+  text-align: center;
+  color: #e2e8f0;
+  padding: 18px 0;
+}
+
+.forgot-success .success-icon {
+  font-size: 3rem;
+  color: #34d399;
+  margin-bottom: 14px;
+}
+
+.forgot-success h3 {
+  margin: 0 0 12px;
+  color: #ffffff;
+  font-size: 1.5rem;
+}
+
+.forgot-success p {
+  color: #cbd5e1;
+  line-height: 1.7;
+  margin-bottom: 24px;
+}
+
+.forgot-success .btn-primary {
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #4ade80 0%, #10b981 100%);
+  color: #0f172a;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  transition: all 0.2s ease;
+}
+
+.forgot-success .btn-primary:hover {
+  background: linear-gradient(135deg, #22c55e 0%, #059669 100%);
+  transform: translateY(-1px);
+}
+
+/* Reset Password Modal Content */
+.forgot-modal .reset-description {
+  color: #9ca3af;
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.forgot-modal .reset-success {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.forgot-modal .reset-success i {
+  font-size: 64px;
+  color: #10b981;
+  margin-bottom: 16px;
+  display: block;
+  animation: successPop 0.5s ease-out;
+}
+
+.forgot-modal .reset-success h4 {
+  color: #f0f0f0;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.forgot-modal .reset-success p {
+  color: #9ca3af;
+  font-size: 14px;
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.forgot-modal .reset-success strong {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.forgot-modal .reset-note {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes successPop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Error Message */
+.forgot-modal .error-message {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #ef4444;
+  font-size: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.forgot-modal .error-message::before {
+  content: '\f33a';
+  font-family: 'Bootstrap Icons';
+  font-size: 16px;
+}

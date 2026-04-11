@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+
 const navItems = [
   { icon: "bi-speedometer2", label: "Dashboard", id: "dashboard" },
   { icon: "bi-circle", label: "Pool Tables", id: "pool-tables" },
@@ -11,7 +13,19 @@ const navItems = [
   { icon: "bi-qr-code", label: "QR Generator", id: "qr-generator" },
 ];
 
-export default function Sidebar({ activeNav, setActiveNav, onNavChange }) {
+export default function Sidebar({ activeNav, setActiveNav, onNavChange, onReload }) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const logoRef = useRef(null);
+
+  useEffect(() => {
+    const img = logoRef.current;
+    if (img?.complete) {
+      const timer = window.setTimeout(() => setImageLoaded(true), 0);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, []);
+
   const handleNavClick = (id) => {
     if (onNavChange) {
       onNavChange(id);
@@ -22,8 +36,26 @@ export default function Sidebar({ activeNav, setActiveNav, onNavChange }) {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo">
-        <img src="/Logo.png" alt="Break & Chill" className="sidebar-logo-img" />
+     <div className="sidebar-logo">
+        <div className="sidebar-logo-img-container">
+          {!imageLoaded && (
+            <div className="sidebar-logo-loading">
+              <i className="bi bi-arrow-clockwise"></i>
+            </div>
+          )}
+          <img
+            ref={logoRef}
+            src="/Logo.png"
+            alt="Break & Chill"
+            className={`sidebar-logo-img ${imageLoaded ? 'loaded' : ''}`}
+            onClick={onReload}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageLoaded(true)} // Show image even on error
+            style={{ cursor: 'pointer' }}
+            title="Reload"
+          />
+        </div>
+
         <div className="sidebar-logo-text">
           <span className="sidebar-brand">BREAK &amp; CHILL</span>
           <span className="sidebar-sub">Billiard Hall</span>

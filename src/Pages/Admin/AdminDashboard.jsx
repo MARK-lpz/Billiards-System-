@@ -30,7 +30,7 @@ import Events from "./Events";
 import Equipment from "./Equipment";
 import AuditTrail from "./AuditTrail";
 
-export default function Dashboard({ onLogout, tables, setTables, logs, theme, setTheme }) {
+export default function Dashboard({ onLogout, onReload, tables, setTables, logs, theme, setTheme }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -49,6 +49,12 @@ export default function Dashboard({ onLogout, tables, setTables, logs, theme, se
     { id: 1, name: "Cue Stick #1", type: "Cue Stick", condition: "good", lastMaintenance: "2026-03-01", status: "active" },
     { id: 2, name: "Ball Set #1", type: "Ball Set", condition: "fair", lastMaintenance: "2026-02-15", status: "active" },
   ]);
+
+  const handleReload = () => {
+    setLoading(true);
+    if (onReload) onReload();
+    setTimeout(() => setLoading(false), 300);
+  };
 
   const handleNavChange = (navId) => {
     setLoading(true);
@@ -180,6 +186,7 @@ export default function Dashboard({ onLogout, tables, setTables, logs, theme, se
           activeNav={activeNav} 
           setActiveNav={setActiveNav}
           onNavChange={handleNavChange}
+          onReload={handleReload}
         />
 
         <main className="main-content">

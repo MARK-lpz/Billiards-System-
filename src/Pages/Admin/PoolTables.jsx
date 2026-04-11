@@ -4,8 +4,10 @@ import PoolTableStats from "../../Elements/Admin/PoolTableStats.jsx";
 import PoolTableCard from "../../Elements/Admin/PoolTableCards";
 import PoolTableModal from "../../Elements/Admin/PoolTableModal";
 import WalkInModal from "../../Elements/Admin/WalkInModal";
+import { useNotifications } from "../../Elements/Global/useNotifications";
 
 export default function PoolTables({ tables, setTables }) {
+  const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ name: "", rate: 15 });
   const [editId, setEditId] = useState(null);
@@ -13,29 +15,45 @@ export default function PoolTables({ tables, setTables }) {
 
   const startWalkIn = () => {
     const customer = walkIn.customer || "Walk-in Customer";
+    const table = tables.find(t => t.id === walkIn.tableId);
     setTables(prev => prev.map(t =>
       t.id === walkIn.tableId ? { ...t, status: "occupied", startTime: Date.now(), customer } : t
     ));
+    addNotification({
+      message: `${table?.name || 'Table'} started walk-in session for ${customer}`,
+    });
     setModal(null);
     setWalkIn({ tableId: null, customer: "" });
   };
 
   const endSession = (id) => {
+    const table = tables.find(t => t.id === id);
     setTables(prev => prev.map(t =>
       t.id === id ? { ...t, status: "available", startTime: null, customer: "" } : t
     ));
+    addNotification({
+      message: `${table?.name || 'Table'} session ended`,
+    });
   };
 
   const reserve = (id) => {
+    const table = tables.find(t => t.id === id);
     setTables(prev => prev.map(t => 
       t.id === id ? { ...t, status: "reserved", startTime: null } : t
     ));
+    addNotification({
+      message: `${table?.name || 'Table'} reserved`,
+    });
   };
 
   const checkIn = (id) => {
+    const table = tables.find(t => t.id === id);
     setTables(prev => prev.map(t => 
       t.id === id ? { ...t, status: "occupied", startTime: Date.now() } : t
     ));
+    addNotification({
+      message: `${table?.name || 'Table'} checked in`,
+    });
   };
 
   const cancelReserve = (id) => {
