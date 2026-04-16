@@ -12,12 +12,9 @@ import Menu from "../../Elements/Global/Menu";
 import Sidebar from "../../Elements/Admin/Sidebar";
 import TaskList from "../../Elements/Admin/TaskList";
 import ActiveTables from "../../Elements/Admin/ActiveTables";
-import TodaySchedule from "../../Elements/Admin/Schedule";
-import WeeklyPerformance from "../../Elements/Admin/WeeklyPerformance";
 
 // Employee Elements
 import EmployeeStats from "../../Elements/Employee/EmployeeStats";
-import QuickActions from "../../Elements/Employee/QuickAction";
 
 // Admin Modules (Pages)
 import QRGenerator from "./QrGenerator";
@@ -30,19 +27,11 @@ import Events from "./Events";
 import Equipment from "./Equipment";
 import AuditTrail from "./AuditTrail";
 
-export default function Dashboard({ onLogout, onReload, tables, setTables, logs, theme, setTheme }) {
+export default function Dashboard({ onLogout, onReload, tables, setTables, logs, products, setProducts, transactions, setTransactions, theme, setTheme }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Mock data for modules (replace with actual API calls later)
-  const [products, setProducts] = useState([
-    { id: 1, name: "Coca Cola", category: "Beverage", price: 25, stock: 50, minStock: 10, unit: "pcs" },
-    { id: 2, name: "Chips", category: "Food", price: 15, stock: 30, minStock: 10, unit: "pcs" },
-    { id: 3, name: "Cue Chalk", category: "Equipment", price: 50, stock: 20, minStock: 5, unit: "pcs" },
-  ]);
-
-  const [transactions, setTransactions] = useState([]);
   const [reservations, setReservations] = useState([]);
   const [events, setEvents] = useState([]);
   const [equipment, setEquipment] = useState([
@@ -64,7 +53,6 @@ export default function Dashboard({ onLogout, onReload, tables, setTables, logs,
     }, 300);
   };
 
-  // Render module based on activeNav
   const renderModule = () => {
     switch(activeNav) {
       case 'qr-generator':
@@ -159,19 +147,13 @@ export default function Dashboard({ onLogout, onReload, tables, setTables, logs,
               </div>
             </div>
 
+            {/* Stats — full width */}
             <EmployeeStats />
 
-            <div className="employee-content-grid">
-              <div className="employee-left-column">
-                <TaskList />
-                <ActiveTables tables={tables} onViewPoolTables={() => handleNavChange('pool-tables')} />
-              </div>
-
-              <div className="employee-right-column">
-                <TodaySchedule />
-                <QuickActions />
-                <WeeklyPerformance />
-              </div>
+            {/* Main grid — 50/50 equal columns */}
+            <div className="admin-dashboard-grid">
+              <ActiveTables tables={tables} onViewPoolTables={() => handleNavChange('pool-tables')} />
+              <TaskList />
             </div>
           </>
         );

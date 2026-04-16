@@ -1,5 +1,5 @@
 import { useState } from "react";
-import ForgotPassModal from "../Elements/Admin/ForgotPassModal";
+import ForgotPassModal from "../Elements/Global/ForgotPassModal";
 import "../styles/Login.css";
 
 export default function Login({ onLogin, onGoToRegister }) {

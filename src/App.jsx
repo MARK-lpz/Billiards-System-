@@ -24,16 +24,25 @@ const initialTables = [
   { id: 12, name: 'Table 12', rate: 15, status: 'available', startTime: null, customer: '' },
 ]
 
+const initialProducts = [
+  { id: 1, name: "Coca Cola", category: "Beverage", price: 25, stock: 50, minStock: 10, unit: "pcs" },
+  { id: 2, name: "Chips", category: "Food", price: 15, stock: 30, minStock: 10, unit: "pcs" },
+  { id: 3, name: "Cue Chalk", category: "Equipment", price: 50, stock: 20, minStock: 5, unit: "pcs" },
+]
+
+const initialTransactions = []
+const initialCustomers = []  
 function App() {
   const [currentView, setCurrentView] = useState('login')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState(null)
   const [loading, setLoading] = useState(false)
+
   const [tables, setTables] = useState(() => {
     try {
       const stored = localStorage.getItem('poolTables')
       return stored ? JSON.parse(stored) : initialTables
-    } catch (error) {
+    } catch {
       return initialTables
     }
   })
@@ -50,71 +59,113 @@ function App() {
     try {
       const stored = localStorage.getItem('activityLogs')
       return stored ? JSON.parse(stored) : initialLogs
-    } catch (error) {
+    } catch {
       return initialLogs
     }
   })
 
-  useEffect(() => {
+  const [products, setProducts] = useState(() => {
     try {
-      localStorage.setItem('poolTables', JSON.stringify(tables))
-    } catch (error) {
-      console.warn('Unable to persist pool tables', error)
+      const stored = localStorage.getItem('products')
+      return stored ? JSON.parse(stored) : initialProducts
+    } catch {
+      return initialProducts
     }
+  })
+
+  const [transactions, setTransactions] = useState(() => {
+    try {
+      const stored = localStorage.getItem('transactions')
+      return stored ? JSON.parse(stored) : initialTransactions
+    } catch {
+      return initialTransactions
+    }
+  })
+
+  // 👇 added
+  const [customers, setCustomers] = useState(() => {
+    try {
+      const stored = localStorage.getItem('customers')
+      return stored ? JSON.parse(stored) : initialCustomers
+    } catch {
+      return initialCustomers
+    }
+  })
+
+  useEffect(() => {
+    try { localStorage.setItem('poolTables', JSON.stringify(tables)) }
+    catch (error) { console.warn('Unable to persist pool tables', error) }
   }, [tables])
 
   useEffect(() => {
-    try {
-      localStorage.setItem('activityLogs', JSON.stringify(logs))
-    } catch (error) {
-      console.warn('Unable to persist activity logs', error)
-    }
+    try { localStorage.setItem('activityLogs', JSON.stringify(logs)) }
+    catch (error) { console.warn('Unable to persist activity logs', error) }
   }, [logs])
 
   useEffect(() => {
-    try {
-      localStorage.setItem('theme', theme)
-    } catch (error) {
-      console.warn('Unable to persist theme', error)
-    }
+    try { localStorage.setItem('products', JSON.stringify(products)) }
+    catch (error) { console.warn('Unable to persist products', error) }
+  }, [products])
+
+  useEffect(() => {
+    try { localStorage.setItem('transactions', JSON.stringify(transactions)) }
+    catch (error) { console.warn('Unable to persist transactions', error) }
+  }, [transactions])
+
+  useEffect(() => {
+    try { localStorage.setItem('theme', theme) }
+    catch (error) { console.warn('Unable to persist theme', error) }
   }, [theme])
+
+  // 👇 added
+  useEffect(() => {
+    try { localStorage.setItem('customers', JSON.stringify(customers)) }
+    catch (error) { console.warn('Unable to persist customers', error) }
+  }, [customers])
 
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'poolTables') {
         try {
-          const newTables = JSON.parse(e.newValue);
-          setTables(newTables);
+          const newTables = JSON.parse(e.newValue)
+          setTables(newTables)
         } catch (error) {
-          console.warn('Failed to parse poolTables from storage', error);
+          console.warn('Failed to parse poolTables from storage', error)
         }
       }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
   const handleReload = () => {
     setLoading(true)
 
     try {
-      const storedTables = localStorage.getItem('poolTables')
-      if (storedTables) {
-        setTables(JSON.parse(storedTables))
-      }
-    } catch (error) {
-      console.warn('Unable to reload pool tables from storage', error)
-    }
+      const stored = localStorage.getItem('poolTables')
+      if (stored) setTables(JSON.parse(stored))
+    } catch (error) { console.warn('Unable to reload pool tables', error) }
 
     try {
-      const storedLogs = localStorage.getItem('activityLogs')
-      if (storedLogs) {
-        setLogs(JSON.parse(storedLogs))
-      }
-    } catch (error) {
-      console.warn('Unable to reload activity logs from storage', error)
-    }
+      const stored = localStorage.getItem('activityLogs')
+      if (stored) setLogs(JSON.parse(stored))
+    } catch (error) { console.warn('Unable to reload activity logs', error) }
+
+    try {
+      const stored = localStorage.getItem('products')
+      if (stored) setProducts(JSON.parse(stored))
+    } catch (error) { console.warn('Unable to reload products', error) }
+
+    try {
+      const stored = localStorage.getItem('transactions')
+      if (stored) setTransactions(JSON.parse(stored))
+    } catch (error) { console.warn('Unable to reload transactions', error) }
+
+    // 👇 added
+    try {
+      const stored = localStorage.getItem('customers')
+      if (stored) setCustomers(JSON.parse(stored))
+    } catch (error) { console.warn('Unable to reload customers', error) }
 
     setTimeout(() => setLoading(false), 300)
   }
@@ -153,15 +204,15 @@ function App() {
     <NotificationProvider>
       <div className={theme}>
         <LoadingBar loading={loading} />
-        
+
         {currentView === 'login' && !isLoggedIn && (
           <Login onLogin={handleLogin} onGoToRegister={() => navigateTo('qr')} />
         )}
 
         {currentView === 'qr' && (
-          <TournamentQR 
-            onNavigateToForm={() => navigateTo('form')} 
-            onBackToLogin={() => navigateTo('login')} 
+          <TournamentQR
+            onNavigateToForm={() => navigateTo('form')}
+            onBackToLogin={() => navigateTo('login')}
           />
         )}
 
@@ -170,11 +221,37 @@ function App() {
         )}
 
         {isLoggedIn && userRole === 'admin' && (
-          <Dashboard onLogout={handleLogout} onReload={handleReload} tables={tables} setTables={setTables} logs={logs} theme={theme} setTheme={setTheme} />
+          <Dashboard
+            onLogout={handleLogout}
+            onReload={handleReload}
+            tables={tables}
+            setTables={setTables}
+            logs={logs}
+            products={products}
+            setProducts={setProducts}
+            transactions={transactions}
+            setTransactions={setTransactions}
+            theme={theme}
+            setTheme={setTheme}
+          />
         )}
 
         {isLoggedIn && userRole === 'employee' && (
-          <EmployeeDashboard onLogout={handleLogout} onReload={handleReload} tables={tables} setTables={setTables} setLogs={setLogs} theme={theme} setTheme={setTheme} />
+          <EmployeeDashboard
+            onLogout={handleLogout}
+            onReload={handleReload}
+            tables={tables}
+            setTables={setTables}
+            setLogs={setLogs}
+            products={products}
+            setProducts={setProducts}
+            transactions={transactions}
+            setTransactions={setTransactions}
+            theme={theme}
+            setTheme={setTheme}
+            customers={customers}        
+            setCustomers={setCustomers}  
+          />
         )}
       </div>
     </NotificationProvider>

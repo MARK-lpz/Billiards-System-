@@ -36,7 +36,7 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
                     value={form.category} 
                     onChange={e => setForm({ ...form, category: e.target.value })}
                   >
-                    {["Food", "Beverage", "Equipment", "Other"].map(cat => (
+                    {["Food", "Drinks/Liquor", "Equipment", "Other"].map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>

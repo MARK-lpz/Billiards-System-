@@ -1,0 +1,174 @@
+/* ── Quick Actions Page ─────────────────────────────── */
+.qa-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.qa-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f0f0f0;
+  margin: 0 0 4px 0;
+}
+
+.qa-subtitle {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0 0 1.75rem 0;
+}
+
+/* ── Card ────────────────────────────────────────────── */
+.qa-card {
+  background: #1a2235;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  padding: 28px;
+}
+
+/* ── Action Buttons Grid ─────────────────────────────── */
+.qa-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.qa-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #d1d5db;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.qa-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.qa-btn:active {
+  transform: translateY(0);
+}
+
+.qa-btn-icon {
+  font-size: 26px;
+  color: #9ca3af;
+}
+
+.qa-btn-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #9ca3af;
+}
+
+/* ── Reservation List (inside modal-body) ────────────── */
+.qa-reservation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qa-reservation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.qa-reservation-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.qa-reservation-table {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f0f0f0;
+}
+
+.qa-reservation-customer {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.qa-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.qa-badge--occupied {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.qa-badge--reserved {
+  background: rgba(234, 179, 8, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+/* ── Empty State ─────────────────────────────────────── */
+.qa-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 0;
+  color: #4b5563;
+}
+
+.qa-empty-icon {
+  font-size: 40px;
+}
+
+.qa-empty-text {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ── Success State ───────────────────────────────────── */
+.qa-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 0;
+  color: #10b981;
+}
+
+.qa-success-icon {
+  font-size: 48px;
+  animation: scaleIn 0.3s ease-out;
+}
+
+.qa-success-text {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 576px) {
+  .qa-grid {
+    grid-template-columns: 1fr;
+  }
+}

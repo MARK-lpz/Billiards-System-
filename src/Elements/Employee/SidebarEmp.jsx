@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 
 const navItems = [
   { icon: "bi-speedometer2", label: "Dashboard", id: "dashboard" },
-  { icon: "bi-circle", label: "Pool Tables", id: "tables" },
-  { icon: "bi-calendar-check", label: "My Reservations", id: "reservations" },
+  { icon: "bi-cart", label: "Sales POS", id: "sales" },
+  { icon: "bi-clipboard-check", label: "Quick Actions", id: "quick-actions" },
+  { icon: "bi-people", label: "Customers", id: "customers" },
 ];
 
 export default function Sidebar({ activeNav, setActiveNav, onNavChange, onReload }) {

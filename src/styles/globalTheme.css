@@ -1062,3 +1062,165 @@
   background: #e2e8f0 !important;
   color: #0f172a !important;
 }
+
+/* ── Sales POS Light Mode Additions ───────────────────────────────────────── */
+
+.light .pos-subtabs {
+  border-bottom-color: var(--border) !important;
+}
+
+.light .pos-subtab-btn {
+  color: var(--text-muted) !important;
+}
+
+.light .pos-subtab-btn:hover {
+  color: var(--text-secondary) !important;
+}
+
+.light .pos-subtab-btn.active {
+  color: var(--accent) !important;
+  border-bottom-color: var(--accent) !important;
+}
+
+.light .cat-pill {
+  background: var(--bg-surface) !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+
+.light .cat-pill:hover {
+  background: var(--bg-muted) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .cat-pill.active {
+  background: var(--accent-subtle) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  color: var(--accent) !important;
+}
+
+.light .order-history-section-header.completed {
+  color: #10b981 !important;
+}
+
+.light .order-history-section-header.pending {
+  color: #d97706 !important;
+}
+
+.light .order-history-empty {
+  color: var(--text-muted) !important;
+}
+
+.light .order-history-card {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+.light .order-history-card.completed-card {
+  border-left: 3px solid #10b981 !important;
+}
+
+.light .order-history-card.pending-card {
+  border-left: 3px solid #f59e0b !important;
+}
+
+.light .order-history-cashier {
+  color: var(--text-primary) !important;
+}
+
+.light .order-history-total {
+  color: var(--accent) !important;
+}
+
+.light .order-history-meta {
+  color: var(--text-muted) !important;
+}
+
+.light .order-history-discount {
+  color: #d97706 !important;
+}
+
+.light .order-history-item-pill {
+  background: var(--bg-muted) !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .recent-transactions-card {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+.light .recent-transactions-title {
+  color: var(--text-muted) !important;
+}
+
+.light .recent-transaction-item {
+  border-bottom-color: var(--border) !important;
+}
+
+.light .recent-transaction-id {
+  color: var(--text-primary) !important;
+}
+
+.light .recent-transaction-total {
+  color: var(--accent) !important;
+}
+
+.light .recent-transaction-meta {
+  color: var(--text-muted) !important;
+}
+
+.light .recent-transaction-discount {
+  color: #d97706 !important;
+}
+
+.light .recent-transaction-items {
+  color: var(--text-secondary) !important;
+}
+
+.light .recent-transaction-date {
+  color: var(--text-muted) !important;
+}
+
+.light .product-cart-badge {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+}
+
+.light .product-low-badge {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+  color: #dc2626 !important;
+}
+
+.light .discount-section {
+  background: var(--bg-subtle) !important;
+  border-color: var(--border) !important;
+}
+
+.light .discount-label {
+  color: var(--text-muted) !important;
+}
+
+.light .discount-select {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .discount-select:focus,
+.light .discount-select:hover {
+  border-color: var(--accent) !important;
+}
+
+.light .cart-subtotal-row,
+.light .cart-discount-row {
+  color: var(--text-muted) !important;
+}
+
+.light .discount-amount {
+  color: #d97706 !important;
+}

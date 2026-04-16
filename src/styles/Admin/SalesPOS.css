@@ -1,4 +1,4 @@
-/* Container & Header */
+/* ── Container & Header ─────────────────────────────────────────────────────── */
 .sales-pos-container {
   padding: 20px;
   min-height: 100vh;
@@ -21,7 +21,7 @@
   margin: 0;
 }
 
-/* Layout */
+/* ── Layout ──────────────────────────────────────────────────────────────────── */
 .sales-pos-layout {
   display: grid;
   grid-template-columns: 1fr 360px;
@@ -29,7 +29,7 @@
   align-items: start;
 }
 
-/* Search */
+/* ── Search ──────────────────────────────────────────────────────────────────── */
 .sales-pos-search {
   display: flex;
   align-items: center;
@@ -59,7 +59,69 @@
   color: #6b7280;
 }
 
-/* Product Grid */
+/* ── Sub-tabs ─────────────────────────────────────────────────────────────────── */
+.pos-subtabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0;
+}
+
+.pos-subtab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: -1px;
+}
+
+.pos-subtab-btn:hover {
+  color: #f0f0f0;
+}
+
+.pos-subtab-btn.active {
+  color: #10b981;
+  border-bottom-color: #10b981;
+}
+
+/* ── Category Pills ───────────────────────────────────────────────────────────── */
+.cat-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.cat-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cat-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f0f0f0;
+}
+
+.cat-pill.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #10b981;
+}
+
+/* ── Product Grid ─────────────────────────────────────────────────────────────── */
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -103,6 +165,21 @@
   justify-content: center;
 }
 
+.product-low-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #ef4444;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  text-transform: uppercase;
+}
+
 .product-category {
   font-size: 10px;
   font-weight: 700;
@@ -133,9 +210,233 @@
   font-size: 11px;
 }
 
-/* Responsive */
+/* ── Discount Section ─────────────────────────────────────────────────────── */
+.discount-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.discount-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.discount-select {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #f0f0f0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 8px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.discount-select:hover,
+.discount-select:focus {
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.discount-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.discount-select option {
+  background: #1a1f2e;
+  color: #f0f0f0;
+}
+
+/* ── Totals Breakdown ─────────────────────────────────────────────────────── */
+.cart-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cart-subtotal-row,
+.cart-discount-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.cart-discount-row {
+  color: #eab308;
+}
+
+.discount-amount {
+  font-weight: 700;
+}
+
+.cart-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cart-total span:first-child {
+  font-size: 13px;
+  font-weight: 600;
+  color: #d1d5db;
+}
+
+.cart-total-amount {
+  font-size: 20px;
+  font-weight: 800;
+  color: #10b981;
+}
+
+.cart-total--highlighted .cart-total-amount {
+  color: #34d399;
+  text-shadow: 0 0 12px rgba(52, 211, 153, 0.35);
+}
+
+/* ── Recent Transactions ──────────────────────────────────────────────────── */
+.recent-transactions-empty {
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.recent-transaction-meta {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.recent-transaction-discount {
+  color: #eab308;
+}
+
+/* ── Order History Tab ────────────────────────────────────────────────────────── */
+.order-history-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.order-history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.order-history-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.order-history-section-header.completed { color: #22c55e; }
+.order-history-section-header.pending   { color: #eab308; }
+
+.order-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.order-history-empty {
+  font-size: 13px;
+  color: #6b7280;
+  padding: 16px 0;
+}
+
+.order-history-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.order-history-card.completed-card {
+  border-left: 3px solid #22c55e;
+}
+
+.order-history-card.pending-card {
+  border-left: 3px solid #eab308;
+}
+
+.order-history-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-history-cashier {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f0f0f0;
+}
+
+.order-history-total {
+  font-size: 14px;
+  font-weight: 800;
+  color: #10b981;
+}
+
+.order-history-meta {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.order-history-discount {
+  font-size: 11px;
+  color: #eab308;
+}
+
+.order-history-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.order-history-item-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #d1d5db;
+  font-size: 11px;
+  padding: 2px 10px;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .sales-pos-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .order-history-layout {
     grid-template-columns: 1fr;
   }
 }
@@ -143,5 +444,14 @@
 @media (max-width: 768px) {
   .product-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+
+  .pos-subtabs {
+    gap: 4px;
+  }
+
+  .pos-subtab-btn {
+    font-size: 12px;
+    padding: 8px 12px;
   }
 }
