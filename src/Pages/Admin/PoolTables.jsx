@@ -36,16 +36,6 @@ export default function PoolTables({ tables, setTables }) {
     });
   };
 
-  const reserve = (id) => {
-    const table = tables.find(t => t.id === id);
-    setTables(prev => prev.map(t => 
-      t.id === id ? { ...t, status: "reserved", startTime: null } : t
-    ));
-    addNotification({
-      message: `${table?.name || 'Table'} reserved`,
-    });
-  };
-
   const checkIn = (id) => {
     const table = tables.find(t => t.id === id);
     setTables(prev => prev.map(t => 
@@ -133,7 +123,6 @@ export default function PoolTables({ tables, setTables }) {
           <PoolTableCard
             key={table.id}
             table={table}
-            onReserve={() => reserve(table.id)}
             onWalkIn={() => openWalkInModal(table.id)}
             onEndSession={() => endSession(table.id)}
             onCheckIn={() => checkIn(table.id)}

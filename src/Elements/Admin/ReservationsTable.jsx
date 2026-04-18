@@ -26,14 +26,14 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit }) {
               ) : (
                 reservations.map(r => (
                   <tr key={r.id}>
-                    <td className="reservations-customer">{r.customer}</td>
+                    <td className="reservations-customer">{r.customerName || r.customer}</td>
                     <td className="reservations-datetime">
                       {r.date}
                       <br />
                       <span className="reservations-time">{r.time}</span>
                     </td>
-                    <td>Table {r.table}</td>
-                    <td>{r.pax} pax</td>
+                    <td>{r.tableName || `Table ${r.tableId ?? r.table}`}</td>
+                    <td>{r.partySize ?? r.pax} pax</td>
                     <td>
                       <span className={`badge reservations-badge-${r.status}`}>
                         {r.status}

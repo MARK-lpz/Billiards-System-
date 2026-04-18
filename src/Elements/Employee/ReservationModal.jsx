@@ -1,5 +1,6 @@
 // ReservationModal.jsx
 import { useEffect } from "react";
+import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
 
 export default function ReservationModal({
   mode,
@@ -8,10 +9,14 @@ export default function ReservationModal({
   reservationForm,
   setReservationForm,
   availableTables,
+  reservationTables,
   onClose,
   onWalkInSubmit,
   onReservationSubmit,
 }) {
+  const phoneWarning = getSmsWarning(reservationForm.phone);
+  const phoneIsValid = !reservationForm.phone.trim() || isValidSmsNumber(reservationForm.phone);
+
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
@@ -114,10 +119,13 @@ export default function ReservationModal({
                     onChange={(e) =>
                       setReservationForm((prev) => ({
                         ...prev,
-                        phone: e.target.value,
+                        phone: sanitizePhoneInput(e.target.value),
                       }))
                     }
+                    inputMode="numeric"
+                    maxLength="11"
                   />
+                  {phoneWarning && <p className="rd-field-warning">{phoneWarning}</p>}
 
                   <input
                     className="rd-input"
@@ -167,8 +175,12 @@ export default function ReservationModal({
                       }))
                     }
                   >
-                    <option value="">Assign table...</option>
-                    {availableTables.map((table) => (
+                    <option value="">
+                      {reservationForm.date && reservationForm.time
+                        ? "Assign table for selected time..."
+                        : "Assign table (availability updates after time selection)..."}
+                    </option>
+                    {reservationTables.map((table) => (
                       <option key={table.id} value={table.id}>
                         {table.name || `Table ${table.id}`}
                       </option>
@@ -179,7 +191,11 @@ export default function ReservationModal({
                     className="rd-primary-btn rd-form-submit"
                     type="submit"
                     disabled={
-                      !reservationForm.customerName.trim() || !reservationForm.tableId
+                      !reservationForm.customerName.trim() ||
+                      !phoneIsValid ||
+                      !reservationForm.date ||
+                      !reservationForm.time ||
+                      !reservationForm.tableId
                     }
                   >
                     Save Reservation

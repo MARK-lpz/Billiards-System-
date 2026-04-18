@@ -2,7 +2,6 @@
 
 export default function PoolTableCard({ 
   table, 
-  onReserve, 
   onWalkIn, 
   onEndSession, 
   onCheckIn, 
@@ -77,16 +76,10 @@ export default function PoolTableCard({
       {/* Action Buttons */}
       <div className="pool-table-actions">
         {isAvailable && (
-          <>
-            <button className="btn btn-sm btn-success" onClick={onReserve}>
-              <i className="bi bi-calendar-check me-1"></i>
-              Reserve
-            </button>
-            <button className="btn btn-sm btn-outline-success" onClick={onWalkIn}>
-              <i className="bi bi-person-plus me-1"></i>
-              Walk-in
-            </button>
-          </>
+          <button className="btn btn-sm btn-outline-success" onClick={onWalkIn}>
+            <i className="bi bi-person-plus me-1"></i>
+            Walk-in
+          </button>
         )}
 
         {isOccupied && (

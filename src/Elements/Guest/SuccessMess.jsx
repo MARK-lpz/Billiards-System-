@@ -13,6 +13,7 @@ export default function SuccessMessage({ form, onReset }) {
 
       <div className="success-details">
         {[
+          ["Tournament", form.eventName || "Selected Event", "bi-trophy"],
           ["Name", `${form.firstName} ${form.lastName}`, "bi-person-fill"],
           ["Contact", form.contact, "bi-telephone-fill"],
           ["Email", form.email, "bi-envelope-fill"],

@@ -1,0 +1,416 @@
+/* Employee Theme Overrides */
+
+.light .stat-card-employee {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.light .stat-label  { color: var(--text-muted) !important; }
+.light .stat-value  { color: var(--text-primary) !important; }
+
+.light .content-card {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.light .card-title    { color: var(--text-primary) !important; }
+.light .view-all-btn  { color: var(--accent) !important; }
+.light .view-all-btn:hover { color: var(--accent-hover) !important; }
+
+.light .task-item {
+  background: var(--bg-muted) !important;
+}
+.light .task-item:hover { background: var(--border) !important; }
+
+.light .task-name { color: var(--text-secondary) !important; }
+.light .task-time { color: var(--text-muted) !important; }
+
+.light .task-checkbox input[type="checkbox"] {
+  border-color: var(--border-strong) !important;
+  background: var(--bg-surface) !important;
+}
+
+.light .schedule-item {
+  background: var(--bg-muted) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.light .schedule-item.current {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.light .schedule-time  { color: var(--text-muted) !important; }
+.light .schedule-task  { color: var(--text-secondary) !important; }
+
+.light .action-btn {
+  background: var(--bg-muted) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .action-btn:hover {
+  background: var(--accent-subtle) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+.light .mini-table-card.occupied  {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+}
+.light .mini-table-card.available {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+.light .mini-table-card.reserved  {
+  background: rgba(245, 158, 11, 0.08) !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+.light .table-number { color: var(--text-primary) !important; }
+.light .table-status { color: var(--text-muted) !important; }
+
+.light .active-tables-card .active-table-summary { color: var(--text-muted) !important; }
+.light .active-tables-card .card-title { color: var(--text-primary) !important; }
+
+.light .performance-item     { border-bottom-color: var(--border) !important; }
+.light .performance-label    { color: var(--text-muted) !important; }
+.light .performance-value    { color: var(--text-primary) !important; }
+
+/* Customer Management Light Mode */
+.light .cust-page {
+  color: var(--text-primary) !important;
+}
+
+.light .cust-page .page-title {
+  color: var(--text-primary) !important;
+}
+
+.light .cust-page .page-subtitle,
+.light .cust-page .tm-stat-label,
+.light .cust-page .cust-phone,
+.light .cust-page .cust-stat-lbl,
+.light .cust-page .cust-last-visit,
+.light .cust-page .cust-notes,
+.light .cust-page .track-empty {
+  color: var(--text-muted) !important;
+}
+
+.light .cust-page .tm-stat-card,
+.light .cust-page .cust-card {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+.light .cust-page .tm-stat-card:hover,
+.light .cust-page .cust-card:hover {
+  border-color: rgba(59, 130, 246, 0.25) !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
+}
+
+.light .cust-page .pos-input {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .cust-page .pos-input::placeholder {
+  color: var(--text-placeholder) !important;
+}
+
+.light .cust-page .pos-input:focus {
+  background: var(--bg-surface) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+}
+
+.light .cust-page .cat-pill {
+  background: var(--bg-muted) !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .cust-page .cat-pill:hover:not(.active) {
+  background: var(--border) !important;
+}
+
+.light .cust-page .cust-add-btn {
+  color: #ffffff !important;
+}
+
+.light .cust-page .cust-remove-btn {
+  color: var(--text-muted) !important;
+}
+
+.light .cust-page .cust-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.08) !important;
+  color: #dc2626 !important;
+}
+
+.light .cust-page .cust-avatar {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.22) !important;
+  color: #2563eb !important;
+}
+
+.light .cust-page .cust-name {
+  color: var(--text-primary) !important;
+}
+
+.light .cust-page .cust-card-stats {
+  border-top-color: var(--border) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+/* Reservation Desk Light Mode */
+.light .rd-page {
+  color: var(--text-primary) !important;
+}
+
+.light .rd-title {
+  color: var(--text-primary) !important;
+}
+
+.light .rd-subtitle,
+.light .rd-stat-label,
+.light .rd-table thead th,
+.light .rd-table tbody td,
+.light .rd-table-datetime,
+.light .rd-table-pax,
+.light .rd-filter-count,
+.light .rd-empty {
+  color: var(--text-muted) !important;
+}
+
+.light .rd-stat-card,
+.light .rd-table-card {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+.light .rd-stat-card:hover {
+  border-color: rgba(59, 130, 246, 0.25) !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
+}
+
+.light .rd-input,
+.light .rd-select {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .rd-input::placeholder {
+  color: var(--text-placeholder) !important;
+}
+
+.light .rd-input:focus,
+.light .rd-select:focus {
+  background: var(--bg-surface) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12) !important;
+}
+
+.light .rd-select option {
+  background: var(--bg-surface) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .rd-filter-btn {
+  background: var(--bg-muted) !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .rd-filter-btn:hover {
+  background: var(--border) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.light .rd-filter-btn.active {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #ffffff !important;
+}
+
+.light .rd-table thead th {
+  background: var(--bg-muted) !important;
+  border-bottom-color: var(--border-strong) !important;
+  border-right-color: var(--border) !important;
+}
+
+.light .rd-table tbody td {
+  border-bottom-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .rd-table tbody tr:hover {
+  background: var(--bg-subtle) !important;
+}
+
+.light .rd-table-customer,
+.light .rd-table-name {
+  color: var(--text-primary) !important;
+}
+
+.light .rd-table-sub,
+.light .rd-table-notes {
+  color: var(--text-muted) !important;
+}
+
+.light .rd-empty i {
+  color: var(--text-placeholder) !important;
+  opacity: 0.5 !important;
+}
+
+.light .rd-complete-btn {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  border: 1px solid var(--border-strong) !important;
+}
+
+.light .rd-complete-btn:hover {
+  background: var(--bg-muted) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .rd-primary-btn:disabled {
+  background: var(--bg-muted) !important;
+  color: var(--text-placeholder) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* Quick Actions Light Mode */
+.light .qa-title,
+.light .qa-module-title,
+.light .qa-reservation-table,
+.light .qa-equipment-name,
+.light .qa-table-name {
+  color: var(--text-primary) !important;
+}
+
+.light .qa-subtitle,
+.light .qa-module-subtitle,
+.light .qa-reservation-customer,
+.light .qa-equipment-meta,
+.light .qa-table-meta,
+.light .qa-status-note,
+.light .qa-empty,
+.light .qa-empty-text {
+  color: var(--text-muted) !important;
+}
+
+.light .qa-card,
+.light .qa-table-card,
+.light .qa-equipment-card,
+.light .qa-reservation-item,
+.light .qa-equipment-item,
+.light .qa-summary-pill {
+  background: var(--bg-surface) !important;
+  border-color: var(--border) !important;
+  box-shadow: none !important;
+}
+
+.light .qa-btn,
+.light .qa-status-btn {
+  background: var(--bg-muted) !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .qa-btn:hover {
+  background: var(--bg-subtle) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.light .qa-btn-icon,
+.light .qa-btn-label,
+.light .qa-summary-label {
+  color: var(--text-muted) !important;
+}
+
+.light .qa-summary-value {
+  color: var(--text-primary) !important;
+}
+
+.light .qa-module,
+.light .qa-status-note {
+  border-color: var(--border) !important;
+}
+
+.light .qa-status-btn--cleaning:hover:not(:disabled),
+.light .qa-status-btn--cleaning.is-active {
+  background: rgba(56, 189, 248, 0.12) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  color: #0284c7 !important;
+}
+
+.light .qa-status-btn--maintenance:hover:not(:disabled),
+.light .qa-status-btn--maintenance.is-active {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+  color: #2563eb !important;
+}
+
+.light .qa-status-btn--ready:hover:not(:disabled),
+.light .qa-status-btn--ready.is-active {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  color: #059669 !important;
+}
+
+.light .tourna-stat-card,
+.light .tourna-card,
+.light .tourna-detail-card,
+.light .tourna-empty-card {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+.light .tourna-stat-label,
+.light .tourna-detail-kicker,
+.light .tourna-section-label,
+.light .tourna-card-meta,
+.light .tourna-detail-item span,
+.light .tourna-detail-section p {
+  color: var(--text-muted) !important;
+}
+
+.light .tourna-stat-card strong,
+.light .tourna-card-title,
+.light .tourna-card-time,
+.light .tourna-detail-head h2,
+.light .tourna-detail-item strong,
+.light .tourna-empty-card h2 {
+  color: var(--text-primary) !important;
+}
+
+.light .tourna-card-date,
+.light .tourna-empty-card p {
+  color: var(--text-secondary) !important;
+}
+
+.light .tourna-card:hover,
+.light .tourna-card.active {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  background: rgba(16, 185, 129, 0.08) !important;
+}
+
+.light .tourna-detail-item {
+  background: var(--bg-subtle) !important;
+  border-color: var(--border) !important;
+}
+
+.light .tourna-player-badge {
+  background: var(--bg-muted) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .tourna-table-tag {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #2563eb !important;
+}

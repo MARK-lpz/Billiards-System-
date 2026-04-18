@@ -7,7 +7,10 @@ import TournamentForm from './Pages/Guest/billiards-form'
 import LoadingBar from './Elements/Global/Loading'
 import './styles/Modal.css'
 import './styles/globalTheme.css'
+import './styles/globalThemeAdmin.css'
+import './styles/globalThemeEmployee.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
+import { initialReservations } from './utils/reservations'
 
 const initialTables = [
   { id: 1, name: 'Table 1', rate: 15, status: 'available', startTime: null, customer: '' },
@@ -31,7 +34,12 @@ const initialProducts = [
 ]
 
 const initialTransactions = []
-const initialCustomers = []  
+const initialCustomers = []
+const initialEvents = []
+const legacyEventIds = new Set([101, 102])
+
+const sanitizeEvents = (events) =>
+  Array.isArray(events) ? events.filter((event) => !legacyEventIds.has(event?.id)) : initialEvents
 function App() {
   const [currentView, setCurrentView] = useState('login')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -82,6 +90,24 @@ function App() {
     }
   })
 
+  const [events, setEvents] = useState(() => {
+    try {
+      const stored = localStorage.getItem('events')
+      return stored ? sanitizeEvents(JSON.parse(stored)) : initialEvents
+    } catch {
+      return initialEvents
+    }
+  })
+
+  const [reservations, setReservations] = useState(() => {
+    try {
+      const stored = localStorage.getItem('reservations')
+      return stored ? JSON.parse(stored) : initialReservations
+    } catch {
+      return initialReservations
+    }
+  })
+
   // 👇 added
   const [customers, setCustomers] = useState(() => {
     try {
@@ -113,11 +139,21 @@ function App() {
   }, [transactions])
 
   useEffect(() => {
+    try { localStorage.setItem('reservations', JSON.stringify(reservations)) }
+    catch (error) { console.warn('Unable to persist reservations', error) }
+  }, [reservations])
+
+  useEffect(() => {
+    try { localStorage.setItem('events', JSON.stringify(sanitizeEvents(events))) }
+    catch (error) { console.warn('Unable to persist events', error) }
+  }, [events])
+
+  useEffect(() => {
     try { localStorage.setItem('theme', theme) }
     catch (error) { console.warn('Unable to persist theme', error) }
   }, [theme])
 
-  // 👇 added
+
   useEffect(() => {
     try { localStorage.setItem('customers', JSON.stringify(customers)) }
     catch (error) { console.warn('Unable to persist customers', error) }
@@ -131,6 +167,24 @@ function App() {
           setTables(newTables)
         } catch (error) {
           console.warn('Failed to parse poolTables from storage', error)
+        }
+      }
+
+      if (e.key === 'events') {
+        try {
+          const nextEvents = e.newValue ? sanitizeEvents(JSON.parse(e.newValue)) : initialEvents
+          setEvents(nextEvents)
+        } catch (error) {
+          console.warn('Failed to parse events from storage', error)
+        }
+      }
+
+      if (e.key === 'reservations') {
+        try {
+          const nextReservations = e.newValue ? JSON.parse(e.newValue) : initialReservations
+          setReservations(nextReservations)
+        } catch (error) {
+          console.warn('Failed to parse reservations from storage', error)
         }
       }
     }
@@ -161,7 +215,17 @@ function App() {
       if (stored) setTransactions(JSON.parse(stored))
     } catch (error) { console.warn('Unable to reload transactions', error) }
 
-    // 👇 added
+    try {
+      const stored = localStorage.getItem('reservations')
+      if (stored) setReservations(JSON.parse(stored))
+    } catch (error) { console.warn('Unable to reload reservations', error) }
+
+    try {
+      const stored = localStorage.getItem('events')
+      if (stored) setEvents(sanitizeEvents(JSON.parse(stored)))
+    } catch (error) { console.warn('Unable to reload events', error) }
+
+
     try {
       const stored = localStorage.getItem('customers')
       if (stored) setCustomers(JSON.parse(stored))
@@ -217,7 +281,7 @@ function App() {
         )}
 
         {currentView === 'form' && (
-          <TournamentForm onGoBack={() => navigateTo('qr')} />
+          <TournamentForm onGoBack={() => navigateTo('qr')} events={events} setEvents={setEvents} />
         )}
 
         {isLoggedIn && userRole === 'admin' && (
@@ -231,6 +295,10 @@ function App() {
             setProducts={setProducts}
             transactions={transactions}
             setTransactions={setTransactions}
+            reservations={reservations}
+            setReservations={setReservations}
+            events={events}
+            setEvents={setEvents}
             theme={theme}
             setTheme={setTheme}
           />
@@ -247,6 +315,9 @@ function App() {
             setProducts={setProducts}
             transactions={transactions}
             setTransactions={setTransactions}
+            reservations={reservations}
+            setReservations={setReservations}
+            events={events}
             theme={theme}
             setTheme={setTheme}
             customers={customers}        

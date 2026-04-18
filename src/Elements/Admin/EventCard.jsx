@@ -1,16 +1,18 @@
-export default function EventCard({ 
-  event, 
-  addPInput, 
-  onAddPInputChange, 
-  onAddParticipant, 
-  onMarkComplete 
-}) {
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      onAddParticipant();
-    }
-  };
+const formatAssignedTables = (assignedTables = [], tables = []) => {
+  const labels = (assignedTables || [])
+    .map((assigned) => {
+      const matched = (tables || []).find((table) => table.id === assigned || table.name === assigned);
+      if (matched?.name) return matched.name;
+      if (typeof assigned === "string" && assigned.toLowerCase().startsWith("table ")) return assigned;
+      if (typeof assigned === "number" && assigned < 1000) return `Table ${assigned}`;
+      return null;
+    })
+    .filter(Boolean);
 
+  return labels.length ? labels.join(", ") : "Not assigned";
+};
+
+export default function EventCard({ event, tables = [], onEdit, onMarkComplete }) {
   return (
     <div className={`card events-card ${event.status === "upcoming" ? "events-card-upcoming" : ""}`}>
       <div className="card-body">
@@ -36,7 +38,7 @@ export default function EventCard({
           <div className="events-info-box">
             <div className="events-info-label">Tables Assigned</div>
             <div className="events-info-value">
-              {event.tables.length > 0 ? "Table " + event.tables.join(", ") : "Not assigned"}
+              {formatAssignedTables(event.tables, tables)}
             </div>
           </div>
           <div className="events-info-box">
@@ -69,17 +71,9 @@ export default function EventCard({
         {/* Actions (for upcoming events only) */}
         {event.status === "upcoming" && (
           <div className="events-actions">
-            <input
-              type="text"
-              className="form-control events-participant-input"
-              value={addPInput}
-              onChange={(e) => onAddPInputChange(e.target.value)}
-              placeholder="Add participant name..."
-              onKeyDown={handleKeyDown}
-            />
-            <button className="btn btn-sm btn-success" onClick={onAddParticipant}>
-              <i className="bi bi-person-plus me-1"></i>
-              Add
+            <button className="btn btn-sm btn-success" onClick={onEdit}>
+              <i className="bi bi-pencil-square me-1"></i>
+              Edit Event
             </button>
             <button className="btn btn-sm btn-info" onClick={onMarkComplete}>
               <i className="bi bi-check-circle me-1"></i>

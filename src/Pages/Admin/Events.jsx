@@ -12,31 +12,66 @@ export default function Events({ events, setEvents, tables }) {
     time: "", 
     prize: 0, 
     status: "upcoming",
+    gameType: "8-ball",
     tables: []
   });
-  const [addPInput, setAddPInput] = useState({});
+
+  const resolveAssignedTables = (assignedTables = []) =>
+    (assignedTables || [])
+      .map((assigned) => {
+        const matched = (tables || []).find((table) => table.id === assigned || table.name === assigned);
+        return matched ? matched.id : null;
+      })
+      .filter((value) => value !== null);
 
   const save = () => {
-    setEvents(prev => [...prev, { 
-      id: Date.now(), 
-      ...form, 
-      participants: [], 
-      tables: form.tables || [] 
-    }]);
-    setModal(null);
-  };
+    const normalizedTables = resolveAssignedTables(form.tables);
 
-  const addParticipant = (eventId, name) => {
-    if (!name.trim()) return;
-    setEvents(prev => prev.map(e => 
-      e.id === eventId ? { ...e, participants: [...e.participants, name] } : e
-    ));
+    setEvents((prev) => {
+      if (form.id) {
+        return prev.map((event) =>
+          event.id === form.id
+            ? {
+                ...event,
+                ...form,
+                tables: normalizedTables,
+                participants: event.participants || [],
+              }
+            : event
+        );
+      }
+
+      return [
+        ...prev,
+        {
+          id: Date.now(),
+          ...form,
+          participants: [],
+          tables: normalizedTables,
+        },
+      ];
+    });
+    setModal(null);
   };
 
   const markComplete = (eventId) => {
     setEvents(prev => prev.map(ev => 
       ev.id === eventId ? { ...ev, status: "completed" } : ev
     ));
+  };
+
+  const editEvent = (event) => {
+    setForm({
+      id: event.id,
+      name: event.name || "",
+      date: event.date || "",
+      time: event.time || "",
+      prize: event.prize || 0,
+      status: event.status || "upcoming",
+      gameType: event.gameType || "8-ball",
+      tables: event.tables || [],
+    });
+    setModal("form");
   };
 
   const stats = {
@@ -56,7 +91,7 @@ export default function Events({ events, setEvents, tables }) {
         <button 
           className="btn btn-success events-add-btn" 
           onClick={() => { 
-            setForm({ name: "", date: "", time: "", prize: 0, status: "upcoming" }); 
+            setForm({ name: "", date: "", time: "", prize: 0, status: "upcoming", gameType: "8-ball", tables: [] }); 
             setModal("form"); 
           }}
         >
@@ -72,12 +107,8 @@ export default function Events({ events, setEvents, tables }) {
           <EventCard
             key={e.id}
             event={e}
-            addPInput={addPInput[e.id] || ""}
-            onAddPInputChange={(value) => setAddPInput({ ...addPInput, [e.id]: value })}
-            onAddParticipant={() => {
-              addParticipant(e.id, addPInput[e.id] || "");
-              setAddPInput({ ...addPInput, [e.id]: "" });
-            }}
+            tables={tables}
+            onEdit={() => editEvent(e)}
             onMarkComplete={() => markComplete(e.id)}
           />
         ))}
@@ -88,6 +119,7 @@ export default function Events({ events, setEvents, tables }) {
           form={form}
           setForm={setForm}
           tables={tables || []}
+          isEdit={Boolean(form.id)}
           onClose={() => setModal(null)}
           onSave={save}
         />

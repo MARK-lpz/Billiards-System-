@@ -27,17 +27,64 @@ import Events from "./Events";
 import Equipment from "./Equipment";
 import AuditTrail from "./AuditTrail";
 
-export default function Dashboard({ onLogout, onReload, tables, setTables, logs, products, setProducts, transactions, setTransactions, theme, setTheme }) {
+const ISSUE_ACTION_KEYWORDS = ["reported issue", "reported damaged equipment", "customer complaint"];
+const COMPLETED_ACTION_KEYWORDS = [
+  "completed booking",
+  "ended session",
+  "returned equipment",
+  "log return",
+  "save changes",
+];
+
+export default function Dashboard({
+  onLogout,
+  onReload,
+  tables,
+  setTables,
+  logs,
+  products,
+  setProducts,
+  transactions,
+  setTransactions,
+  reservations,
+  setReservations,
+  events,
+  setEvents,
+  theme,
+  setTheme,
+}) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [reservations, setReservations] = useState([]);
-  const [events, setEvents] = useState([]);
   const [equipment, setEquipment] = useState([
     { id: 1, name: "Cue Stick #1", type: "Cue Stick", condition: "good", lastMaintenance: "2026-03-01", status: "active" },
     { id: 2, name: "Ball Set #1", type: "Ball Set", condition: "fair", lastMaintenance: "2026-02-15", status: "active" },
   ]);
+
+  const reportedIssuesCount = logs.filter((entry) => {
+    const action = `${entry.action || ""}`.toLowerCase();
+    const detail = `${entry.detail || ""}`.toLowerCase();
+
+    if (action.includes("updated table status")) return false;
+
+    if (ISSUE_ACTION_KEYWORDS.some((keyword) => action.includes(keyword))) {
+      return true;
+    }
+
+    return ["issue", "damage", "complaint", "malfunction"].some(
+      (keyword) => action.includes(keyword) || detail.includes(keyword)
+    );
+  }).length;
+
+  const completedTasksCount = logs.filter((entry) => {
+    const action = `${entry.action || ""}`.toLowerCase();
+    return COMPLETED_ACTION_KEYWORDS.some((keyword) => action.includes(keyword));
+  }).length;
+
+  const pendingTasksCount =
+    tables.filter((table) => ["cleaning", "maintenance"].includes(table.status)).length +
+    reportedIssuesCount;
 
   const handleReload = () => {
     setLoading(true);
@@ -60,6 +107,7 @@ export default function Dashboard({ onLogout, onReload, tables, setTables, logs,
       
       case 'sales-pos':
         return <SalesPOS 
+          tables={tables}
           products={products} 
           setProducts={setProducts}
           transactions={transactions}
@@ -148,12 +196,15 @@ export default function Dashboard({ onLogout, onReload, tables, setTables, logs,
             </div>
 
             {/* Stats — full width */}
-            <EmployeeStats />
+            <EmployeeStats
+              completedTasks={completedTasksCount}
+              pendingTasks={pendingTasksCount}
+            />
 
             {/* Main grid — 50/50 equal columns */}
             <div className="admin-dashboard-grid">
               <ActiveTables tables={tables} onViewPoolTables={() => handleNavChange('pool-tables')} />
-              <TaskList />
+              <TaskList logs={logs} />
             </div>
           </>
         );

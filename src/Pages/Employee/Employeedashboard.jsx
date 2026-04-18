@@ -6,7 +6,7 @@ import TableCard from "../../Elements/Global/TableCard";
 import Notification from "../../Elements/Global/Notification";
 import LoadingBar from "../../Elements/Global/Loading";
 import Menu from "../../Elements/Global/Menu";
-import CustomerManagement from "./CustomerManagement";
+import TournamentSchedule from "./TournamentSchedule";
 import QuickActions from "./QuickAction";
 import SalesPOS from "./SalesPos";
 import ReservationDesk from "./ReservationDesk";
@@ -22,10 +22,11 @@ export default function EmployeeDashboard({
   setProducts,
   transactions,
   setTransactions,
+  reservations,
+  setReservations,
+  events,
   theme,
   setTheme,
-  customers,
-  setCustomers,
 }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [search, setSearch] = useState("");
@@ -90,12 +91,6 @@ export default function EmployeeDashboard({
   const updateTable = (id, updates) =>
     setTables((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
 
-  const handleReserve = (id) => {
-    const table = tables.find((t) => t.id === id);
-    updateTable(id, { status: "reserved", startTime: null });
-    if (table) addLog({ action: "Reserved table", detail: `${getTableLabel(table)} reserved by employee` });
-  };
-
   const handleWalkIn = (id) => {
     const table = tables.find((t) => t.id === id);
     updateTable(id, { status: "occupied", startTime: Date.now(), customer: "Walk-in Customer" });
@@ -127,6 +122,7 @@ export default function EmployeeDashboard({
       case "sales":
         return (
           <SalesPOS
+            tables={tables}
             products={products}
             setProducts={setProducts}
             transactions={transactions}
@@ -134,19 +130,16 @@ export default function EmployeeDashboard({
           />
         );
 
-      case "customers":
-        return (
-          <CustomerManagement
-            customers={customers}
-            setCustomers={setCustomers}
-          />
-        );
+      case "tournaments":
+        return <TournamentSchedule events={events} tables={tables} />;
 
       case "reservations":
         return (
           <ReservationDesk
             tables={tables}
             setTables={setTables}
+            reservations={reservations}
+            setReservations={setReservations}
             setLogs={setLogs}
           />
         );
@@ -166,7 +159,6 @@ export default function EmployeeDashboard({
                   key={table.id}
                   table={table}
                   timer={timers[table.id]}
-                  onReserve={handleReserve}
                   onWalkIn={handleWalkIn}
                   onEndSession={handleEndSession}
                   onCancel={handleCancel}
@@ -178,7 +170,20 @@ export default function EmployeeDashboard({
     }
   };
 
-  const selfHeaded = ["sales", "quick-actions", "customers", "reservations"];
+  const selfHeaded = ["sales", "quick-actions", "reservations"];
+
+  const pageMeta = {
+    dashboard: {
+      title: "Employee Dashboard",
+      subtitle: "Welcome back! Manage tables and assist customers",
+    },
+    tournaments: {
+      title: "Tournament Schedule",
+      subtitle: "View tournaments and events created from the admin side",
+    },
+  };
+
+  const currentPage = pageMeta[activeNav] || pageMeta.dashboard;
 
   return (
     <>
@@ -195,8 +200,8 @@ export default function EmployeeDashboard({
           {!selfHeaded.includes(activeNav) && (
             <div className="page-header">
               <div className="page-header-text">
-                <h1 className="page-title">Employee Dashboard</h1>
-                <p className="page-subtitle">Welcome back! Manage tables and assist customers</p>
+                <h1 className="page-title">{currentPage.title}</h1>
+                <p className="page-subtitle">{currentPage.subtitle}</p>
               </div>
 
               <div className="header-right">

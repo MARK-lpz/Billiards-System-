@@ -16,7 +16,6 @@
   onSetDiscount,
   onToggleDiscount,
   onProcessPayment,
-  onSendOrder,
   onExtraFormChange,
   onAddExtraCharge,
 }) {
@@ -46,8 +45,8 @@
               <strong>{servedCount}</strong>
             </div>
             <div className={`cart-service-pill ${unsyncedCount > 0 ? "attention" : ""}`}>
-              <span className="cart-service-label">To Inventory</span>
-              <strong>{unsyncedCount}</strong>
+              <span className="cart-service-label">Inventory</span>
+              <strong>{unsyncedCount > 0 ? unsyncedCount : "Auto"}</strong>
             </div>
           </div>
 
@@ -76,8 +75,8 @@
                       {item.isExtra
                         ? `${item.category || "Extra charge"} • Manual charge`
                         : item.syncedQty === item.qty
-                          ? "Sent to inventory"
-                          : `${Math.max(0, item.qty - (item.syncedQty || 0))} waiting to send`}
+                          ? "Sent to inventory automatically"
+                          : `${Math.max(0, item.qty - (item.syncedQty || 0))} syncing to inventory`}
                     </div>
                   </div>
 
@@ -210,16 +209,6 @@
                 </div>
               )}
             </div>
-
-            <button
-              type="button"
-              className="cart-secondary-btn cart-secondary-btn--full"
-              onClick={onSendOrder}
-              disabled={unsyncedCount === 0}
-            >
-              <i className="bi bi-send-check me-2"></i>
-              Send Order To Inventory
-            </button>
 
             <div className="payment-methods">
               <button

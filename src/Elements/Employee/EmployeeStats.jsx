@@ -1,4 +1,4 @@
-export default function EmployeeStats() {
+export default function EmployeeStats({ completedTasks = 0, pendingTasks = 0 }) {
   return (
     <div className="employee-stats">
 
@@ -8,7 +8,7 @@ export default function EmployeeStats() {
         </div>
         <div className="stat-content">
           <p className="stat-label">Tasks Completed</p>
-          <p className="stat-value">12</p>
+          <p className="stat-value">{completedTasks}</p>
         </div>
       </div>
 
@@ -18,7 +18,7 @@ export default function EmployeeStats() {
         </div>
         <div className="stat-content">
           <p className="stat-label">Pending Tasks</p>
-          <p className="stat-value">5</p>
+          <p className="stat-value">{pendingTasks}</p>
         </div>
       </div>
 

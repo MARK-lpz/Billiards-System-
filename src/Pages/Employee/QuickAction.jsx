@@ -77,7 +77,7 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [modal]);
 
-  const addLog = (action, detail) => {
+  const addLog = (action, detail, extra = {}) => {
     if (!setLogs) return;
     setLogs((prev) => [
       ...prev,
@@ -88,15 +88,31 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
         staff: "Employee",
         action,
         detail,
+        ...extra,
       },
     ]);
   };
 
   const handleSubmitIssue = (e) => {
     e.preventDefault();
+    const selectedTable = tables.find((table) => String(table.id) === String(issueForm.tableNumber));
+    const issueTypeLabel =
+      {
+        equipment: "Equipment Malfunction",
+        table: "Table Damage",
+        lighting: "Lighting Problem",
+        customer: "Customer Complaint",
+        other: "Other",
+      }[issueForm.type] || "General Issue";
+
     addLog(
       "Reported issue",
-      `${issueForm.type || "General issue"}${issueForm.tableNumber ? ` for ${issueForm.tableNumber}` : ""}`
+      `${issueTypeLabel}${selectedTable ? ` for ${selectedTable.name}` : ""}: ${issueForm.description.trim()}`,
+      {
+        issueType: issueTypeLabel,
+        issueTable: selectedTable?.name || "",
+        issueDescription: issueForm.description.trim(),
+      }
     );
     setSubmitted(true);
     setTimeout(() => {
@@ -343,13 +359,18 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
 
                           <div className="mb-3">
                             <label className="form-label">Table Number</label>
-                            <input
-                              type="text"
-                              className="form-control"
-                              placeholder="e.g. Table 3"
+                            <select
+                              className="form-select"
                               value={issueForm.tableNumber}
                               onChange={(e) => setIssueForm({ ...issueForm, tableNumber: e.target.value })}
-                            />
+                            >
+                              <option value="">Select table (optional)...</option>
+                              {operationalTables.map((table) => (
+                                <option key={table.id} value={table.id}>
+                                  {table.name || `Table ${table.id}`}
+                                </option>
+                              ))}
+                            </select>
                           </div>
 
                           <div className="mb-3">

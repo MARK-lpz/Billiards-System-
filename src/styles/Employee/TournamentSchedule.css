@@ -1,0 +1,225 @@
+.tourna-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tourna-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.tourna-stat-card,
+.tourna-card,
+.tourna-detail-card,
+.tourna-empty-card {
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+}
+
+.tourna-stat-card {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tourna-stat-label,
+.tourna-detail-kicker,
+.tourna-section-label {
+  color: #94a3b8;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+.tourna-stat-card strong {
+  color: #f8fafc;
+  font-size: 1.8rem;
+}
+
+.tourna-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(340px, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.tourna-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tourna-card {
+  width: 100%;
+  padding: 18px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.tourna-card:hover,
+.tourna-card.active {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.08);
+  transform: translateY(-2px);
+}
+
+.tourna-card-top,
+.tourna-card-meta,
+.tourna-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.tourna-card-title {
+  margin-top: 14px;
+  color: #f8fafc;
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+
+.tourna-card-date {
+  margin-top: 6px;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.tourna-card-meta {
+  margin-top: 14px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.tourna-card-time {
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tourna-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tourna-badge.upcoming {
+  background: rgba(59, 130, 246, 0.14);
+  color: #93c5fd;
+}
+
+.tourna-badge.completed {
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+}
+
+.tourna-detail-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tourna-detail-head h2 {
+  margin: 6px 0 0;
+  color: #f8fafc;
+  font-size: 1.55rem;
+}
+
+.tourna-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tourna-detail-item {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tourna-detail-item span,
+.tourna-detail-section p {
+  color: #94a3b8;
+  margin: 0;
+}
+
+.tourna-detail-item strong {
+  color: #f8fafc;
+  font-size: 15px;
+}
+
+.tourna-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tourna-table-tags,
+.tourna-player-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tourna-table-tag,
+.tourna-player-badge {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tourna-table-tag {
+  background: rgba(59, 130, 246, 0.12);
+  color: #bfdbfe;
+}
+
+.tourna-player-badge {
+  background: rgba(255, 255, 255, 0.06);
+  color: #dbeafe;
+}
+
+.tourna-empty-card {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.tourna-empty-card i {
+  font-size: 40px;
+  color: #60a5fa;
+}
+
+.tourna-empty-card h2 {
+  margin: 14px 0 8px;
+  color: #f8fafc;
+}
+
+.tourna-empty-card p {
+  margin: 0;
+  color: #94a3b8;
+}
+
+@media (max-width: 1024px) {
+  .tourna-stats,
+  .tourna-layout,
+  .tourna-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

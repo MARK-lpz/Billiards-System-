@@ -6,7 +6,7 @@ const navItems = [
   { icon: "bi-cart", label: "Sales POS", id: "sales" },
   { icon: "bi-calendar2-check", label: "Reservations", id: "reservations" },
   { icon: "bi-clipboard-check", label: "Actions", id: "quick-actions" },
-  { icon: "bi-people", label: "Customers", id: "customers" },
+  { icon: "bi-trophy", label: "Tournament Schedule", id: "tournaments" },
 ];
 
 export default function Sidebar({ activeNav, setActiveNav, onNavChange, onReload }) {

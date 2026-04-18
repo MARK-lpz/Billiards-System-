@@ -54,6 +54,7 @@
   color: #9ca3af;
 }
 
+
 .sales-pos-title {
   font-size: 28px;
   font-weight: 700;
@@ -658,6 +659,7 @@
   .order-queue-stats {
     grid-template-columns: 1fr;
   }
+
 }
 
 @media (max-width: 768px) {

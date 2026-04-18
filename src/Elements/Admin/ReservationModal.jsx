@@ -1,4 +1,9 @@
+import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
+
 export default function ReservationModal({ form, setForm, editId, tables, onClose, onSave }) {
+  const phoneWarning = getSmsWarning(form.phone);
+  const phoneIsValid = !form.phone.trim() || isValidSmsNumber(form.phone);
+
   return (
     <>
       <div className="modal show d-block" tabIndex="-1">
@@ -23,10 +28,26 @@ export default function ReservationModal({ form, setForm, editId, tables, onClos
                 <input 
                   type="text" 
                   className="form-control" 
-                  value={form.customer} 
-                  onChange={e => setForm({ ...form, customer: e.target.value })} 
+                  value={form.customerName}
+                  onChange={e => setForm({ ...form, customerName: e.target.value })}
                   placeholder="Full name"
                 />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">Phone Number</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={form.phone}
+                  onChange={e => setForm({ ...form, phone: sanitizePhoneInput(e.target.value) })}
+                  placeholder="09XXXXXXXXX"
+                  inputMode="numeric"
+                  maxLength="11"
+                />
+                {phoneWarning && (
+                  <div className="reservations-field-warning">{phoneWarning}</div>
+                )}
               </div>
 
               {/* Date & Time */}
@@ -57,9 +78,10 @@ export default function ReservationModal({ form, setForm, editId, tables, onClos
                   <label className="form-label">Table</label>
                   <select 
                     className="form-select" 
-                    value={form.table} 
-                    onChange={e => setForm({ ...form, table: Number(e.target.value) })}
+                    value={form.tableId}
+                    onChange={e => setForm({ ...form, tableId: e.target.value })}
                   >
+                    <option value="">Select table...</option>
                     {tables.map(t => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
@@ -70,8 +92,8 @@ export default function ReservationModal({ form, setForm, editId, tables, onClos
                   <input 
                     type="number" 
                     className="form-control" 
-                    value={form.pax} 
-                    onChange={e => setForm({ ...form, pax: Number(e.target.value) })}
+                    value={form.partySize}
+                    onChange={e => setForm({ ...form, partySize: Number(e.target.value) })}
                     min="1"
                   />
                 </div>
@@ -94,7 +116,18 @@ export default function ReservationModal({ form, setForm, editId, tables, onClos
               <button type="button" className="btn btn-secondary" onClick={onClose}>
                 Cancel
               </button>
-              <button type="button" className="btn btn-success" onClick={onSave}>
+              <button
+                type="button"
+                className="btn btn-success"
+                onClick={onSave}
+                disabled={
+                  !form.customerName.trim() ||
+                  !phoneIsValid ||
+                  !form.date ||
+                  !form.time ||
+                  !form.tableId
+                }
+              >
                 <i className="bi bi-check-circle me-2"></i>
                 {editId ? "Save Changes" : "Create Reservation"}
               </button>

@@ -1,4 +1,4 @@
-export default function EventsModal({ form, setForm, tables = [], onClose, onSave }) {
+export default function EventsModal({ form, setForm, tables = [], isEdit = false, onClose, onSave }) {
   return (
     <>
       <div className="modal show d-block" tabIndex="-1">
@@ -7,7 +7,7 @@ export default function EventsModal({ form, setForm, tables = [], onClose, onSav
             <div className="modal-header">
               <h5 className="modal-title">
                 <i className="bi bi-trophy me-2"></i>
-                Create Tournament Event
+                {isEdit ? "Edit Tournament Event" : "Create Tournament Event"}
               </h5>
               <button 
                 type="button" 
@@ -130,7 +130,7 @@ export default function EventsModal({ form, setForm, tables = [], onClose, onSav
                 onClick={onSave}
               >
                 <i className="bi bi-check-circle me-2"></i>
-                Create Event
+                {isEdit ? "Save Changes" : "Create Event"}
               </button>
             </div>
           </div>

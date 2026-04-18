@@ -338,6 +338,13 @@
   min-height: 80px;
 }
 
+.reservations-field-warning {
+  margin-top: 8px;
+  color: #fda4af;
+  font-size: 12px;
+  font-weight: 500;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .reservations-table-card {

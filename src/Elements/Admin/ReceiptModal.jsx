@@ -24,6 +24,8 @@
                 <div className="receipt-business-name">Break & Chill</div>
                 <div className="receipt-business-type">Billiard Hall • Official Receipt</div>
                 <div className="receipt-date">{receipt.date} • {receipt.time}</div>
+                {receipt.tableName ? <div className="receipt-date">{receipt.tableName}</div> : null}
+                {receipt.customerName ? <div className="receipt-date">{receipt.customerName}</div> : null}
               </div>
 
               <div className="receipt-items">

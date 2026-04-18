@@ -4,27 +4,22 @@ import "../../styles/Employee/ReservationDesk.css";
 import ReservationStats from "../../Elements/Employee/ReservationStats";
 import ReservationQueue from "../../Elements/Employee/ReservationQueue";
 import ReservationModal from "../../Elements/Employee/ReservationModal.jsx";
+import {
+  getAvailableReservationTables,
+  hasReservationConflict,
+} from "../../utils/reservations";
+import { isValidSmsNumber } from "../../utils/phone";
 
 const todayStr = () => new Date().toLocaleDateString("en-CA");
 const createId = () => Date.now() + Math.floor(Math.random() * 1000);
 
-const createSeedReservations = (tables) =>
-  tables
-    .filter((table) => table.status === "reserved")
-    .map((table) => ({
-      id: createId() + table.id,
-      customerName: table.customer || `Reserved Guest ${table.id}`,
-      phone: "",
-      partySize: 2,
-      date: todayStr(),
-      time: "",
-      tableId: table.id,
-      tableName: table.name || `Table ${table.id}`,
-      status: "reserved",
-      source: "existing",
-    }));
-
-export default function ReservationDesk({ tables = [], setTables, setLogs }) {
+export default function ReservationDesk({
+  tables = [],
+  setTables,
+  reservations = [],
+  setReservations,
+  setLogs,
+}) {
   const [reservationFilter, setReservationFilter] = useState("all");
   const [activeModal, setActiveModal] = useState(null);
   const [walkInForm, setWalkInForm] = useState({ customerName: "", tableId: "" });
@@ -36,13 +31,20 @@ export default function ReservationDesk({ tables = [], setTables, setLogs }) {
     time: "",
     tableId: "",
   });
-  const [reservations, setReservations] = useState(() =>
-    createSeedReservations(tables)
-  );
-
   const availableTables = useMemo(
     () => tables.filter((table) => table.status === "available"),
     [tables]
+  );
+
+  const reservationTables = useMemo(
+    () =>
+      getAvailableReservationTables({
+        tables,
+        reservations,
+        date: reservationForm.date,
+        time: reservationForm.time,
+      }),
+    [reservationForm.date, reservationForm.time, reservations, tables]
   );
 
   const summary = useMemo(
@@ -112,6 +114,23 @@ export default function ReservationDesk({ tables = [], setTables, setLogs }) {
     const tableId = Number(reservationForm.tableId);
     if (!reservationForm.customerName.trim() || !tableId) return;
 
+    if (reservationForm.phone.trim() && !isValidSmsNumber(reservationForm.phone)) {
+      window.alert("Please enter a valid SMS number in 09XXXXXXXXX format.");
+      return;
+    }
+
+    const candidate = {
+      tableId,
+      date: reservationForm.date,
+      time: reservationForm.time,
+    };
+
+    if (reservationForm.date && reservationForm.time && hasReservationConflict(reservations, candidate)) {
+      const tableName = tables.find((entry) => entry.id === tableId)?.name || `Table ${tableId}`;
+      window.alert(`${tableName} is already reserved for ${reservationForm.date} at ${reservationForm.time}.`);
+      return;
+    }
+
     const table = tables.find((entry) => entry.id === tableId);
     const booking = {
       id: createId(),
@@ -127,12 +146,6 @@ export default function ReservationDesk({ tables = [], setTables, setLogs }) {
     };
 
     setReservations((prev) => [booking, ...prev]);
-
-    updateTable(tableId, {
-      status: "reserved",
-      customer: booking.customerName,
-      startTime: null,
-    });
 
     addLog(
       "Created reservation",
@@ -177,11 +190,14 @@ export default function ReservationDesk({ tables = [], setTables, setLogs }) {
     }
 
     if (nextStatus === "cancelled" || nextStatus === "completed") {
-      updateTable(booking.tableId, {
-        status: "available",
-        customer: "",
-        startTime: null,
-      });
+      const currentTable = tables.find((table) => table.id === booking.tableId);
+      if (currentTable?.status === "occupied" && currentTable.customer === booking.customerName) {
+        updateTable(booking.tableId, {
+          status: "available",
+          customer: "",
+          startTime: null,
+        });
+      }
       addLog(
         nextStatus === "cancelled" ? "Cancelled booking" : "Completed booking",
         `${booking.customerName} ${nextStatus} for ${booking.tableName}`
@@ -237,6 +253,7 @@ export default function ReservationDesk({ tables = [], setTables, setLogs }) {
           reservationForm={reservationForm}
           setReservationForm={setReservationForm}
           availableTables={availableTables}
+          reservationTables={reservationTables}
           onClose={closeModal}
           onWalkInSubmit={handleWalkInSubmit}
           onReservationSubmit={handleReservationSubmit}

@@ -287,6 +287,16 @@
   background: #059669;
 }
 
+.events-actions .btn-info {
+  background: rgba(59, 130, 246, 0.16);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.events-actions .btn-info:hover {
+  background: rgba(59, 130, 246, 0.24);
+}
+
 .events-actions .btn-outline-secondary {
   background: transparent;
   color: #9ca3af;

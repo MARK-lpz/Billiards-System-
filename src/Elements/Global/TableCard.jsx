@@ -1,4 +1,4 @@
-export default function TableCard({ table, timer, onReserve, onWalkIn, onEndSession, onCancel }) {
+export default function TableCard({ table, timer, onWalkIn, onEndSession, onCancel }) {
   const statusLabel = {
     available: "Ready for use",
     occupied: "Occupied",
@@ -39,14 +39,9 @@ export default function TableCard({ table, timer, onReserve, onWalkIn, onEndSess
 
       <div className="table-actions">
         {table.status === "available" && (
-          <>
-            <button className="btn-reserve" onClick={() => onReserve(table.id)}>
-              Reserve
-            </button>
-            <button className="btn-walkin" onClick={() => onWalkIn(table.id)}>
-              Walk-in
-            </button>
-          </>
+          <button className="btn-walkin" onClick={() => onWalkIn(table.id)}>
+            Walk-in
+          </button>
         )}
         {table.status === "occupied" && (
           <button className="btn-end-session" onClick={() => onEndSession(table.id)}>

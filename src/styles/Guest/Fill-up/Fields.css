@@ -117,4 +117,20 @@
   justify-content: center;
 }
 
+.field-helper {
+  margin-top: 8px;
+  color: rgba(255,255,255,0.35);
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.field-warning {
+  margin: 8px 0 0;
+  color: #ff8f8f;
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
 

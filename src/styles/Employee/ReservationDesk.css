@@ -84,6 +84,13 @@
   grid-column: 1 / -1;
 }
 
+.rd-field-warning {
+  margin: -4px 0 2px;
+  color: #fda4af;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .rd-input,
 .rd-select {
   width: 100%;

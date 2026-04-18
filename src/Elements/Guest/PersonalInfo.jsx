@@ -1,4 +1,4 @@
-export default function PersonalInfoForm({ form, onChange }) {
+export default function PersonalInfoForm({ form, onChange, contactWarning = "" }) {
   return (
     <>
       <p className="section-title">Personal Information</p>
@@ -35,8 +35,11 @@ export default function PersonalInfoForm({ form, onChange }) {
             value={form.contact}
             onChange={onChange} 
             placeholder="09XX XXX XXXX" 
+            inputMode="numeric"
+            maxLength="11"
             required 
           />
+          {contactWarning && <p className="field-warning">{contactWarning}</p>}
         </div>
         <div>
           <label className="label">Age</label>
