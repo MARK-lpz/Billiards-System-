@@ -1,4 +1,4 @@
-import { fmt, LOYALTY_TIERS } from "./constants.js";
+import { fmt, LOYALTY_TIERS } from "./constant.js";
 
 export default function CustomerCard({ customer, onClick, onDelete }) {
   const tier =

@@ -1,87 +1,73 @@
-/* ── Customer Management Container ────────────────────────────────────────── */
+/* Customer Management: dark mode is primary */
+
 .cust-page {
   padding: 20px;
   width: 100%;
-  min-height: 100%;
+  min-height: 100vh;
   box-sizing: border-box;
+  color: #f0f0f0;
 }
 
-/* ── Page Background ─────────────────────────────────────────────────────── */
-body {
-  background: #f9fafb;
-}
-
-/* ── Page Header ─────────────────────────────────────────────────────────── */
-.page-header {
+.cust-page .page-header {
   margin-bottom: 24px;
 }
 
-.page-header-text {
+.cust-page .page-header-text {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.page-title {
+.cust-page .page-title {
   font-size: 28px;
   font-weight: 700;
-  color: #111827;
-  margin-bottom: 4px;
+  color: #f0f0f0;
+  margin: 0 0 4px 0;
 }
 
-.page-subtitle {
+.cust-page .page-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  color: #9ca3af;
   margin: 0;
 }
 
-/* ── Stats Row ───────────────────────────────────────────────────────────── */
-.tm-stats-row {
+.cust-page .tm-stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
 
-.tm-stat-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+.cust-page .tm-stat-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  padding: 20px;
+  padding: 18px;
   text-align: center;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 
-.tm-stat-card:hover {
+.cust-page .tm-stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-  border-color: #dbeafe;
+  border-color: rgba(59, 130, 246, 0.22);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
 }
 
-.tm-stat-value {
+.cust-page .tm-stat-value {
   font-size: 28px;
   font-weight: 800;
   line-height: 1.1;
   margin-bottom: 4px;
-  color: #1f2937;
 }
 
-.tm-stat-label {
-  font-size: 12px;
+.cust-page .tm-stat-label {
+  font-size: 11px;
   color: #9ca3af;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
 }
 
-/* Optional colored stats */
-.tm-stat-card:nth-child(1) .tm-stat-value { color: #2563eb; }
-.tm-stat-card:nth-child(2) .tm-stat-value { color: #16a34a; }
-.tm-stat-card:nth-child(3) .tm-stat-value { color: #f59e0b; }
-.tm-stat-card:nth-child(4) .tm-stat-value { color: #9333ea; }
-
-/* ── Controls Row ─────────────────────────────────────────────────────────── */
-.inv-controls {
+.cust-page .inv-controls {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -89,57 +75,57 @@ body {
   margin-bottom: 20px;
 }
 
-.pos-input {
+.cust-page .pos-input {
   flex: 1;
   min-width: 200px;
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  color: #111827;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f0f0f0;
   padding: 9px 14px;
   border-radius: 8px;
   font-size: 13px;
   outline: none;
-  transition: all 0.15s;
+  transition: all 0.15s ease;
 }
 
-.pos-input:focus {
+.cust-page .pos-input:focus {
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background: rgba(255, 255, 255, 0.07);
 }
 
-.pos-input::placeholder {
-  color: #9ca3af;
+.cust-page .pos-input::placeholder {
+  color: #6b7280;
 }
 
-.inv-filter-pills {
+.cust-page .inv-filter-pills {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.cat-pill {
+.cust-page .cat-pill {
   padding: 6px 14px;
   border-radius: 20px;
-  border: 1px solid #e5e7eb;
-  background: #f3f4f6;
-  color: #374151;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #d1d5db;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.15s ease;
 }
 
-.cat-pill:hover:not(.active) {
-  background: #e5e7eb;
+.cust-page .cat-pill:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-.cat-pill.active {
-  background: #3b82f6;
-  color: #fff;
+.cust-page .cat-pill.active {
+  color: #ffffff;
 }
 
-/* ── Add Button ───────────────────────────────────────────────────────────── */
-.cust-add-btn {
+.cust-page .cust-add-btn {
   padding: 9px 16px;
   background: #3b82f6;
   color: #fff;
@@ -149,41 +135,37 @@ body {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s;
+  transition: all 0.15s ease;
 }
 
-.cust-add-btn:hover {
-  opacity: 0.9;
-  box-shadow: 0 4px 10px rgba(59,130,246,0.25);
+.cust-page .cust-add-btn:hover {
+  background: #2563eb;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28);
 }
 
-/* ── Customer Grid ───────────────────────────────────────────────────────── */
-.cust-grid {
+.cust-page .cust-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 }
 
-/* ── Customer Card ───────────────────────────────────────────────────────── */
-.cust-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+.cust-page .cust-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
   position: relative;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 
-.cust-card:hover {
+.cust-page .cust-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-  border-color: #dbeafe;
+  border-color: rgba(59, 130, 246, 0.22);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
 }
 
-/* Remove Button */
-.cust-remove-btn {
+.cust-page .cust-remove-btn {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -194,78 +176,116 @@ body {
   padding: 4px 6px;
   border-radius: 6px;
   font-size: 12px;
-  transition: all 0.15s;
+  transition: all 0.15s ease;
 }
 
-.cust-remove-btn:hover {
-  background: #fee2e2;
-  color: #dc2626;
+.cust-page .cust-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
 }
 
-/* Top Row */
-.cust-card-top {
+.cust-page .cust-card-top {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 14px;
-  padding-right: 24px;
+  padding-right: 28px;
 }
 
-.cust-avatar {
+.cust-page .cust-main-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cust-page .cust-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #3b82f6;
-  color: #fff;
+  background: rgba(59, 130, 246, 0.16);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  color: #60a5fa;
   font-size: 16px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.cust-name {
+.cust-page .cust-name {
   font-size: 14px;
   font-weight: 700;
-  color: #111827;
+  color: #f0f0f0;
 }
 
-.cust-phone {
+.cust-page .cust-phone {
   font-size: 12px;
-  color: #6b7280;
+  color: #9ca3af;
 }
 
-/* Card Stats */
-.cust-card-stats {
+.cust-page .cust-tier-badge {
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.cust-page .cust-card-stats {
   display: flex;
   justify-content: space-between;
+  gap: 0;
   padding: 10px 0;
   margin-bottom: 12px;
-  border-top: 1px solid #f1f5f9;
-  border-bottom: 1px solid #f1f5f9;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.cust-stat-val {
+.cust-page .cust-stat {
+  flex: 1;
+  text-align: center;
+  padding: 0 4px;
+}
+
+.cust-page .cust-stat-val {
   font-size: 15px;
   font-weight: 700;
-  color: #1f2937;
 }
 
-.cust-stat-lbl {
+.cust-page .cust-stat-lbl {
   font-size: 11px;
   color: #9ca3af;
 }
 
-/* Footer */
-.cust-last-visit,
-.cust-notes {
+.cust-page .cust-last-visit,
+.cust-page .cust-notes {
   font-size: 12px;
-  color: #6b7280;
+  color: #9ca3af;
 }
 
-/* Empty */
-.track-empty {
+.cust-page .cust-notes {
+  margin-top: 4px;
+}
+
+.cust-page .track-empty {
   text-align: center;
   padding: 40px 20px;
   color: #9ca3af;
+}
+
+@media (max-width: 1024px) {
+  .cust-page .tm-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .cust-page .tm-stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cust-page .cust-grid {
+    grid-template-columns: 1fr;
+  }
 }

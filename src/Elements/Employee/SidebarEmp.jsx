@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 const navItems = [
   { icon: "bi-speedometer2", label: "Dashboard", id: "dashboard" },
   { icon: "bi-cart", label: "Sales POS", id: "sales" },
-  { icon: "bi-clipboard-check", label: "Quick Actions", id: "quick-actions" },
+  { icon: "bi-calendar2-check", label: "Reservations", id: "reservations" },
+  { icon: "bi-clipboard-check", label: "Actions", id: "quick-actions" },
   { icon: "bi-people", label: "Customers", id: "customers" },
 ];
 

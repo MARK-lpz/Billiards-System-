@@ -199,6 +199,16 @@
   border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
+.mini-table-card.cleaning {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.mini-table-card.maintenance {
+  background: rgba(96, 165, 250, 0.15);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
 .table-number {
   color: white;
   font-size: 1.1rem;

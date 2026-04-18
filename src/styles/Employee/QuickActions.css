@@ -1,4 +1,4 @@
-/* ── Quick Actions Page ─────────────────────────────── */
+/* Quick Actions Page */
 .qa-page {
   display: flex;
   flex-direction: column;
@@ -17,7 +17,6 @@
   margin: 0 0 1.75rem 0;
 }
 
-/* ── Card ────────────────────────────────────────────── */
 .qa-card {
   background: #1a2235;
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -25,10 +24,13 @@
   padding: 28px;
 }
 
-/* ── Action Buttons Grid ─────────────────────────────── */
+.qa-grid--top {
+  margin-bottom: 24px;
+}
+
 .qa-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
@@ -69,36 +71,233 @@
   color: #9ca3af;
 }
 
-/* ── Reservation List (inside modal-body) ────────────── */
-.qa-reservation-list {
+.qa-module {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 24px;
+}
+
+.qa-module-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.qa-module-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.qa-module-subtitle {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: #94a3b8;
+  max-width: 640px;
+}
+
+.qa-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.qa-summary-pill {
+  min-width: 92px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.qa-summary-pill--cleaning {
+  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.qa-summary-pill--maintenance {
+  border-color: rgba(96, 165, 250, 0.3);
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.qa-summary-pill--ready {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.qa-summary-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.qa-summary-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #cbd5e1;
+}
+
+.qa-table-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.qa-table-card {
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.5));
+}
+
+.qa-table-card--available {
+  border-color: rgba(16, 185, 129, 0.24);
+}
+
+.qa-table-card--cleaning {
+  border-color: rgba(56, 189, 248, 0.28);
+}
+
+.qa-table-card--maintenance {
+  border-color: rgba(96, 165, 250, 0.28);
+}
+
+.qa-table-card--reserved {
+  border-color: rgba(251, 191, 36, 0.24);
+}
+
+.qa-table-card--occupied {
+  border-color: rgba(248, 113, 113, 0.24);
+}
+
+.qa-table-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.qa-table-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.qa-table-meta {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.qa-status-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.qa-status-btn {
+  min-height: 70px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.qa-status-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.qa-status-btn i {
+  font-size: 1rem;
+}
+
+.qa-status-btn--cleaning:hover:not(:disabled),
+.qa-status-btn--cleaning.is-active {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(56, 189, 248, 0.16);
+  color: #7dd3fc;
+}
+
+.qa-status-btn--maintenance:hover:not(:disabled),
+.qa-status-btn--maintenance.is-active {
+  border-color: rgba(96, 165, 250, 0.5);
+  background: rgba(96, 165, 250, 0.16);
+  color: #93c5fd;
+}
+
+.qa-status-btn--ready:hover:not(:disabled),
+.qa-status-btn--ready.is-active {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+}
+
+.qa-status-btn:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.qa-status-note {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.qa-reservation-list,
+.qa-equipment-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.qa-reservation-item {
+.qa-reservation-item,
+.qa-equipment-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 12px 16px;
 }
 
-.qa-reservation-info {
+.qa-reservation-info,
+.qa-equipment-info {
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
 
-.qa-reservation-table {
+.qa-reservation-table,
+.qa-equipment-name {
   font-size: 14px;
   font-weight: 700;
   color: #f0f0f0;
 }
 
-.qa-reservation-customer {
+.qa-reservation-customer,
+.qa-equipment-meta {
   font-size: 12px;
   color: #6b7280;
 }
@@ -124,7 +323,42 @@
   border: 1px solid rgba(234, 179, 8, 0.3);
 }
 
-/* ── Empty State ─────────────────────────────────────── */
+.qa-badge--borrowed {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.qa-badge--returned {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.qa-badge--damaged {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.qa-badge--available {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.qa-badge--cleaning {
+  background: rgba(56, 189, 248, 0.15);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.32);
+}
+
+.qa-badge--maintenance {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(96, 165, 250, 0.32);
+}
+
 .qa-empty {
   display: flex;
   flex-direction: column;
@@ -133,6 +367,10 @@
   gap: 12px;
   padding: 40px 0;
   color: #4b5563;
+}
+
+.qa-empty--compact {
+  padding: 24px 0;
 }
 
 .qa-empty-icon {
@@ -144,7 +382,6 @@
   margin: 0;
 }
 
-/* ── Success State ───────────────────────────────────── */
 .qa-success {
   display: flex;
   flex-direction: column;
@@ -166,7 +403,65 @@
   margin: 0;
 }
 
-/* ── Responsive ──────────────────────────────────────── */
+.qa-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qa-equipment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.qa-equipment-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.qa-equipment-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f0f0f0;
+  margin-bottom: 12px;
+}
+
+.qa-equipment-log {
+  margin-top: 4px;
+}
+
+.qa-equipment-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .qa-grid,
+  .qa-equipment-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .qa-module-header,
+  .qa-table-card-top {
+    flex-direction: column;
+  }
+
+  .qa-status-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .qa-equipment-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 @media (max-width: 576px) {
   .qa-grid {
     grid-template-columns: 1fr;

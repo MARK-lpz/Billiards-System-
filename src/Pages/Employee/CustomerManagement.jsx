@@ -1,7 +1,7 @@
 // CustomerManagement.jsx
 import { useState } from "react";
 import "../../styles/Employee/CustomerManagement.css";
-import { fmt, LOYALTY_TIERS } from "../../Elements/Employee/constants.js";
+import { fmt, LOYALTY_TIERS } from "../../Elements/Employee/constant.js";
 import CustomerCard from "../../Elements/Employee/CustomerCard.jsx";
 import CustomerModal from "../../Elements/Employee/CustomerModal.jsx";
 

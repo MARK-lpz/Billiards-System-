@@ -261,6 +261,8 @@
 .card-available { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.2); }
 .card-occupied { background: rgba(248, 113, 113, 0.08); border-color: rgba(248, 113, 113, 0.2); }
 .card-reserved { background: rgba(251, 191, 36, 0.08); border-color: rgba(251, 191, 36, 0.2); }
+.card-cleaning { background: rgba(56, 189, 248, 0.08); border-color: rgba(56, 189, 248, 0.25); }
+.card-maintenance { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.25); }
 
 .table-card-header {
   display: flex;
@@ -293,6 +295,8 @@
 .status-available { color: #4ade80; }
 .status-occupied { color: #f87171; }
 .status-reserved { color: #fbbf24; }
+.status-cleaning { color: #38bdf8; }
+.status-maintenance { color: #60a5fa; }
 .table-actions { display: flex; gap: 0.6rem; }
 
 .btn-reserve, .btn-walkin, .btn-end-session, .btn-cancel {
@@ -383,6 +387,16 @@
 .active-tables-card .mini-table-card.reserved {
   background: rgba(251, 191, 36, 0.15);
   border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.active-tables-card .mini-table-card.cleaning {
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.32);
+}
+
+.active-tables-card .mini-table-card.maintenance {
+  background: rgba(96, 165, 250, 0.14);
+  border: 1px solid rgba(96, 165, 250, 0.32);
 }
 
 .active-tables-card .table-number {

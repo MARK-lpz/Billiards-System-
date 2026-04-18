@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import "../../styles/Employee/Employeedashboard.css";
 import Sidebar from "../../Elements/Employee/SidebarEmp";
 import StatCards from "../../Elements/Global/StatCards";
@@ -9,6 +9,7 @@ import Menu from "../../Elements/Global/Menu";
 import CustomerManagement from "./CustomerManagement";
 import QuickActions from "./QuickAction";
 import SalesPOS from "./SalesPos";
+import ReservationDesk from "./ReservationDesk";
 
 
 export default function EmployeeDashboard({
@@ -106,7 +107,7 @@ export default function EmployeeDashboard({
     if (table?.startTime) {
       const hours = Math.ceil((Date.now() - table.startTime) / 3600000);
       const cost = hours * table.rate;
-      if (window.confirm(`Session: ${timers[id]}\nTotal: $${cost}\n\nEnd session?`)) {
+      if (window.confirm(`Session: ${timers[id]}\nTotal: ₱${cost}\n\nEnd session?`)) {
         updateTable(id, { status: "available", startTime: null, customer: "" });
         if (table) addLog({ action: "Ended session", detail: `Ended session for ${getTableLabel(table)} (₱${cost})` });
       }
@@ -141,8 +142,17 @@ export default function EmployeeDashboard({
           />
         );
 
+      case "reservations":
+        return (
+          <ReservationDesk
+            tables={tables}
+            setTables={setTables}
+            setLogs={setLogs}
+          />
+        );
+
       case "quick-actions":
-        return <QuickActions tables={tables} />;
+        return <QuickActions tables={tables} setTables={setTables} setLogs={setLogs} />;
 
       case "dashboard":
       default:
@@ -168,7 +178,7 @@ export default function EmployeeDashboard({
     }
   };
 
-  const selfHeaded = ["sales", "quick-actions", "customers"];
+  const selfHeaded = ["sales", "quick-actions", "customers", "reservations"];
 
   return (
     <>

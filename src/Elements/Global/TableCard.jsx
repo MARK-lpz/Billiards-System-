@@ -1,4 +1,12 @@
 export default function TableCard({ table, timer, onReserve, onWalkIn, onEndSession, onCancel }) {
+  const statusLabel = {
+    available: "Ready for use",
+    occupied: "Occupied",
+    reserved: "Reserved",
+    cleaning: "Cleaning",
+    maintenance: "Under maintenance",
+  };
+
   const getClass = (status) => ({
     card: `table-card card-${status}`,
     status: `status-${status}`,
@@ -11,8 +19,8 @@ export default function TableCard({ table, timer, onReserve, onWalkIn, onEndSess
       <div className="table-card-header">
         <h3 className="table-name">{table.name || 'Table'}</h3>
         <div className="table-rate-wrapper">
-          <i className="bi bi-currency-dollar rate-icon"></i>
-          <span className="table-rate">${table.rate}/hr</span>
+          <i className="bi bi-cash-coin rate-icon"></i>
+          <span className="table-rate">₱{table.rate}/hr</span>
           {timer && (
             <span className="table-timer">
               <i className="bi bi-clock timer-icon"></i>
@@ -25,7 +33,7 @@ export default function TableCard({ table, timer, onReserve, onWalkIn, onEndSess
       <div className="table-status-row">
         <span className={`status-badge ${classes.status}`}>
           <i className="bi bi-circle-fill status-dot"></i>
-          {table.status.charAt(0).toUpperCase() + table.status.slice(1)}
+          {statusLabel[table.status] || table.status}
         </span>
       </div>
 

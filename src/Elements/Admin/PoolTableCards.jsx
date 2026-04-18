@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 
 export default function PoolTableCard({ 
   table, 
@@ -13,7 +13,15 @@ export default function PoolTableCard({
   const isOccupied = table.status === "occupied";
   const isReserved = table.status === "reserved";
   const isAvailable = table.status === "available";
+  const isCleaning = table.status === "cleaning";
   const isMaintenance = table.status === "maintenance";
+  const statusLabel = {
+    available: "Ready for use",
+    occupied: "Occupied",
+    reserved: "Reserved",
+    cleaning: "Cleaning",
+    maintenance: "Under maintenance",
+  };
 
   const [now, setNow] = useState(() => Date.now());
 
@@ -55,7 +63,7 @@ export default function PoolTableCard({
       {/* Status Badge */}
       <div className="pool-table-status">
         <div className={`pool-status-dot pool-status-${table.status}`}></div>
-        <span className="pool-status-text">{table.status}</span>
+        <span className="pool-status-text">{statusLabel[table.status] || table.status}</span>
       </div>
 
       {/* Customer Name */}
@@ -101,10 +109,10 @@ export default function PoolTableCard({
           </>
         )}
 
-        {isMaintenance && (
+        {(isCleaning || isMaintenance) && (
           <button className="btn btn-sm btn-secondary pool-table-maintenance-btn" disabled>
-            <i className="bi bi-tools me-1"></i>
-            Maintenance
+            <i className={`${isCleaning ? "bi bi-stars" : "bi bi-tools"} me-1`}></i>
+            {isCleaning ? "Cleaning" : "Maintenance"}
           </button>
         )}
 
