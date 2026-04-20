@@ -12,6 +12,7 @@ export default function BaseSalesPOS({
   setProducts,
   transactions,
   setTransactions,
+  setLogs,
   cashierLabel = "Staff A",
   storageKeyPrefix = "shared-pos",
 }) {
@@ -20,6 +21,7 @@ export default function BaseSalesPOS({
     setProducts,
     transactions,
     setTransactions,
+    setLogs,
     cashierLabel,
     storageKeyPrefix,
   });

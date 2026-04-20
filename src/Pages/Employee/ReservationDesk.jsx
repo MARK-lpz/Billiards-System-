@@ -9,6 +9,7 @@ import {
   hasReservationConflict,
 } from "../../utils/reservations";
 import { isValidSmsNumber } from "../../utils/phone";
+import { appendAuditLog } from "../../utils/audit";
 
 const todayStr = () => new Date().toLocaleDateString("en-CA");
 const createId = () => Date.now() + Math.floor(Math.random() * 1000);
@@ -51,7 +52,7 @@ export default function ReservationDesk({
     () => ({
       walkIns: tables.filter((table) => table.status === "occupied").length,
       reserved: reservations.filter((booking) =>
-        ["reserved", "arrived"].includes(booking.status)
+        ["approved", "reserved", "arrived"].includes(booking.status)
       ).length,
       assigned: reservations.filter((booking) => booking.status === "seated").length,
       openTables: availableTables.length,
@@ -64,19 +65,14 @@ export default function ReservationDesk({
     return reservations.filter((booking) => booking.status === reservationFilter);
   }, [reservationFilter, reservations]);
 
-  const addLog = (action, detail) => {
-    if (!setLogs) return;
-    setLogs((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        time: new Date().toLocaleTimeString("en-US", { hour12: false }),
-        type: "reservation",
-        staff: "Employee",
-        action,
-        detail,
-      },
-    ]);
+  const addLog = (payload) => {
+    appendAuditLog(setLogs, {
+      type: "reservation",
+      staff: "Employee",
+      entity: "reservation",
+      severity: payload.severity || "info",
+      ...payload,
+    });
   };
 
   const updateTable = (tableId, updates) => {
@@ -93,6 +89,7 @@ export default function ReservationDesk({
     e.preventDefault();
     const tableId = Number(walkInForm.tableId);
     if (!walkInForm.customerName.trim() || !tableId) return;
+    const table = tables.find((entry) => entry.id === tableId);
 
     updateTable(tableId, {
       status: "occupied",
@@ -100,10 +97,12 @@ export default function ReservationDesk({
       startTime: Date.now(),
     });
 
-    addLog(
-      "Accepted walk-in",
-      `${walkInForm.customerName.trim()} started on Table ${tableId}`
-    );
+    addLog({
+      action: "Accepted walk-in",
+      detail: `${walkInForm.customerName.trim()} started on Table ${tableId}`,
+      customer: { previous: null, current: { name: walkInForm.customerName.trim() } },
+      table: { id: tableId, name: table?.name || `Table ${tableId}`, previousStatus: table?.status, currentStatus: "occupied" },
+    });
 
     setWalkInForm({ customerName: "", tableId: "" });
     closeModal();
@@ -141,16 +140,32 @@ export default function ReservationDesk({
       time: reservationForm.time,
       tableId,
       tableName: table?.name || `Table ${tableId}`,
-      status: "reserved",
+      status: "pending",
       source: "new",
     };
 
     setReservations((prev) => [booking, ...prev]);
 
-    addLog(
-      "Created reservation",
-      `${booking.customerName} reserved ${booking.tableName} for ${booking.date} ${booking.time || ""}`.trim()
-    );
+    addLog({
+      action: "Created reservation",
+      detail: `${booking.customerName} submitted a reservation request for ${booking.tableName} on ${booking.date} ${booking.time || ""}`.trim(),
+      customer: {
+        previous: null,
+        current: {
+          name: booking.customerName,
+          phone: booking.phone,
+          partySize: booking.partySize,
+        },
+      },
+      reservation: {
+        id: booking.id,
+        previousStatus: null,
+        currentStatus: "pending",
+        date: booking.date,
+        time: booking.time,
+      },
+      table: { id: booking.tableId, name: booking.tableName, previousStatus: table?.status, currentStatus: table?.status },
+    });
 
     setReservationForm({
       customerName: "",
@@ -175,7 +190,13 @@ export default function ReservationDesk({
     );
 
     if (nextStatus === "arrived") {
-      addLog("Checked reservation", `${booking.customerName} has arrived for ${booking.tableName}`);
+      addLog({
+        action: "Checked reservation",
+        detail: `${booking.customerName} has arrived for ${booking.tableName}`,
+        customer: { previous: { name: booking.customerName, phone: booking.phone }, current: { name: booking.customerName, phone: booking.phone } },
+        reservation: { id: booking.id, previousStatus: booking.status, currentStatus: "arrived", date: booking.date, time: booking.time },
+        table: { id: booking.tableId, name: booking.tableName, previousStatus: "reserved", currentStatus: "reserved" },
+      });
       return;
     }
 
@@ -185,7 +206,13 @@ export default function ReservationDesk({
         customer: booking.customerName,
         startTime: Date.now(),
       });
-      addLog("Assigned reserved table", `${booking.customerName} seated at ${booking.tableName}`);
+      addLog({
+        action: "Assigned reserved table",
+        detail: `${booking.customerName} seated at ${booking.tableName}`,
+        customer: { previous: { name: booking.customerName, phone: booking.phone }, current: { name: booking.customerName, phone: booking.phone } },
+        reservation: { id: booking.id, previousStatus: booking.status, currentStatus: "seated", date: booking.date, time: booking.time },
+        table: { id: booking.tableId, name: booking.tableName, previousStatus: "reserved", currentStatus: "occupied" },
+      });
       return;
     }
 
@@ -198,10 +225,16 @@ export default function ReservationDesk({
           startTime: null,
         });
       }
-      addLog(
-        nextStatus === "cancelled" ? "Cancelled booking" : "Completed booking",
-        `${booking.customerName} ${nextStatus} for ${booking.tableName}`
-      );
+      addLog({
+        action: nextStatus === "cancelled" ? "Cancelled booking" : "Completed booking",
+        detail: `${booking.customerName} ${nextStatus} for ${booking.tableName}`,
+        customer: {
+          previous: { name: booking.customerName, phone: booking.phone },
+          current: nextStatus === "completed" ? { name: booking.customerName, phone: booking.phone } : null,
+        },
+        reservation: { id: booking.id, previousStatus: booking.status, currentStatus: nextStatus, date: booking.date, time: booking.time },
+        table: { id: booking.tableId, name: booking.tableName, previousStatus: currentTable?.status, currentStatus: currentTable?.status === "occupied" ? "available" : currentTable?.status },
+      });
     }
   };
 

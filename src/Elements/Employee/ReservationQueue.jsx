@@ -7,6 +7,7 @@ export default function ReservationQueue({
 }) {
   const filterCounts = {
     all: reservations.length,
+    pending: reservations.filter((booking) => booking.status === "pending").length,
     reserved: reservations.filter((booking) => booking.status === "reserved").length,
     arrived: reservations.filter((booking) => booking.status === "arrived").length,
     seated: reservations.filter((booking) =>
@@ -15,7 +16,8 @@ export default function ReservationQueue({
   };
 
   const getStatusLabel = (status) => {
-    if (status === "reserved") return "Reserved";
+    if (status === "pending") return "Pending Approval";
+    if (status === "approved" || status === "reserved") return "Approved";
     if (status === "arrived") return "Arrived";
     if (status === "seated" || status === "completed") return "Completed";
     if (status === "cancelled") return "Cancelled";
@@ -23,7 +25,8 @@ export default function ReservationQueue({
   };
 
   const getStatusClass = (status) => {
-    if (status === "reserved") return "rd-badge-pending";
+    if (status === "pending") return "rd-badge-pending";
+    if (status === "approved" || status === "reserved") return "rd-badge-approved";
     if (status === "arrived") return "rd-badge-approved";
     if (status === "seated" || status === "completed") return "rd-badge-completed";
     if (status === "cancelled") return "rd-badge-rejected";
@@ -35,7 +38,8 @@ export default function ReservationQueue({
       <div className="rd-filters">
         {[
           ["all", "All"],
-          ["reserved", "Reserved"],
+          ["pending", "Pending"],
+          ["reserved", "Approved"],
           ["arrived", "Arrived"],
           ["seated", "Completed"],
         ].map(([value, label]) => (
@@ -87,13 +91,25 @@ export default function ReservationQueue({
                       </span>
                     </td>
                     <td className="rd-table-notes">
-                      {booking.source === "existing"
-                        ? "Imported from table status"
-                        : "Front desk booking"}
+                      {booking.status === "pending"
+                        ? "Waiting for admin approval"
+                        : booking.source === "existing"
+                          ? "Imported from table status"
+                          : "Front desk booking"}
                     </td>
                     <td>
                       <div className="rd-actions">
-                        {booking.status === "reserved" && (
+                        {booking.status === "pending" && (
+                          <button
+                            type="button"
+                            className="rd-secondary-btn"
+                            disabled
+                          >
+                            Waiting Approval
+                          </button>
+                        )}
+
+                        {(booking.status === "approved" || booking.status === "reserved") && (
                           <>
                             <button
                               type="button"

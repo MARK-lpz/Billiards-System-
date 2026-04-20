@@ -10,6 +10,7 @@ import TournamentSchedule from "./TournamentSchedule";
 import QuickActions from "./QuickAction";
 import SalesPOS from "./SalesPos";
 import ReservationDesk from "./ReservationDesk";
+import { appendAuditLog } from "../../utils/audit";
 
 
 export default function EmployeeDashboard({
@@ -76,16 +77,12 @@ export default function EmployeeDashboard({
   const getTableLabel = (table) => table?.name || `T${table?.id}`;
 
   const addLog = (entry) => {
-    setLogs((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        time: new Date().toLocaleTimeString("en-US", { hour12: false }),
-        type: "table",
-        staff: "Employee",
-        ...entry,
-      },
-    ]);
+    appendAuditLog(setLogs, {
+      type: "table",
+      staff: "Employee",
+      entity: "table",
+      ...entry,
+    });
   };
 
   const updateTable = (id, updates) =>
@@ -94,7 +91,22 @@ export default function EmployeeDashboard({
   const handleWalkIn = (id) => {
     const table = tables.find((t) => t.id === id);
     updateTable(id, { status: "occupied", startTime: Date.now(), customer: "Walk-in Customer" });
-    if (table) addLog({ action: "Started walk-in session", detail: `Walk-in started for ${getTableLabel(table)}` });
+    if (table) {
+      addLog({
+        action: "Started walk-in session",
+        detail: `Walk-in started for ${getTableLabel(table)}`,
+        customer: {
+          previous: table.customer ? { name: table.customer } : null,
+          current: { name: "Walk-in Customer" },
+        },
+        table: {
+          id: table.id,
+          name: getTableLabel(table),
+          previousStatus: table.status,
+          currentStatus: "occupied",
+        },
+      });
+    }
   };
 
   const handleEndSession = (id) => {
@@ -104,7 +116,26 @@ export default function EmployeeDashboard({
       const cost = hours * table.rate;
       if (window.confirm(`Session: ${timers[id]}\nTotal: ₱${cost}\n\nEnd session?`)) {
         updateTable(id, { status: "available", startTime: null, customer: "" });
-        if (table) addLog({ action: "Ended session", detail: `Ended session for ${getTableLabel(table)} (₱${cost})` });
+        if (table) {
+          addLog({
+            action: "Ended session",
+            detail: `Ended session for ${getTableLabel(table)} (₱${cost})`,
+            customer: {
+              previous: table.customer ? { name: table.customer } : null,
+              current: null,
+            },
+            table: {
+              id: table.id,
+              name: getTableLabel(table),
+              previousStatus: table.status,
+              currentStatus: "available",
+            },
+            payment: {
+              total: cost,
+              source: "table-session",
+            },
+          });
+        }
       }
     }
   };
@@ -113,7 +144,22 @@ export default function EmployeeDashboard({
     const table = tables.find((t) => t.id === id);
     if (window.confirm("Cancel reservation?")) {
       updateTable(id, { status: "available", startTime: null, customer: "" });
-      if (table) addLog({ action: "Cancelled reservation", detail: `Cancelled reservation for ${getTableLabel(table)}` });
+      if (table) {
+        addLog({
+          action: "Cancelled reservation",
+          detail: `Cancelled reservation for ${getTableLabel(table)}`,
+          customer: {
+            previous: table.customer ? { name: table.customer } : null,
+            current: null,
+          },
+          table: {
+            id: table.id,
+            name: getTableLabel(table),
+            previousStatus: table.status,
+            currentStatus: "available",
+          },
+        });
+      }
     }
   };
 
@@ -127,6 +173,7 @@ export default function EmployeeDashboard({
             setProducts={setProducts}
             transactions={transactions}
             setTransactions={setTransactions}
+            setLogs={setLogs}
           />
         );
 

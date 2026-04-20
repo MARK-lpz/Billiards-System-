@@ -11,6 +11,7 @@ import './styles/globalThemeAdmin.css'
 import './styles/globalThemeEmployee.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
 import { initialReservations } from './utils/reservations'
+import { createAuditEntry, normalizeAuditLogs } from './utils/audit'
 
 const initialTables = [
   { id: 1, name: 'Table 1', rate: 15, status: 'available', startTime: null, customer: '' },
@@ -61,7 +62,7 @@ function App() {
 
   const [logs, setLogs] = useState(() => {
     const initialLogs = [
-      { id: 1, time: '14:32:05', type: 'auth', staff: 'Admin', action: 'logged in', detail: 'Successful login from 192.168.1.1' },
+      createAuditEntry({ id: 1, timestamp: '2026-04-19T14:32:05+08:00', type: 'auth', staff: 'Admin', action: 'logged in', detail: 'Successful login from 192.168.1.1', entity: 'session' }),
       { id: 2, time: '14:35:12', type: 'sale', staff: 'Staff A', action: 'processed sale', detail: 'Transaction #12345 - ₱150.00' },
     ]
     try {
@@ -291,6 +292,7 @@ function App() {
             tables={tables}
             setTables={setTables}
             logs={logs}
+            setLogs={setLogs}
             products={products}
             setProducts={setProducts}
             transactions={transactions}

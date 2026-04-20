@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { DISCOUNTS, defaultExtraForm, nowStr, readStorage, todayStr } from "./salesPosConfig";
+import { appendAuditLog } from "../../utils/audit";
 
 export default function useSalesPOS({
   products,
   setProducts,
   transactions,
   setTransactions,
+  setLogs,
   cashierLabel,
   storageKeyPrefix,
 }) {
@@ -279,6 +281,21 @@ export default function useSalesPOS({
     };
 
     setTransactions((prev) => [tx, ...prev]);
+    appendAuditLog(setLogs, {
+      type: "sale",
+      staff: cashierLabel,
+      action: "Processed sale",
+      detail: `${cart.length} line items paid via ${method} for ₱${total.toFixed(2)}`,
+      entity: "payment",
+      payment: {
+        transactionId: tx.id,
+        total,
+        subtotal,
+        discount: discAmt,
+        method,
+      },
+      customer: null,
+    });
     setReceipt(tx);
     setCart([]);
     setDiscount("none");

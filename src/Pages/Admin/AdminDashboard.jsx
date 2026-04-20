@@ -17,7 +17,6 @@ import ActiveTables from "../../Elements/Admin/ActiveTables";
 import EmployeeStats from "../../Elements/Employee/EmployeeStats";
 
 // Admin Modules (Pages)
-import QRGenerator from "./QrGenerator";
 import SalesPOS from "./SalesPOS";
 import Reservations from "./Reservations";
 import Reports from "./Reports";
@@ -25,7 +24,6 @@ import PoolTables from "./PoolTables";
 import Inventory from "./Inventory";
 import Events from "./Events";
 import Equipment from "./Equipment";
-import AuditTrail from "./AuditTrail";
 
 const ISSUE_ACTION_KEYWORDS = ["reported issue", "reported damaged equipment", "customer complaint"];
 const COMPLETED_ACTION_KEYWORDS = [
@@ -36,12 +34,31 @@ const COMPLETED_ACTION_KEYWORDS = [
   "save changes",
 ];
 
+const isResolvedIssue = (entry) =>
+  entry?.issueStatus === "resolved" || entry?.issue?.status === "resolved" || Boolean(entry?.resolvedAt);
+
+const isIssueEntry = (entry) => {
+  const action = `${entry.action || ""}`.toLowerCase();
+  const detail = `${entry.detail || ""}`.toLowerCase();
+
+  if (action.includes("updated table status")) return false;
+
+  if (ISSUE_ACTION_KEYWORDS.some((keyword) => action.includes(keyword))) {
+    return true;
+  }
+
+  return ["issue", "damage", "complaint", "malfunction"].some(
+    (keyword) => action.includes(keyword) || detail.includes(keyword)
+  );
+};
+
 export default function Dashboard({
   onLogout,
   onReload,
   tables,
   setTables,
   logs,
+  setLogs,
   products,
   setProducts,
   transactions,
@@ -62,20 +79,7 @@ export default function Dashboard({
     { id: 2, name: "Ball Set #1", type: "Ball Set", condition: "fair", lastMaintenance: "2026-02-15", status: "active" },
   ]);
 
-  const reportedIssuesCount = logs.filter((entry) => {
-    const action = `${entry.action || ""}`.toLowerCase();
-    const detail = `${entry.detail || ""}`.toLowerCase();
-
-    if (action.includes("updated table status")) return false;
-
-    if (ISSUE_ACTION_KEYWORDS.some((keyword) => action.includes(keyword))) {
-      return true;
-    }
-
-    return ["issue", "damage", "complaint", "malfunction"].some(
-      (keyword) => action.includes(keyword) || detail.includes(keyword)
-    );
-  }).length;
+  const reportedIssuesCount = logs.filter((entry) => isIssueEntry(entry) && !isResolvedIssue(entry)).length;
 
   const completedTasksCount = logs.filter((entry) => {
     const action = `${entry.action || ""}`.toLowerCase();
@@ -102,9 +106,6 @@ export default function Dashboard({
 
   const renderModule = () => {
     switch(activeNav) {
-      case 'qr-generator':
-        return <QRGenerator />;
-      
       case 'sales-pos':
         return <SalesPOS 
           tables={tables}
@@ -112,6 +113,7 @@ export default function Dashboard({
           setProducts={setProducts}
           transactions={transactions}
           setTransactions={setTransactions}
+          setLogs={setLogs}
         />;
       
       case 'reservations':
@@ -119,6 +121,8 @@ export default function Dashboard({
           reservations={reservations}
           setReservations={setReservations}
           tables={tables}
+          setTables={setTables}
+          setLogs={setLogs}
         />;
       
       case 'reports':
@@ -152,9 +156,6 @@ export default function Dashboard({
           equipment={equipment}
           setEquipment={setEquipment}
         />;
-      
-      case 'audit-trail':
-        return <AuditTrail logs={logs} />;
       
       case 'dashboard':
       default:
@@ -204,7 +205,7 @@ export default function Dashboard({
             {/* Main grid — 50/50 equal columns */}
             <div className="admin-dashboard-grid">
               <ActiveTables tables={tables} onViewPoolTables={() => handleNavChange('pool-tables')} />
-              <TaskList logs={logs} />
+              <TaskList logs={logs} setLogs={setLogs} />
             </div>
           </>
         );

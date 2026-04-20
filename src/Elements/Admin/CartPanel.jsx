@@ -70,6 +70,7 @@
                 >
                   <div className="cart-item-details">
                     <div className="cart-item-name">{item.name}</div>
+                    <div className="cart-item-type">{item.category || (item.isExtra ? "Extra Charge" : "Uncategorized")}</div>
                     <div className="cart-item-price">{fmtPeso(item.price)} each</div>
                     <div className="cart-item-meta">
                       {item.isExtra
@@ -81,13 +82,24 @@
                   </div>
 
                   <div className="cart-item-qty">
-                    <button className="qty-btn" onClick={() => onUpdateQty(item.id, item.qty - 1)}>
+                    <button type="button" className="qty-btn" onClick={() => onUpdateQty(item.id, item.qty - 1)}>
                       <i className="bi bi-dash"></i>
                     </button>
 
-                    <span className="qty-value">{item.qty}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
+                      className="qty-input"
+                      value={item.qty}
+                      onChange={(event) => {
+                        const nextQty = Number.parseInt(event.target.value || "0", 10);
+                        onUpdateQty(item.id, Number.isNaN(nextQty) ? 0 : nextQty);
+                      }}
+                    />
 
-                    <button className="qty-btn" onClick={() => onUpdateQty(item.id, item.qty + 1)}>
+                    <button type="button" className="qty-btn" onClick={() => onUpdateQty(item.id, item.qty + 1)}>
                       <i className="bi bi-plus"></i>
                     </button>
                   </div>

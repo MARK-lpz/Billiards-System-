@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import "../../styles/Employee/QuickActions.css";
+import { appendAuditLog } from "../../utils/audit";
 
 const defaultBorrowForm = {
   itemType: "Cue Stick",
@@ -48,6 +49,8 @@ const formatStatus = (status) =>
     maintenance: "Under maintenance",
   })[status] || status;
 
+const formatPesoRate = (value) => `₱${Number(value || 0)}/hr`;
+
 export default function QuickActions({ tables = [], setTables, setLogs }) {
   const [modal, setModal] = useState(null);
   const [issueForm, setIssueForm] = useState({ type: "", description: "", tableNumber: "" });
@@ -78,19 +81,18 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
   }, [modal]);
 
   const addLog = (action, detail, extra = {}) => {
-    if (!setLogs) return;
-    setLogs((prev) => [
-      ...prev,
-      {
-        id: Date.now() + Math.random(),
-        time: new Date().toLocaleTimeString("en-US", { hour12: false }),
-        type: "employee-action",
-        staff: "Employee",
-        action,
-        detail,
-        ...extra,
-      },
-    ]);
+    appendAuditLog(setLogs, {
+      type: extra.type || "other",
+      staff: "Employee",
+      action,
+      detail,
+      entity: extra.entity || "operation",
+      severity: extra.severity || "info",
+      issue: extra.issue || null,
+      table: extra.table || null,
+      customer: extra.customer || null,
+      extra,
+    });
   };
 
   const handleSubmitIssue = (e) => {
@@ -109,9 +111,20 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
       "Reported issue",
       `${issueTypeLabel}${selectedTable ? ` for ${selectedTable.name}` : ""}: ${issueForm.description.trim()}`,
       {
+        type: "issue",
+        entity: "issue",
+        severity: issueForm.type === "customer" ? "medium" : "high",
         issueType: issueTypeLabel,
         issueTable: selectedTable?.name || "",
         issueDescription: issueForm.description.trim(),
+        issue: {
+          type: issueTypeLabel,
+          table: selectedTable?.name || "",
+          description: issueForm.description.trim(),
+        },
+        table: selectedTable
+          ? { id: selectedTable.id, name: selectedTable.name, previousStatus: selectedTable.status, currentStatus: selectedTable.status }
+          : null,
       }
     );
     setSubmitted(true);
@@ -147,7 +160,11 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
     };
 
     setEquipmentRecords((prev) => [newRecord, ...prev]);
-    addLog("Borrowed equipment", `${newRecord.itemType} ${newRecord.itemCode} borrowed by ${newRecord.borrower}`);
+    addLog("Borrowed equipment", `${newRecord.itemType} ${newRecord.itemCode} borrowed by ${newRecord.borrower}`, {
+      type: "inventory",
+      entity: "equipment",
+      customer: { previous: null, current: { name: newRecord.borrower } },
+    });
     setBorrowForm(defaultBorrowForm);
   };
 
@@ -169,7 +186,15 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
     };
 
     setEquipmentRecords((prev) => [damagedRecord, ...prev]);
-    addLog("Reported damaged equipment", `${damagedRecord.itemType} ${damagedRecord.itemCode} marked damaged`);
+    addLog("Reported damaged equipment", `${damagedRecord.itemType} ${damagedRecord.itemCode} marked damaged`, {
+      type: "inventory",
+      entity: "equipment",
+      severity: "high",
+      issue: {
+        type: "Equipment Damage",
+        description: damagedRecord.issue || damagedRecord.notes,
+      },
+    });
     setDamageForm(defaultDamageForm);
   };
 
@@ -192,7 +217,11 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
       )
     );
 
-    addLog("Returned equipment", `${record.itemType} ${record.itemCode} returned by ${record.borrower}`);
+    addLog("Returned equipment", `${record.itemType} ${record.itemCode} returned by ${record.borrower}`, {
+      type: "inventory",
+      entity: "equipment",
+      customer: { previous: { name: record.borrower }, current: { name: record.borrower } },
+    });
   };
 
   const handleTableStatusUpdate = (tableId, nextStatus) => {
@@ -214,7 +243,22 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
       )
     );
 
-    addLog("Updated table status", `${table.name || `Table ${table.id}`} marked as ${formatStatus(nextStatus)}`);
+    addLog("Updated table status", `${table.name || `Table ${table.id}`} marked as ${formatStatus(nextStatus)}`, {
+      type: "table",
+      entity: "table",
+      table: {
+        id: table.id,
+        name: table.name || `Table ${table.id}`,
+        previousStatus: table.status,
+        currentStatus: nextStatus,
+      },
+      customer: table.customer
+        ? {
+            previous: { name: table.customer },
+            current: nextStatus === "available" ? null : { name: table.customer },
+          }
+        : null,
+    });
   };
 
   return (
@@ -272,7 +316,7 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
                   <div>
                     <div className="qa-table-name">{table.name || `Table ${table.id}`}</div>
                     <div className="qa-table-meta">
-                      Rate: ${table.rate}/hr
+                      Rate: {formatPesoRate(table.rate)}
                       {table.customer ? ` • ${table.customer}` : ""}
                     </div>
                   </div>

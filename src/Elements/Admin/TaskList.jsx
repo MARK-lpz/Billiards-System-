@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 
 const ISSUE_ACTION_KEYWORDS = ["reported issue", "reported damaged equipment", "customer complaint"];
 
+const isResolvedIssue = (entry) =>
+  entry?.issueStatus === "resolved" || entry?.issue?.status === "resolved" || Boolean(entry?.resolvedAt);
+
 const isIssueEntry = (entry) => {
   const action = `${entry.action || ""}`.toLowerCase();
   const detail = `${entry.detail || ""}`.toLowerCase();
@@ -33,11 +36,11 @@ const getSeverity = (entry) => {
 
 const getIssueLogs = (logs = []) =>
   logs
-    .filter((entry) => isIssueEntry(entry))
+    .filter((entry) => isIssueEntry(entry) && !isResolvedIssue(entry))
     .sort((a, b) => Number(b.id || 0) - Number(a.id || 0))
     .slice(0, 4);
 
-export default function TaskList({ logs = [] }) {
+export default function TaskList({ logs = [], setLogs }) {
   const issueLogs = getIssueLogs(logs);
   const [selectedIssue, setSelectedIssue] = useState(null);
 
@@ -56,13 +59,32 @@ export default function TaskList({ logs = [] }) {
 
   const issueSummary = selectedIssue
     ? {
-        title: selectedIssue.issueType || selectedIssue.action || "Issue Report",
+        title: selectedIssue.issue?.type || selectedIssue.issueType || selectedIssue.action || "Issue Report",
         reporter: selectedIssue.staff || "Staff",
         time: selectedIssue.time || "Just now",
-        table: selectedIssue.issueTable || "Not specified",
-        description: selectedIssue.issueDescription || selectedIssue.detail || "No details provided.",
+        table: selectedIssue.issue?.table || selectedIssue.issueTable || "Not specified",
+        description: selectedIssue.issue?.description || selectedIssue.issueDescription || selectedIssue.detail || "No details provided.",
       }
     : null;
+
+  const handleResolveIssue = () => {
+    if (!selectedIssue || !setLogs) return;
+
+    setLogs((prev) =>
+      prev.map((entry) =>
+        entry.id === selectedIssue.id
+          ? {
+              ...entry,
+              issueStatus: "resolved",
+              resolvedAt: new Date().toISOString(),
+              issue: entry.issue ? { ...entry.issue, status: "resolved" } : { status: "resolved" },
+            }
+          : entry
+      )
+    );
+
+    setSelectedIssue(null);
+  };
 
   return (
     <>
@@ -172,6 +194,15 @@ export default function TaskList({ logs = [] }) {
                 </div>
 
                 <div className="modal-footer">
+                  {setLogs ? (
+                    <button
+                      type="button"
+                      className="btn btn-success"
+                      onClick={handleResolveIssue}
+                    >
+                      Mark Resolved
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className="btn btn-secondary"
