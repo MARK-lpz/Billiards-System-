@@ -320,6 +320,18 @@
 .light .notification-message { color: #334155 !important; }
 .light .notification-time    { color: #94a3b8 !important; }
 
+.light .notification-action-btn.approve {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #059669 !important;
+  border-color: rgba(16, 185, 129, 0.24) !important;
+}
+
+.light .notification-action-btn.reject {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.22) !important;
+}
+
 .light .notification-delete {
   color: rgba(15, 23, 42, 0.3) !important;
 }
@@ -339,6 +351,26 @@
 }
 
 .light .forgot-modal-header h2 { color: #0f172a !important; }
+
+.light .forgot-role-tabs {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light .forgot-role-tab {
+  color: #64748b !important;
+}
+
+.light .forgot-role-tab:hover {
+  background: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+.light .forgot-role-tab.active {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 18px rgba(16, 185, 129, 0.2) !important;
+}
 
 .light .forgot-close-btn {
   color: #64748b !important;

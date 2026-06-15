@@ -183,6 +183,31 @@
   font-weight: 700;
 }
 
+.pool-table-time-alert {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pool-table-time-alert.warning {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+.pool-table-time-alert.danger {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
 /* Status */
 .pool-table-status {
   display: flex;
@@ -342,6 +367,22 @@
 .pool-table-end-btn { flex: 1 1 100% !important; }
 .pool-table-maintenance-btn { flex: 1 1 100% !important; opacity: 0.8; }
 
+.pool-end-modal {
+  background: #111827;
+  border: 1px solid rgba(248, 113, 113, 0.25);
+}
+
+.pool-end-copy {
+  color: #cbd5e1;
+  margin: 0 0 16px;
+}
+
+.pool-end-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 /* Animation */
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -354,4 +395,5 @@
   .pool-tables-add-btn { width: 100%; justify-content: center; }
   .pool-tables-grid { grid-template-columns: 1fr; }
   .pool-table-actions .btn { width: 100%; }
+  .pool-end-actions { grid-template-columns: 1fr; }
 }

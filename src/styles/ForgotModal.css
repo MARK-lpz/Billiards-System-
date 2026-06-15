@@ -91,6 +91,44 @@
   gap: 20px;
 }
 
+.forgot-role-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 4px;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.forgot-role-tab {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.forgot-role-tab:hover {
+  background: rgba(148, 163, 184, 0.1);
+  color: #e2e8f0;
+}
+
+.forgot-role-tab.active {
+  background: #10b981;
+  color: #06130d;
+  box-shadow: 0 8px 18px rgba(16, 185, 129, 0.24);
+}
+
 .forgot-description {
   color: #9ca3af;
   font-size: 14px;
@@ -113,6 +151,10 @@
   font-size: 0.95rem;
   color: #cbd5e1;
   margin-bottom: 8px;
+}
+
+.forgot-field-gap {
+  margin-top: 14px;
 }
 
 .forgot-modal .form-input {

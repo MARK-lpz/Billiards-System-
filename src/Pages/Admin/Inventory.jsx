@@ -7,8 +7,12 @@ import InventoryTable from "../../Elements/Admin/InventoryTable";
 export default function Inventory({ products, setProducts }) {
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ 
+    sku: "",
     name: "", 
     category: "Food", 
+    supplier: "",
+    location: "",
+    expiryDate: "",
     price: 0, 
     stock: 0, 
     minStock: 10, 
@@ -44,7 +48,7 @@ export default function Inventory({ products, setProducts }) {
   };
 
   const openAddModal = () => {
-    setForm({ name: "", category: "Food", price: 0, stock: 0, minStock: 10, unit: "pcs" });
+    setForm({ sku: "", name: "", category: "Food", supplier: "", location: "", expiryDate: "", price: 0, stock: 0, minStock: 10, unit: "pcs" });
     setEditId(null);
     setModal("form");
   };

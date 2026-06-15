@@ -32,6 +32,17 @@ export default function PoolTableModal({ form, setForm, editId, onClose, onSave 
                   min="0"
                 />
               </div>
+              <div className="mb-3">
+                <label className="form-label">Default Session Minutes</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  value={form.durationMinutes || 60}
+                  onChange={e => setForm({ ...form, durationMinutes: Number(e.target.value) })}
+                  min="15"
+                  step="15"
+                />
+              </div>
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>

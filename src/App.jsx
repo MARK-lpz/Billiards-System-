@@ -14,24 +14,24 @@ import { initialReservations } from './utils/reservations'
 import { createAuditEntry, normalizeAuditLogs } from './utils/audit'
 
 const initialTables = [
-  { id: 1, name: 'Table 1', rate: 15, status: 'available', startTime: null, customer: '' },
-  { id: 2, name: 'Table 2', rate: 15, status: 'occupied', startTime: Date.now() - 2700000, customer: 'John Doe' },
-  { id: 3, name: 'Table 3', rate: 15, status: 'available', startTime: null, customer: '' },
-  { id: 4, name: 'Table 4', rate: 15, status: 'reserved', startTime: null, customer: '' },
-  { id: 5, name: 'Table 5', rate: 15, status: 'available', startTime: null, customer: '' },
-  { id: 6, name: 'Table 6', rate: 15, status: 'occupied', startTime: Date.now() - 4800000, customer: '' },
-  { id: 7, name: 'Table 7', rate: 15, status: 'available', startTime: null, customer: '' },
-  { id: 8, name: 'Table 8', rate: 15, status: 'available', startTime: null, customer: '' },
-  { id: 9, name: 'Table 9', rate: 15, status: 'occupied', startTime: Date.now() - 1800000, customer: '' },
-  { id: 10, name: 'Table 10', rate: 15, status: 'available', startTime: null, customer: '' },
-  { id: 11, name: 'Table 11', rate: 15, status: 'reserved', startTime: null, customer: '' },
-  { id: 12, name: 'Table 12', rate: 15, status: 'available', startTime: null, customer: '' },
+  { id: 1, name: 'Table 1', rate: 15, status: 'available', startTime: null, customer: '', durationMinutes: 60, addedMinutes: 0 },
+  { id: 2, name: 'Table 2', rate: 15, status: 'occupied', startTime: Date.now() - 2700000, customer: 'John Doe', durationMinutes: 60, addedMinutes: 30 },
+  { id: 3, name: 'Table 3', rate: 15, status: 'available', startTime: null, customer: '', durationMinutes: 60, addedMinutes: 0 },
+  { id: 4, name: 'Table 4', rate: 15, status: 'reserved', startTime: null, customer: '', durationMinutes: 60, addedMinutes: 0 },
+  { id: 5, name: 'Table 5', rate: 15, status: 'available', startTime: null, customer: '', durationMinutes: 60, addedMinutes: 0 },
+  { id: 6, name: 'Table 6', rate: 15, status: 'occupied', startTime: Date.now() - 4800000, customer: '', durationMinutes: 90, addedMinutes: 0 },
+  { id: 7, name: 'Table 7', rate: 15, status: 'available', startTime: null, customer: '', durationMinutes: 60, addedMinutes: 0 },
+  { id: 8, name: 'Table 8', rate: 15, status: 'available', startTime: null, customer: '', durationMinutes: 60, addedMinutes: 0 },
+  { id: 9, name: 'Table 9', rate: 15, status: 'occupied', startTime: Date.now() - 1800000, customer: '', durationMinutes: 60, addedMinutes: 0 },
+  { id: 10, name: 'Table 10', rate: 15, status: 'available', startTime: null, customer: '', durationMinutes: 60, addedMinutes: 0 },
+  { id: 11, name: 'Table 11', rate: 15, status: 'reserved', startTime: null, customer: '', durationMinutes: 60, addedMinutes: 0 },
+  { id: 12, name: 'Table 12', rate: 15, status: 'available', startTime: null, customer: '', durationMinutes: 60, addedMinutes: 0 },
 ]
 
 const initialProducts = [
-  { id: 1, name: "Coca Cola", category: "Beverage", price: 25, stock: 50, minStock: 10, unit: "pcs" },
-  { id: 2, name: "Chips", category: "Food", price: 15, stock: 30, minStock: 10, unit: "pcs" },
-  { id: 3, name: "Cue Chalk", category: "Equipment", price: 50, stock: 20, minStock: 5, unit: "pcs" },
+  { id: 1, sku: "DRK-COCA-001", name: "Coca Cola", category: "Beverage", supplier: "Local Beverage Supplier", location: "Chiller A", expiryDate: "2026-12-31", price: 25, stock: 50, minStock: 10, unit: "pcs" },
+  { id: 2, sku: "FOD-CHIP-001", name: "Chips", category: "Food", supplier: "Snack Distributor", location: "Shelf B2", expiryDate: "2026-10-15", price: 15, stock: 30, minStock: 10, unit: "pcs" },
+  { id: 3, sku: "EQP-CHALK-001", name: "Cue Chalk", category: "Equipment", supplier: "Billiards Supply", location: "Counter Drawer", expiryDate: "", price: 50, stock: 20, minStock: 5, unit: "pcs" },
 ]
 
 const initialTransactions = []

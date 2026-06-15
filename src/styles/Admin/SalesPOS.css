@@ -358,6 +358,43 @@
   text-shadow: 0 0 12px rgba(52, 211, 153, 0.35);
 }
 
+.gcash-qr-panel {
+  display: grid;
+  grid-template-columns: 1fr 112px;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.gcash-qr-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gcash-qr-copy strong {
+  color: #d1fae5;
+  font-size: 13px;
+}
+
+.gcash-qr-copy span {
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.gcash-qr-panel img {
+  width: 112px;
+  height: 112px;
+  border-radius: 8px;
+  background: #fff;
+  padding: 6px;
+}
+
 /* ── Recent Transactions ──────────────────────────────────────────────────── */
 .recent-transactions-empty {
   font-size: 12px;

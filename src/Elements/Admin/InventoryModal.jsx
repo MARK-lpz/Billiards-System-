@@ -18,6 +18,17 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
             
             <div className="modal-body">
               <div className="mb-3">
+                <label className="form-label">SKU / Item Code</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={form.sku || ""}
+                  onChange={e => setForm({ ...form, sku: e.target.value })}
+                  placeholder="e.g. DRK-COLA-001"
+                />
+              </div>
+
+              <div className="mb-3">
                 <label className="form-label">Product Name</label>
                 <input 
                   type="text" 
@@ -56,6 +67,29 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
               </div>
 
               <div className="row g-3 mb-3">
+                <div className="col-6">
+                  <label className="form-label">Supplier</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={form.supplier || ""}
+                    onChange={e => setForm({ ...form, supplier: e.target.value })}
+                    placeholder="Supplier name"
+                  />
+                </div>
+                <div className="col-6">
+                  <label className="form-label">Storage Location</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={form.location || ""}
+                    onChange={e => setForm({ ...form, location: e.target.value })}
+                    placeholder="e.g. Chiller A"
+                  />
+                </div>
+              </div>
+
+              <div className="row g-3 mb-3">
                 <div className="col-4">
                   <label className="form-label">Price (₱)</label>
                   <input 
@@ -86,6 +120,16 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
                     min="0"
                   />
                 </div>
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">Expiry Date</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={form.expiryDate || ""}
+                  onChange={e => setForm({ ...form, expiryDate: e.target.value })}
+                />
               </div>
             </div>
             

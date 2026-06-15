@@ -24,6 +24,8 @@ import PoolTables from "./PoolTables";
 import Inventory from "./Inventory";
 import Events from "./Events";
 import Equipment from "./Equipment";
+import AuditTrail from "./AuditTrail";
+import AdminProfile from "./AdminProfile";
 
 const ISSUE_ACTION_KEYWORDS = ["reported issue", "reported damaged equipment", "customer complaint"];
 const COMPLETED_ACTION_KEYWORDS = [
@@ -156,6 +158,12 @@ export default function Dashboard({
           equipment={equipment}
           setEquipment={setEquipment}
         />;
+
+      case 'audit-trail':
+        return <AuditTrail logs={logs} setLogs={setLogs} />;
+
+      case 'profile':
+        return <AdminProfile />;
       
       case 'dashboard':
       default:

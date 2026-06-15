@@ -9,6 +9,7 @@ const navItems = [
   { icon: "bi-trophy", label: "Events", id: "events" },
   { icon: "bi-tools", label: "Equipment", id: "equipment" },
   { icon: "bi-file-text", label: "Reports", id: "reports" },
+  { icon: "bi-list-check", label: "Audit Trail", id: "audit-trail" },
 ];
 
 export default function Sidebar({ activeNav, setActiveNav, onNavChange, onReload }) {

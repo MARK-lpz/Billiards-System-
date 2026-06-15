@@ -1,29 +1,48 @@
-﻿export default function CartPanel({
+import { useEffect, useState } from "react";
+
+export default function CartPanel({
   cart,
   subtotal,
-  discAmt,
   total,
   method,
-  discount,
-  discounts,
-  discountAllowed,
-  extraForm,
   pendingCount,
   servedCount,
   unsyncedCount,
   onUpdateQty,
   onSetMethod,
-  onSetDiscount,
-  onToggleDiscount,
   onProcessPayment,
-  onExtraFormChange,
-  onAddExtraCharge,
 }) {
+  const [qtyDrafts, setQtyDrafts] = useState({});
+
   const fmtPeso = (value) =>
     `₱${Number(value || 0).toLocaleString("en-PH", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
+
+  useEffect(() => {
+    setQtyDrafts((prev) =>
+      Object.fromEntries(
+        cart
+          .filter((item) => prev[item.id] !== undefined)
+          .map((item) => [item.id, prev[item.id]])
+      )
+    );
+  }, [cart]);
+
+  const commitQty = (item) => {
+    const draft = qtyDrafts[item.id];
+    if (draft === undefined) return;
+
+    const parsedQty = Number.parseInt(draft, 10);
+    onUpdateQty(item.id, Number.isNaN(parsedQty) ? item.qty : parsedQty);
+
+    setQtyDrafts((prev) => {
+      const next = { ...prev };
+      delete next[item.id];
+      return next;
+    });
+  };
 
   return (
     <div className="cart-panel">
@@ -53,7 +72,7 @@
           {cart.length === 0 ? (
             <div className="cart-empty">
               <i className="bi bi-cart3"></i>
-              <p>Build the running bill with orders, rentals, and extra charges.</p>
+              <p>Build the running bill with inventory items and table services.</p>
             </div>
           ) : (
             <div className="cart-items">
@@ -70,14 +89,12 @@
                 >
                   <div className="cart-item-details">
                     <div className="cart-item-name">{item.name}</div>
-                    <div className="cart-item-type">{item.category || (item.isExtra ? "Extra Charge" : "Uncategorized")}</div>
+                    <div className="cart-item-type">{item.category || "Uncategorized"}</div>
                     <div className="cart-item-price">{fmtPeso(item.price)} each</div>
                     <div className="cart-item-meta">
-                      {item.isExtra
-                        ? `${item.category || "Extra charge"} • Manual charge`
-                        : item.syncedQty === item.qty
-                          ? "Sent to inventory automatically"
-                          : `${Math.max(0, item.qty - (item.syncedQty || 0))} syncing to inventory`}
+                      {item.syncedQty === item.qty
+                        ? "Sent to inventory automatically"
+                        : `${Math.max(0, item.qty - (item.syncedQty || 0))} syncing to inventory`}
                     </div>
                   </div>
 
@@ -92,10 +109,19 @@
                       step="1"
                       inputMode="numeric"
                       className="qty-input"
-                      value={item.qty}
-                      onChange={(event) => {
-                        const nextQty = Number.parseInt(event.target.value || "0", 10);
-                        onUpdateQty(item.id, Number.isNaN(nextQty) ? 0 : nextQty);
+                      value={qtyDrafts[item.id] ?? String(item.qty)}
+                      onChange={(event) =>
+                        setQtyDrafts((prev) => ({
+                          ...prev,
+                          [item.id]: event.target.value,
+                        }))
+                      }
+                      onBlur={() => commitQty(item)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          commitQty(item);
+                        }
                       }}
                     />
 
@@ -130,96 +156,16 @@
           )}
 
           <div className="cart-footer">
-            <div className="extra-charge-box">
-              <div className="extra-charge-title">
-                <i className="bi bi-plus-circle me-1"></i>
-                Add Extra Charge
-              </div>
-
-              <div className="extra-charge-grid">
-                <input
-                  className="discount-select"
-                  placeholder="Charge name"
-                  value={extraForm.name}
-                  onChange={(event) => onExtraFormChange("name", event.target.value)}
-                />
-
-                <input
-                  className="discount-select"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Amount"
-                  value={extraForm.amount}
-                  onChange={(event) => onExtraFormChange("amount", event.target.value)}
-                />
-
-                <select
-                  className="discount-select"
-                  value={extraForm.category}
-                  onChange={(event) => onExtraFormChange("category", event.target.value)}
-                >
-                  <option value="Rental">Rental</option>
-                  <option value="Service">Service</option>
-                  <option value="Adjustment">Adjustment</option>
-                </select>
-
-                <button type="button" className="cart-secondary-btn" onClick={onAddExtraCharge}>
-                  Add Charge
-                </button>
-              </div>
-            </div>
-
-            {discounts && (
-              <div className="discount-section">
-                <button type="button" className={`discount-toggle ${discountAllowed ? "active" : ""}`} onClick={onToggleDiscount}>
-                  <i className="bi bi-tag me-1"></i>
-                  {discountAllowed ? "Discount Allowed" : "Discount Locked"}
-                </button>
-
-                <select
-                  className="discount-select"
-                  value={discount}
-                  onChange={(event) => onSetDiscount(event.target.value)}
-                  disabled={cart.length === 0 || !discountAllowed}
-                >
-                  {discounts.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {entry.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             <div className="cart-totals">
-              {discAmt > 0 ? (
-                <>
-                  <div className="cart-subtotal-row">
-                    <span>Subtotal</span>
-                    <span>{fmtPeso(subtotal)}</span>
-                  </div>
+              <div className="cart-subtotal-row">
+                <span>Subtotal</span>
+                <span>{fmtPeso(subtotal)}</span>
+              </div>
 
-                  <div className="cart-discount-row">
-                    <span>
-                      <i className="bi bi-scissors me-1"></i>
-                      {discounts?.find((entry) => entry.id === discount)?.label || "Discount"}
-                    </span>
-
-                    <span className="discount-amount">-{fmtPeso(discAmt)}</span>
-                  </div>
-
-                  <div className="cart-total cart-total--highlighted">
-                    <span>Total</span>
-                    <span className="cart-total-amount">{fmtPeso(total)}</span>
-                  </div>
-                </>
-              ) : (
-                <div className="cart-total">
-                  <span>Total</span>
-                  <span className="cart-total-amount">{fmtPeso(total)}</span>
-                </div>
-              )}
+              <div className="cart-total">
+                <span>Total</span>
+                <span className="cart-total-amount">{fmtPeso(total)}</span>
+              </div>
             </div>
 
             <div className="payment-methods">
@@ -239,6 +185,19 @@
                 eWallet
               </button>
             </div>
+
+            {method === "ewallet" && (
+              <div className="gcash-qr-panel">
+                <div className="gcash-qr-copy">
+                  <strong>GCash QR Payment</strong>
+                  <span>Let the customer scan before confirming payment.</span>
+                </div>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`GCash Break & Chill amount ${total.toFixed(2)}`)}`}
+                  alt="GCash payment QR code"
+                />
+              </div>
+            )}
 
             <button className="process-payment-btn" onClick={onProcessPayment} disabled={cart.length === 0}>
               <i className="bi bi-credit-card me-2"></i>

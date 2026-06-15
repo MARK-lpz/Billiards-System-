@@ -6,11 +6,15 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock }
           <table className="table inventory-table">
             <thead>
               <tr>
+                <th>SKU</th>
                 <th>Product Name</th>
                 <th>Category</th>
+                <th>Supplier</th>
+                <th>Location</th>
                 <th>Price</th>
                 <th>Stock</th>
                 <th>Min Stock</th>
+                <th>Expiry</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -22,6 +26,7 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock }
                 
                 return (
                   <tr key={product.id} className={isLowStock ? "inventory-row-warning" : ""}>
+                    <td className="inventory-sku">{product.sku || "-"}</td>
                     <td>
                       <div className="inventory-product-name">
                         <i className="bi bi-box me-2"></i>
@@ -33,6 +38,8 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock }
                         {product.category}
                       </span>
                     </td>
+                    <td className="inventory-detail-cell">{product.supplier || "-"}</td>
+                    <td className="inventory-detail-cell">{product.location || "-"}</td>
                     <td className="inventory-price">₱{product.price.toLocaleString()}</td>
                     <td>
                       <span className={`inventory-stock ${isLowStock ? "low" : ""}`}>
@@ -40,6 +47,7 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock }
                       </span>
                     </td>
                     <td className="text-muted">{product.minStock} {product.unit}</td>
+                    <td className="inventory-detail-cell">{product.expiryDate || "N/A"}</td>
                     <td>
                       {isOutOfStock ? (
                         <span className="badge inventory-badge-danger">

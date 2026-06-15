@@ -8,13 +8,8 @@ export default function SalesBillingDesk({
   filteredProducts,
   cart,
   subtotal,
-  discAmt,
   total,
   method,
-  discount,
-  discounts,
-  discountAllowed,
-  extraForm,
   pendingCount,
   servedCount,
   unsyncedCount,
@@ -23,11 +18,7 @@ export default function SalesBillingDesk({
   onAddToCart,
   onUpdateQty,
   onSetMethod,
-  onSetDiscount,
-  onToggleDiscount,
   onProcessPayment,
-  onExtraFormChange,
-  onAddExtraCharge,
 }) {
   return (
     <div className="sales-pos-layout">
@@ -63,23 +54,14 @@ export default function SalesBillingDesk({
       <CartPanel
         cart={cart}
         subtotal={subtotal}
-        discAmt={discAmt}
         total={total}
         method={method}
-        discount={discount}
-        discounts={discounts}
-        discountAllowed={discountAllowed}
-        extraForm={extraForm}
         pendingCount={pendingCount}
         servedCount={servedCount}
         unsyncedCount={unsyncedCount}
         onUpdateQty={onUpdateQty}
         onSetMethod={onSetMethod}
-        onSetDiscount={onSetDiscount}
-        onToggleDiscount={onToggleDiscount}
         onProcessPayment={onProcessPayment}
-        onExtraFormChange={(field, value) => onExtraFormChange(field, value)}
-        onAddExtraCharge={onAddExtraCharge}
       />
     </div>
   );

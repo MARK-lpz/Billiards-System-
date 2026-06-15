@@ -23,6 +23,41 @@ export default function Notification({ notifications: externalNotifications }) {
     deleteNotification(id);
   };
 
+  const updateEmployeeRequest = (requestId, status) => {
+    const storedRequests = JSON.parse(localStorage.getItem("employeePasswordRequests") || "[]");
+    const updatedRequests = storedRequests.map((request) =>
+      request.id === requestId
+        ? {
+            ...request,
+            status,
+            reviewedAt: new Date().toISOString(),
+          }
+        : request
+    );
+
+    localStorage.setItem("employeePasswordRequests", JSON.stringify(updatedRequests));
+  };
+
+  const handlePasswordRequestAction = (notification, status, event) => {
+    event.stopPropagation();
+    if (!notification.requestId) return;
+
+    updateEmployeeRequest(notification.requestId, status);
+    markAsRead(notification.id);
+    deleteNotification(notification.id);
+  };
+
+  const getRequestStatus = (requestId) => {
+    if (!requestId) return null;
+
+    try {
+      const storedRequests = JSON.parse(localStorage.getItem("employeePasswordRequests") || "[]");
+      return storedRequests.find((request) => request.id === requestId)?.status || null;
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <div className="dropdown-container">
       <button 
@@ -67,6 +102,29 @@ export default function Notification({ notifications: externalNotifications }) {
                     <div className="notification-content">
                       <p className="notification-message">{notif.message}</p>
                       <span className="notification-time">{notif.time}</span>
+                      {notif.type === "password-reset" &&
+                        getRequestStatus(notif.requestId) === "pending-admin-approval" && (
+                          <div className="notification-actions">
+                            <button
+                              type="button"
+                              className="notification-action-btn approve"
+                              onClick={(event) =>
+                                handlePasswordRequestAction(notif, "approved", event)
+                              }
+                            >
+                              Grant
+                            </button>
+                            <button
+                              type="button"
+                              className="notification-action-btn reject"
+                              onClick={(event) =>
+                                handlePasswordRequestAction(notif, "rejected", event)
+                              }
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
                     </div>
                     <button 
                       className="notification-delete"

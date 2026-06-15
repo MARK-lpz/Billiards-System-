@@ -311,10 +311,125 @@
 
 .light .audit-log-item { border-bottom-color: var(--border) !important; }
 .light .audit-log-time { color: var(--text-muted) !important; }
+.light .audit-log-icon { color: var(--text-secondary) !important; }
 .light .audit-log-staff  { color: var(--text-primary) !important; }
 .light .audit-log-action { color: var(--text-muted) !important; }
 .light .audit-log-detail { color: var(--text-muted) !important; }
 .light .audit-log-empty  { color: var(--text-muted) !important; }
+.light .audit-filter-btn {
+  background: var(--bg-muted) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text-muted) !important;
+}
+
+.light .audit-filter-btn:hover {
+  background: var(--border) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .audit-filter-btn.active {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+  color: var(--accent) !important;
+}
+
+.light .account-management-card {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.light .account-management-header p,
+.light .account-message,
+.light .account-row span {
+  color: var(--text-muted) !important;
+}
+
+.light .account-form input,
+.light .account-form select {
+  background: var(--bg-muted) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text-primary) !important;
+}
+
+.light .account-form input::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.light .account-form .btn-success {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  border: 0 !important;
+}
+
+.light .account-management-header .btn-secondary,
+.light .account-row .btn-outline-secondary {
+  background: var(--bg-muted) !important;
+  border: 1px solid var(--border-strong) !important;
+  color: var(--text-secondary) !important;
+}
+
+.light .account-row {
+  background: var(--bg-muted) !important;
+  border-color: var(--border) !important;
+}
+
+.light .account-row strong {
+  color: var(--text-primary) !important;
+}
+
+.light .audit-severity-info {
+  background: rgba(59, 130, 246, 0.12) !important;
+  color: #3b82f6 !important;
+}
+
+.light .audit-severity-low {
+  background: rgba(148, 163, 184, 0.12) !important;
+  color: #64748b !important;
+}
+
+.light .audit-severity-medium {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #d97706 !important;
+}
+
+.light .audit-severity-high {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
+}
+
+.light .audit-detail-modal {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12) !important;
+}
+
+.light .audit-detail-modal .modal-header,
+.light .audit-detail-modal .modal-footer {
+  background: var(--bg-subtle) !important;
+  border-color: var(--border) !important;
+}
+
+.light .audit-detail-subtitle,
+.light .audit-detail-label,
+.light .audit-detail-field-name {
+  color: var(--text-muted) !important;
+}
+
+.light .audit-detail-section,
+.light .audit-detail-field {
+  background: var(--bg-muted) !important;
+  border-color: var(--border) !important;
+}
+
+.light .audit-detail-copy {
+  color: var(--text-secondary) !important;
+}
+
+.light .audit-detail-field-value {
+  color: var(--text-primary) !important;
+}
 
 .light .reservations-title    { color: var(--text-primary) !important; }
 .light .reservations-subtitle { color: var(--text-muted) !important; }
@@ -395,6 +510,11 @@
 .light .cart-total-amount { color: var(--accent) !important; }
 .light .cart-footer    { border-top-color: var(--border) !important; }
 .light .qty-value      { color: var(--text-primary) !important; }
+.light .qty-input {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text-primary) !important;
+}
 
 .light .qty-btn {
   background: var(--bg-muted) !important;
@@ -577,6 +697,16 @@
 .light .notification-list .menu-item.unread{ background: var(--accent-subtle) !important; }
 .light .notification-delete { color: var(--text-muted) !important; }
 .light .notification-empty  { color: var(--text-muted) !important; }
+.light .notification-action-btn.approve {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #059669 !important;
+  border-color: rgba(16, 185, 129, 0.24) !important;
+}
+.light .notification-action-btn.reject {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.22) !important;
+}
 
 .light .pool-tables-title,
 .light .inventory-title,

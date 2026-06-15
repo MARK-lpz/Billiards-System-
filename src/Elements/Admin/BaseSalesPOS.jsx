@@ -5,7 +5,6 @@ import SalesPosTabs from "./SalesPosTabs";
 import SalesSummary from "./SalesSummary";
 import SalesTransactionHistory from "./SalesTransactionHistory";
 import useSalesPOS from "./useSalesPOS";
-import { DISCOUNTS } from "./salesPosConfig";
 
 export default function BaseSalesPOS({
   products,
@@ -57,13 +56,8 @@ export default function BaseSalesPOS({
           filteredProducts={salesPos.filteredProducts}
           cart={salesPos.cart}
           subtotal={salesPos.subtotal}
-          discAmt={salesPos.discAmt}
           total={salesPos.total}
           method={salesPos.method}
-          discount={salesPos.discount}
-          discounts={DISCOUNTS}
-          discountAllowed={salesPos.discountAllowed}
-          extraForm={salesPos.extraForm}
           pendingCount={salesPos.pendingItemsCount}
           servedCount={salesPos.servedItemsCount}
           unsyncedCount={salesPos.unsyncedCount}
@@ -72,11 +66,7 @@ export default function BaseSalesPOS({
           onAddToCart={salesPos.addToCart}
           onUpdateQty={salesPos.updateQty}
           onSetMethod={salesPos.setMethod}
-          onSetDiscount={salesPos.setDiscount}
-          onToggleDiscount={salesPos.toggleDiscount}
           onProcessPayment={salesPos.processPayment}
-          onExtraFormChange={(field, value) => salesPos.setExtraForm((prev) => ({ ...prev, [field]: value }))}
-          onAddExtraCharge={salesPos.addExtraCharge}
         />
       )}
 

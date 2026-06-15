@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DISCOUNTS, defaultExtraForm, nowStr, readStorage, todayStr } from "./salesPosConfig";
+import { nowStr, readStorage, todayStr } from "./salesPosConfig";
 import { appendAuditLog } from "../../utils/audit";
 
 export default function useSalesPOS({
@@ -15,26 +15,19 @@ export default function useSalesPOS({
   const [method, setMethod] = useState(() => readStorage(`${storageKeyPrefix}:method`, "cash"));
   const [receipt, setReceipt] = useState(null);
   const [search, setSearch] = useState("");
-  const [discount, setDiscount] = useState(() => readStorage(`${storageKeyPrefix}:discount`, "none"));
-  const [discountAllowed, setDiscountAllowed] = useState(() =>
-    readStorage(`${storageKeyPrefix}:discountAllowed`, false)
-  );
   const [catFilter, setCatFilter] = useState("All");
   const [tab, setTab] = useState("billing");
-  const [extraForm, setExtraForm] = useState(defaultExtraForm);
   const [orderTickets, setOrderTickets] = useState(() => readStorage(`${storageKeyPrefix}:tickets`, []));
 
   useEffect(() => {
     try {
       localStorage.setItem(`${storageKeyPrefix}:cart`, JSON.stringify(cart));
       localStorage.setItem(`${storageKeyPrefix}:method`, JSON.stringify(method));
-      localStorage.setItem(`${storageKeyPrefix}:discount`, JSON.stringify(discount));
-      localStorage.setItem(`${storageKeyPrefix}:discountAllowed`, JSON.stringify(discountAllowed));
       localStorage.setItem(`${storageKeyPrefix}:tickets`, JSON.stringify(orderTickets));
     } catch (error) {
       console.warn("Unable to persist POS state", error);
     }
-  }, [cart, method, discount, discountAllowed, orderTickets, storageKeyPrefix]);
+  }, [cart, method, orderTickets, storageKeyPrefix]);
 
   const cats = ["All", ...new Set(products.map((product) => product.category).filter(Boolean))];
   const filteredProducts = products.filter((product) => {
@@ -44,16 +37,14 @@ export default function useSalesPOS({
   });
 
   const inventoryCartItems = cart.filter((item) => item.inventoryItem);
-  const extraChargeItems = cart.filter((item) => item.isExtra);
   const unsyncedItems = inventoryCartItems
     .map((item) => ({ ...item, unsyncedQty: Math.max(0, item.qty - (item.syncedQty || 0)) }))
     .filter((item) => item.unsyncedQty > 0);
   const unsyncedCount = unsyncedItems.reduce((sum, item) => sum + item.unsyncedQty, 0);
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const discPct = discountAllowed ? DISCOUNTS.find((entry) => entry.id === discount)?.pct || 0 : 0;
-  const discAmt = Number(((subtotal * discPct) / 100).toFixed(2));
-  const total = Number((subtotal - discAmt).toFixed(2));
+  const discAmt = 0;
+  const total = Number(subtotal.toFixed(2));
 
   const pendingItemsCount = orderTickets.reduce(
     (sum, ticket) => sum + ticket.items.filter((item) => !item.served).length,
@@ -204,26 +195,6 @@ export default function useSalesPOS({
     });
   };
 
-  const addExtraCharge = () => {
-    const name = extraForm.name.trim();
-    const amount = Number(extraForm.amount);
-    if (!name || !amount || amount <= 0) return;
-
-    setCart((prev) => [
-      ...prev,
-      {
-        id: `extra-${Date.now()}`,
-        name,
-        price: amount,
-        qty: 1,
-        category: extraForm.category || "Extra Charge",
-        inventoryItem: false,
-        isExtra: true,
-      },
-    ]);
-    setExtraForm(defaultExtraForm);
-  };
-
   const sendOrderToInventory = () => {
     queueInventoryItems(unsyncedItems);
   };
@@ -264,16 +235,9 @@ export default function useSalesPOS({
         category: item.category,
         isExtra: Boolean(item.isExtra),
       })),
-      extraCharges: extraChargeItems.map((item) => ({
-        name: item.name,
-        qty: item.qty,
-        price: item.price,
-      })),
+      extraCharges: [],
       subtotal,
-      discLabel:
-        discountAllowed && discAmt > 0
-          ? DISCOUNTS.find((entry) => entry.id === discount)?.label || "Discount"
-          : "No Discount",
+      discLabel: "No Discount",
       discAmt,
       total,
       method,
@@ -298,8 +262,6 @@ export default function useSalesPOS({
     });
     setReceipt(tx);
     setCart([]);
-    setDiscount("none");
-    setDiscountAllowed(false);
     setMethod("cash");
   };
 
@@ -308,11 +270,8 @@ export default function useSalesPOS({
     method,
     receipt,
     search,
-    discount,
-    discountAllowed,
     catFilter,
     tab,
-    extraForm,
     orderTickets,
     cats,
     filteredProducts,
@@ -324,21 +283,14 @@ export default function useSalesPOS({
     servedItemsCount,
     setReceipt,
     setSearch,
-    setDiscount,
     setCatFilter,
     setTab,
     setMethod,
     addToCart,
     updateQty,
     sendOrderToInventory,
-    addExtraCharge,
     setItemServed,
     markTicketServed,
     processPayment,
-    setExtraForm,
-    toggleDiscount: () => {
-      setDiscountAllowed((prev) => !prev);
-      if (discountAllowed) setDiscount("none");
-    },
   };
 }
