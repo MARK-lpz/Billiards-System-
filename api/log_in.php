@@ -22,8 +22,21 @@ if (empty($username) || empty($password)) {
 
 $pdo = getDBConnection();
 
+$profileColumns = [
+    'email' => "ALTER TABLE users ADD COLUMN email varchar(120) NULL",
+    'full_name' => "ALTER TABLE users ADD COLUMN full_name varchar(120) NULL",
+    'phone' => "ALTER TABLE users ADD COLUMN phone varchar(40) NULL"
+];
+foreach ($profileColumns as $column => $sql) {
+    $columnStmt = $pdo->prepare("SHOW COLUMNS FROM users LIKE ?");
+    $columnStmt->execute([$column]);
+    if (!$columnStmt->fetch()) {
+        $pdo->exec($sql);
+    }
+}
+
 // Check user with MD5 password
-$stmt = $pdo->prepare("SELECT id, username, role FROM users WHERE username = ? AND password = MD5(?)");
+$stmt = $pdo->prepare("SELECT id, username, role, email, full_name, phone FROM users WHERE username = ? AND password = MD5(?)");
 $stmt->execute([$username, $password]);
 $user = $stmt->fetch();
 
@@ -34,7 +47,10 @@ if ($user) {
         "user" => [
             "id"       => $user['id'],
             "username" => $user['username'],
-            "role"     => $user['role']
+            "role"     => $user['role'],
+            "email"    => $user['email'],
+            "full_name" => $user['full_name'],
+            "phone"    => $user['phone']
         ]
     ]);
 } else {
