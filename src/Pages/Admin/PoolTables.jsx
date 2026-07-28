@@ -13,6 +13,7 @@ export default function PoolTables({ tables, setTables }) {
   const [editId, setEditId] = useState(null);
   const [walkIn, setWalkIn] = useState({ tableId: null, customer: "" });
   const [endingTable, setEndingTable] = useState(null);
+  const [endingExtensionMinutes, setEndingExtensionMinutes] = useState("30");
 
   const startWalkIn = () => {
     const customer = walkIn.customer || "Walk-in Customer";
@@ -30,6 +31,7 @@ export default function PoolTables({ tables, setTables }) {
   };
 
   const requestEndSession = (id) => {
+    setEndingExtensionMinutes("30");
     setEndingTable(tables.find(t => t.id === id) || null);
   };
 
@@ -61,15 +63,41 @@ export default function PoolTables({ tables, setTables }) {
     ));
   };
 
-  const addTime = (id, minutes = 30) => {
+  const addTime = (id, minutes) => {
+    const extension = Number(minutes);
+    if (!Number.isInteger(extension) || extension < 1) return;
+
     const table = tables.find(t => t.id === id);
     setTables(prev => prev.map(t =>
       t.id === id
-        ? { ...t, durationMinutes: Number(t.durationMinutes || 60) + minutes, addedMinutes: Number(t.addedMinutes || 0) + minutes }
+        ? { ...t, durationMinutes: Number(t.durationMinutes || 60) + extension, addedMinutes: Number(t.addedMinutes || 0) + extension }
         : t
     ));
     addNotification({
-      message: `${table?.name || 'Table'} extended by ${minutes} minutes`,
+      message: `${table?.name || 'Table'} extended by ${extension} minutes`,
+    });
+  };
+
+  const undoTime = (id, minutes) => {
+    const requestedMinutes = Number(minutes);
+    if (!Number.isInteger(requestedMinutes) || requestedMinutes < 1) return;
+
+    const table = tables.find(t => t.id === id);
+    const addedMinutes = Number(table?.addedMinutes || 0);
+    const minutesToRemove = Math.min(requestedMinutes, addedMinutes);
+    if (!minutesToRemove) return;
+
+    setTables(prev => prev.map(t =>
+      t.id === id
+        ? {
+            ...t,
+            durationMinutes: Math.max(0, Number(t.durationMinutes || 60) - minutesToRemove),
+            addedMinutes: Math.max(0, Number(t.addedMinutes || 0) - minutesToRemove),
+          }
+        : t
+    ));
+    addNotification({
+      message: `${table?.name || 'Table'} time reduced by ${minutesToRemove} minutes`,
     });
   };
 
@@ -150,7 +178,8 @@ export default function PoolTables({ tables, setTables }) {
             onEndSession={() => requestEndSession(table.id)}
             onCheckIn={() => checkIn(table.id)}
             onCancelReserve={() => cancelReserve(table.id)}
-            onAddTime={() => addTime(table.id)}
+            onAddTime={(minutes) => addTime(table.id, minutes)}
+            onUndoTime={(minutes) => undoTime(table.id, minutes)}
             onEdit={() => openEditModal(table)}
             onDelete={() => deleteTable(table.id)}
           />
@@ -194,16 +223,25 @@ export default function PoolTables({ tables, setTables }) {
                   Ending {endingTable.name} will clear the active timer and mark the table as available.
                 </p>
                 <div className="pool-end-actions">
+                  <input
+                    aria-label="Extension time in minutes"
+                    className="pool-extension-select"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={endingExtensionMinutes}
+                    onChange={(event) => setEndingExtensionMinutes(event.target.value)}
+                  />
                   <button
                     type="button"
                     className="btn btn-outline-warning"
                     onClick={() => {
-                      addTime(endingTable.id);
+                      addTime(endingTable.id, Number(endingExtensionMinutes));
                       setEndingTable(null);
                     }}
                   >
                     <i className="bi bi-plus-circle me-2"></i>
-                    Add 30 minutes instead
+                    Add Selected Time
                   </button>
                   <button type="button" className="btn btn-danger" onClick={endSession}>
                     <i className="bi bi-stop-circle me-2"></i>

@@ -5,6 +5,7 @@ import AuditDetailModal from "../../Elements/Admin/AuditDetailModal";
 import AuditLogList from "../../Elements/Admin/AuditLogList";
 import AuditTrailStats from "../../Elements/Admin/AuditTrailStats";
 import { appendAuditLog, normalizeAuditLogs } from "../../utils/audit";
+import { useNotifications } from "../../Elements/Global/useNotifications";
 
 const emptyAccountForm = {
   id: null,
@@ -17,6 +18,7 @@ const emptyAccountForm = {
 };
 
 export default function AuditTrail({ logs = [], setLogs }) {
+  const { addNotification } = useNotifications();
   const normalizedLogs = useMemo(() => normalizeAuditLogs(logs), [logs]);
   const [filter, setFilter] = useState("all");
   const [selectedLog, setSelectedLog] = useState(null);
@@ -60,6 +62,7 @@ export default function AuditTrail({ logs = [], setLogs }) {
       issues: normalizedLogs.filter((log) => log.type === "issue").length,
       reservations: normalizedLogs.filter((log) => log.type === "reservation").length,
       customer: normalizedLogs.filter((log) => log.customer?.previous || log.customer?.current).length,
+      employee: normalizedLogs.filter((log) => log.staff === "Employee").length,
     }),
     [normalizedLogs]
   );
@@ -69,6 +72,9 @@ export default function AuditTrail({ logs = [], setLogs }) {
     if (filter === "customer") {
       return normalizedLogs.filter((log) => log.customer?.previous || log.customer?.current);
     }
+    if (filter === "employee") {
+      return normalizedLogs.filter((log) => log.staff === "Employee");
+    }
     return normalizedLogs.filter((log) => log.type === filter);
   }, [filter, normalizedLogs]);
 
@@ -76,6 +82,7 @@ export default function AuditTrail({ logs = [], setLogs }) {
     () => [
       { id: "all", label: "All", count: counts.total },
       { id: "customer", label: "Customer Changes", count: counts.customer },
+      { id: "employee", label: "Employee Activity", count: counts.employee },
       { id: "reservation", label: "Reservations", count: counts.reservations },
       {
         id: "table",
@@ -150,6 +157,10 @@ export default function AuditTrail({ logs = [], setLogs }) {
       });
     }
 
+    addNotification({
+      message: `${payload.username} ${accountForm.id ? "account updated" : "account created"}.`,
+    });
+
     resetAccountForm();
   };
 
@@ -170,7 +181,7 @@ export default function AuditTrail({ logs = [], setLogs }) {
       <div className="audit-trail-header">
         <h1 className="audit-trail-title">Audit Trail</h1>
         <p className="audit-trail-subtitle">
-          System activity log, customer history, and operational tracking
+          Record and track all admin and employee activity across the system
         </p>
       </div>
 

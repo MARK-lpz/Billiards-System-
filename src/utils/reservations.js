@@ -1,4 +1,5 @@
 export const initialReservations = [];
+export const RESERVATION_CUTOFF_TIME = "22:00";
 
 const ACTIVE_STATUSES = new Set(["pending", "approved", "reserved", "arrived", "seated"]);
 
@@ -21,6 +22,8 @@ export const getAvailableReservationTables = ({
   time = "",
   excludeId = null,
 }) => {
+  // Reservation availability is per time slot. A table occupied right now can
+  // still be reserved for another date/time when no reservation conflicts.
   if (!date || !time) return tables;
 
   return tables.filter(
@@ -31,4 +34,17 @@ export const getAvailableReservationTables = ({
         excludeId
       )
   );
+};
+
+export const getReservationValidationMessage = (date, time, now = new Date()) => {
+  if (!date || !time) return "Please select both a reservation date and time.";
+
+  const selectedDateTime = new Date(`${date}T${time}:00`);
+  if (Number.isNaN(selectedDateTime.getTime())) return "Please select a valid reservation date and time.";
+  if (selectedDateTime <= now) return "Past dates and times can no longer be reserved.";
+  if (time >= RESERVATION_CUTOFF_TIME) {
+    return `Reservations are accepted only before ${RESERVATION_CUTOFF_TIME}.`;
+  }
+
+  return "";
 };

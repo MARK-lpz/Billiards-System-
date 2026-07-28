@@ -28,14 +28,6 @@ import AuditTrail from "./AuditTrail";
 import AdminProfile from "./AdminProfile";
 
 const ISSUE_ACTION_KEYWORDS = ["reported issue", "reported damaged equipment", "customer complaint"];
-const COMPLETED_ACTION_KEYWORDS = [
-  "completed booking",
-  "ended session",
-  "returned equipment",
-  "log return",
-  "save changes",
-];
-
 const isResolvedIssue = (entry) =>
   entry?.issueStatus === "resolved" || entry?.issue?.status === "resolved" || Boolean(entry?.resolvedAt);
 
@@ -77,16 +69,29 @@ export default function Dashboard({
   const [loading, setLoading] = useState(false);
 
   const [equipment, setEquipment] = useState([
-    { id: 1, name: "Cue Stick #1", type: "Cue Stick", condition: "good", lastMaintenance: "2026-03-01", status: "active" },
-    { id: 2, name: "Ball Set #1", type: "Ball Set", condition: "fair", lastMaintenance: "2026-02-15", status: "active" },
+    {
+      id: 1,
+      name: "Cue Stick #1",
+      type: "Cue Stick",
+      condition: "good",
+      previousMaintenance: "2026-02-01",
+      lastMaintenance: "2026-03-01",
+      status: "active",
+    },
+    {
+      id: 2,
+      name: "Ball Set #1",
+      type: "Ball Set",
+      condition: "fair",
+      previousMaintenance: "2026-01-15",
+      lastMaintenance: "2026-02-15",
+      status: "active",
+    },
   ]);
 
   const reportedIssuesCount = logs.filter((entry) => isIssueEntry(entry) && !isResolvedIssue(entry)).length;
 
-  const completedTasksCount = logs.filter((entry) => {
-    const action = `${entry.action || ""}`.toLowerCase();
-    return COMPLETED_ACTION_KEYWORDS.some((keyword) => action.includes(keyword));
-  }).length;
+  const availableTablesCount = tables.filter((table) => table.status === "available").length;
 
   const pendingTasksCount =
     tables.filter((table) => ["cleaning", "maintenance"].includes(table.status)).length +
@@ -206,7 +211,7 @@ export default function Dashboard({
 
             {/* Stats — full width */}
             <EmployeeStats
-              completedTasks={completedTasksCount}
+              availableTables={availableTablesCount}
               pendingTasks={pendingTasksCount}
             />
 

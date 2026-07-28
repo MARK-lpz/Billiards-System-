@@ -99,6 +99,7 @@
 
 /* Table Card */
 .pool-table-card {
+  position: relative;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
@@ -367,6 +368,181 @@
 .pool-table-end-btn { flex: 1 1 100% !important; }
 .pool-table-maintenance-btn { flex: 1 1 100% !important; opacity: 0.8; }
 
+.pool-table-extension-control {
+  display: flex;
+  flex: 1 1 100%;
+  gap: 0.5rem;
+}
+
+.pool-extension-select {
+  min-height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: #1f2937;
+  color: #f8fafc;
+  padding: 0 0.5rem;
+}
+
+.pool-table-extension-control .btn {
+  flex: 1;
+}
+
+.pool-table-undo-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pool-time-modal {
+  position: absolute;
+  top: 52px;
+  right: 16px;
+  left: 16px;
+  z-index: 5;
+  width: auto;
+  overflow: visible;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 8px;
+  background: #111827;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+  padding: 1rem;
+}
+
+.pool-time-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.pool-time-modal-header h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.pool-time-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #cbd5e1;
+}
+
+.pool-time-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+.pool-time-input-label,
+.pool-time-modal-note {
+  display: block;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}
+
+.pool-time-input {
+  width: 100%;
+  margin: 0.4rem 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  background: #1f2937;
+  color: #f8fafc;
+  padding: 0.65rem 0.75rem;
+}
+
+.pool-time-combobox {
+  position: relative;
+}
+
+.pool-time-combobox .pool-time-input {
+  padding-right: 2.75rem;
+}
+
+.pool-time-preset-toggle {
+  position: absolute;
+  top: 0.4rem;
+  right: 0;
+  width: 2.5rem;
+  height: calc(100% - 0.4rem);
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0 5px 5px 0;
+  background: transparent;
+  color: #cbd5e1;
+}
+
+.pool-time-presets {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  left: 0;
+  z-index: 7;
+  overflow: hidden;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 5px;
+  background: #1f2937;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.32);
+}
+
+.pool-time-presets button {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: #f8fafc;
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+}
+
+.pool-time-presets button:hover {
+  background: rgba(251, 191, 36, 0.13);
+}
+
+.pool-time-presets button:last-child {
+  border-bottom: 0;
+}
+
+.pool-time-modal-note {
+  margin: 0.5rem 0 1rem;
+}
+
+.pool-time-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.pool-time-add-button,
+.pool-time-undo-button {
+  min-height: 38px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+
+.pool-time-add-button {
+  border: 1px solid #f59e0b;
+  background: #f59e0b;
+  color: #111827;
+}
+
+.pool-time-undo-button {
+  border: 1px solid #64748b;
+  background: transparent;
+  color: #e2e8f0;
+}
+
+.pool-time-add-button:disabled,
+.pool-time-undo-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .pool-end-modal {
   background: #111827;
   border: 1px solid rgba(248, 113, 113, 0.25);
@@ -383,6 +559,10 @@
   gap: 10px;
 }
 
+.pool-end-actions .pool-extension-select {
+  grid-column: 1 / -1;
+}
+
 /* Animation */
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -395,5 +575,6 @@
   .pool-tables-add-btn { width: 100%; justify-content: center; }
   .pool-tables-grid { grid-template-columns: 1fr; }
   .pool-table-actions .btn { width: 100%; }
+  .pool-table-extension-control { width: 100%; }
   .pool-end-actions { grid-template-columns: 1fr; }
 }

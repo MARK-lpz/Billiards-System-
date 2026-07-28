@@ -8,7 +8,7 @@ const navItems = [
   { icon: "bi-box", label: "Inventory", id: "inventory" },
   { icon: "bi-trophy", label: "Events", id: "events" },
   { icon: "bi-tools", label: "Equipment", id: "equipment" },
-  { icon: "bi-file-text", label: "Reports", id: "reports" },
+  { icon: "bi-file-text", label: "Sales Reports", id: "reports" },
   { icon: "bi-list-check", label: "Audit Trail", id: "audit-trail" },
 ];
 

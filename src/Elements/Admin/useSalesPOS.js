@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { nowStr, readStorage, todayStr } from "./salesPosConfig";
 import { appendAuditLog } from "../../utils/audit";
+import { useNotifications } from "../Global/useNotifications";
 
 export default function useSalesPOS({
   products,
@@ -11,6 +12,7 @@ export default function useSalesPOS({
   cashierLabel,
   storageKeyPrefix,
 }) {
+  const { addNotification } = useNotifications();
   const [cart, setCart] = useState(() => readStorage(`${storageKeyPrefix}:cart`, []));
   const [method, setMethod] = useState(() => readStorage(`${storageKeyPrefix}:method`, "cash"));
   const [receipt, setReceipt] = useState(null);
@@ -259,6 +261,9 @@ export default function useSalesPOS({
         method,
       },
       customer: null,
+    });
+    addNotification({
+      message: `${cashierLabel} processed a ${method === "cash" ? "cash" : "GCash"} sale for ₱${total.toFixed(2)}.`,
     });
     setReceipt(tx);
     setCart([]);

@@ -1,32 +1,67 @@
 import { useState } from "react";
 import "../../styles/Admin/Equipments.css";
 import EquipmentModal from "../../Elements/Admin/EquipmentModal";
+import { useNotifications } from "../../Elements/Global/useNotifications";
+
+const todayString = () => {
+  const date = new Date();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+};
+
+const emptyEquipmentForm = {
+  name: "",
+  type: "Cue Stick",
+  condition: "good",
+  previousMaintenance: "",
+  lastMaintenance: "",
+  status: "active",
+};
 
 export default function Equipment({ equipment, setEquipment }) {
+  const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
-  const [form, setForm] = useState({ 
-    name: "", 
-    type: "Cue Stick", 
-    condition: "good", 
-    lastMaintenance: "", 
-    status: "active" 
-  });
+  const [form, setForm] = useState(emptyEquipmentForm);
   const [editId, setEditId] = useState(null);
 
   const save = () => {
-    if (editId) setEquipment(prev => prev.map(e => e.id === editId ? { ...e, ...form } : e));
-    else setEquipment(prev => [...prev, { id: Date.now(), ...form }]);
+    if (editId) {
+      setEquipment(prev => prev.map(e => e.id === editId ? { ...e, ...form } : e));
+      addNotification({ message: `${form.name} equipment details updated.` });
+    } else {
+      setEquipment(prev => [...prev, { id: Date.now(), ...form }]);
+      addNotification({ message: `${form.name} registered as equipment.` });
+    }
     setModal(null);
     setEditId(null);
   };
 
-  const scheduleMaint = (id) => setEquipment(prev => prev.map(e => 
-    e.id === id ? { ...e, lastMaintenance: "2026-03-08", condition: "good" } : e
-  ));
+  const recordMaintenanceToday = (id) => {
+    const equipmentItem = equipment.find((item) => item.id === id);
+    setEquipment((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              previousMaintenance: item.lastMaintenance || item.previousMaintenance || "",
+              lastMaintenance: todayString(),
+              condition: "good",
+              status: "active",
+            }
+          : item
+      )
+    );
+    addNotification({ message: `Maintenance recorded today for ${equipmentItem?.name || "equipment"}.` });
+  };
 
-  const markDamaged = (id) => setEquipment(prev => prev.map(e => 
-    e.id === id ? { ...e, condition: "damaged", status: "repair" } : e
-  ));
+  const markDamaged = (id) => {
+    const equipmentItem = equipment.find((item) => item.id === id);
+    setEquipment(prev => prev.map(e => 
+      e.id === id ? { ...e, condition: "damaged", status: "repair" } : e
+    ));
+    addNotification({ message: `${equipmentItem?.name || "Equipment"} marked damaged.` });
+  };
 
   const condIcon = { 
     good: "bi-check-circle-fill", 
@@ -51,7 +86,7 @@ export default function Equipment({ equipment, setEquipment }) {
         <button 
           className="btn btn-success equipment-add-btn" 
           onClick={() => { 
-            setForm({ name: "", type: "Cue Stick", condition: "good", lastMaintenance: "", status: "active" }); 
+            setForm(emptyEquipmentForm); 
             setEditId(null); 
             setModal("form"); 
           }}
@@ -119,7 +154,13 @@ export default function Equipment({ equipment, setEquipment }) {
                     </div>
                   </div>
                   <div className="equipment-info-box">
-                    <div className="equipment-info-label">Last Maintenance</div>
+                    <div className="equipment-info-label">Previous Maintenance</div>
+                    <div className="equipment-maintenance">
+                      {e.previousMaintenance || "Not recorded"}
+                    </div>
+                  </div>
+                  <div className="equipment-info-box">
+                    <div className="equipment-info-label">Latest Maintenance</div>
                     <div className="equipment-maintenance">
                       {e.lastMaintenance || "Not recorded"}
                     </div>
@@ -130,10 +171,10 @@ export default function Equipment({ equipment, setEquipment }) {
                 <div className="equipment-actions">
                   <button 
                     className="btn btn-sm btn-success" 
-                    onClick={() => scheduleMaint(e.id)}
+                    onClick={() => recordMaintenanceToday(e.id)}
                   >
                     <i className="bi bi-calendar-check me-1"></i>
-                    Schedule Maint.
+                    Record Today
                   </button>
                   <button 
                     className="btn btn-sm btn-danger" 

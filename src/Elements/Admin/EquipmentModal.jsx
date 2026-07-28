@@ -74,15 +74,25 @@ export default function EquipmentModal({ form, setForm, editId, onClose, onSave 
                 </div>
               </div>
 
-              {/* Last Maintenance */}
-              <div className="mb-3">
-                <label className="form-label">Last Maintenance Date</label>
-                <input 
-                  type="date" 
-                  className="form-control" 
-                  value={form.lastMaintenance} 
-                  onChange={e => setForm({ ...form, lastMaintenance: e.target.value })}
-                />
+              <div className="row g-3 mb-3">
+                <div className="col-6">
+                  <label className="form-label">Previous Maintenance</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={form.previousMaintenance || ""}
+                    onChange={e => setForm({ ...form, previousMaintenance: e.target.value })}
+                  />
+                </div>
+                <div className="col-6">
+                  <label className="form-label">Latest Maintenance</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={form.lastMaintenance || ""}
+                    onChange={e => setForm({ ...form, lastMaintenance: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
             

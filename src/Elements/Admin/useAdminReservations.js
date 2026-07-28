@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { appendAuditLog } from "../../utils/audit";
 import { isValidSmsNumber } from "../../utils/phone";
+import { useNotifications } from "../Global/useNotifications";
 import {
   getAvailableReservationTables,
   hasReservationConflict,
@@ -25,6 +26,7 @@ export default function useAdminReservations({
   setTables,
   setLogs,
 }) {
+  const { addNotification } = useNotifications();
   const [filter, setFilter] = useState("all");
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(emptyReservationForm);
@@ -143,6 +145,9 @@ export default function useAdminReservations({
         nextStatus,
         severity: changes.status === "rejected" ? "medium" : "info",
       });
+      addNotification({
+        message: `${nextReservation.customerName} reservation ${changes.status}.`,
+      });
     }
   };
 
@@ -214,6 +219,7 @@ export default function useAdminReservations({
       previousStatus: currentReservation?.status || "pending",
       nextStatus: currentReservation?.status || "pending",
     });
+    addNotification({ message: `${payload.customerName} reservation updated.` });
   };
 
   const saveNewReservation = (payload) => {
@@ -226,6 +232,7 @@ export default function useAdminReservations({
       previousStatus: null,
       nextStatus: "pending",
     });
+    addNotification({ message: `${payload.customerName} reservation created.` });
   };
 
   const openEdit = (reservation) => {

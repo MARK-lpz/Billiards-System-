@@ -1,6 +1,7 @@
 // ReservationModal.jsx
 import { useEffect } from "react";
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
+import { RESERVATION_CUTOFF_TIME } from "../../utils/reservations";
 
 export default function ReservationModal({
   mode,
@@ -142,6 +143,7 @@ export default function ReservationModal({
                   <input
                     className="rd-input"
                     type="time"
+                    max="21:59"
                     value={reservationForm.time}
                     onChange={(e) =>
                       setReservationForm((prev) => ({
@@ -150,6 +152,8 @@ export default function ReservationModal({
                       }))
                     }
                   />
+
+                  <p className="rd-field-hint">Reservation cutoff: {RESERVATION_CUTOFF_TIME}</p>
 
                   <input
                     className="rd-input"

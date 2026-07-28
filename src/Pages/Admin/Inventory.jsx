@@ -3,8 +3,10 @@ import "../../styles/Admin/Inventory.css";
 import InventoryModal from "../../Elements/Admin/InventoryModal.jsx";
 import InventoryStats from "../../Elements/Admin/InventoryStats";
 import InventoryTable from "../../Elements/Admin/InventoryTable";
+import { useNotifications } from "../../Elements/Global/useNotifications";
 
 export default function Inventory({ products, setProducts }) {
+  const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ 
     sku: "",
@@ -24,21 +26,27 @@ export default function Inventory({ products, setProducts }) {
   const save = () => {
     if (editId) {
       setProducts(prev => prev.map(p => p.id === editId ? { ...p, ...form } : p));
+      addNotification({ message: `${form.name} inventory details updated.` });
     } else {
       setProducts(prev => [...prev, { id: Date.now(), ...form }]);
+      addNotification({ message: `${form.name} added to inventory.` });
     }
     setModal(null);
     setEditId(null);
   };
 
   const deleteProduct = (id) => {
+    const product = products.find((item) => item.id === id);
     setProducts(prev => prev.filter(p => p.id !== id));
+    addNotification({ message: `${product?.name || "Product"} removed from inventory.` });
   };
 
   const restockProduct = (id, amount) => {
     setProducts(prev => prev.map(p => 
       p.id === id ? { ...p, stock: p.stock + amount } : p
     ));
+    const product = products.find((item) => item.id === id);
+    addNotification({ message: `${product?.name || "Product"} restocked by ${amount} ${product?.unit || "units"}.` });
   };
 
   const openEditModal = (product) => {

@@ -7,7 +7,8 @@ import InventoryReport from "../../Elements/Admin/InventoryReport";
 
 export default function Reports({ transactions, reservations, products }) {
   const [tab, setTab] = useState("daily");
-  const today = "2026-03-08";
+  const currentDate = new Date();
+  const today = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
 
   const dailyTx = transactions.filter(t => t.date === today);
   const dailyTotal = dailyTx.reduce((s, t) => s + t.total, 0);
@@ -18,7 +19,7 @@ export default function Reports({ transactions, reservations, products }) {
     { key: "daily", label: "Daily Sales", icon: "bi-calendar-day" },
     { key: "monthly", label: "Monthly Sales", icon: "bi-calendar-month" },
     { key: "reservation", label: "Reservations", icon: "bi-calendar-check" },
-    { key: "inventory", label: "Inventory", icon: "bi-box-seam" },
+    { key: "inventory", label: "Stock Report", icon: "bi-box-seam" },
   ];
 
   const renderReport = () => {
@@ -40,8 +41,8 @@ export default function Reports({ transactions, reservations, products }) {
     <div className="reports-container">
       {/* Header */}
       <div className="reports-header">
-        <h1 className="reports-title">Reports & Analytics</h1>
-        <p className="reports-subtitle">View sales, reservations, and inventory reports</p>
+        <h1 className="reports-title">Sales & Stock Reports</h1>
+        <p className="reports-subtitle">View sales, reservations, and current stock reports</p>
       </div>
 
       {/* Tab Navigation */}

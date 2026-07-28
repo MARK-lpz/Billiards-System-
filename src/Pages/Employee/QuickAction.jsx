@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import "../../styles/Employee/QuickActions.css";
 import { appendAuditLog } from "../../utils/audit";
+import { useNotifications } from "../../Elements/Global/useNotifications";
 
 const defaultBorrowForm = {
   itemType: "Cue Stick",
@@ -52,6 +53,7 @@ const formatStatus = (status) =>
 const formatPesoRate = (value) => `₱${Number(value || 0)}/hr`;
 
 export default function QuickActions({ tables = [], setTables, setLogs }) {
+  const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
   const [issueForm, setIssueForm] = useState({ type: "", description: "", tableNumber: "" });
   const [borrowForm, setBorrowForm] = useState(defaultBorrowForm);
@@ -93,6 +95,7 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
       customer: extra.customer || null,
       extra,
     });
+    addNotification({ message: `${action}: ${detail}` });
   };
 
   const handleSubmitIssue = (e) => {

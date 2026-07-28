@@ -3,8 +3,10 @@ import "../../styles/Admin/Events.css";
 import EventsModal from "../../Elements/Admin/EventsModal";
 import EventsStats from "../../Elements/Admin/EventStats";
 import EventCard from "../../Elements/Admin/EventCard";
+import { useNotifications } from "../../Elements/Global/useNotifications";
 
 export default function Events({ events, setEvents, tables }) {
+  const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ 
     name: "", 
@@ -51,13 +53,16 @@ export default function Events({ events, setEvents, tables }) {
         },
       ];
     });
+    addNotification({ message: `${form.name} event ${form.id ? "updated" : "created"}.` });
     setModal(null);
   };
 
   const markComplete = (eventId) => {
+    const event = events.find((item) => item.id === eventId);
     setEvents(prev => prev.map(ev => 
       ev.id === eventId ? { ...ev, status: "completed" } : ev
     ));
+    addNotification({ message: `${event?.name || "Event"} marked completed.` });
   };
 
   const editEvent = (event) => {

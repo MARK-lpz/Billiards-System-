@@ -636,4 +636,70 @@
   color: #334155 !important;
 }
 
+/* Pool table time adjustment */
+.light .pool-time-modal,
+.light .table-time-modal {
+  border-color: #d4a017;
+  background: var(--bg-surface);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+}
+
+.light .pool-time-modal-header h3,
+.light .pool-time-input-label,
+.light .table-time-modal-header h3,
+.light .table-time-input-label {
+  color: var(--text-primary);
+}
+
+.light .pool-time-close,
+.light .pool-time-modal-note,
+.light .pool-time-preset-toggle,
+.light .table-time-close,
+.light .table-time-modal-note,
+.light .table-time-preset-toggle {
+  color: var(--text-muted);
+}
+
+.light .pool-time-close:hover,
+.light .table-time-close:hover {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+}
+
+.light .pool-time-input,
+.light .table-time-input {
+  border-color: var(--border-strong);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
+.light .pool-time-preset-toggle,
+.light .table-time-preset-toggle {
+  border-left-color: var(--border-strong);
+}
+
+.light .pool-time-presets,
+.light .table-time-presets {
+  border-color: var(--border-strong);
+  background: var(--bg-surface);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.16);
+}
+
+.light .pool-time-presets button,
+.light .table-time-presets button {
+  border-bottom-color: var(--border);
+  color: var(--text-secondary);
+}
+
+.light .pool-time-presets button:hover,
+.light .table-time-presets button:hover {
+  background: #fff6d8;
+}
+
+.light .pool-time-undo-button,
+.light .btn-undo-time {
+  border-color: var(--border-strong) !important;
+  color: var(--text-secondary);
+}
+
 

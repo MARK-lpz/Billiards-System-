@@ -251,6 +251,7 @@
 .tables-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 
 .table-card {
+  position: relative;
   border-radius: 16px;
   padding: 1.25rem;
   border: 1px solid transparent;
@@ -299,7 +300,7 @@
 .status-maintenance { color: #60a5fa; }
 .table-actions { display: flex; gap: 0.6rem; }
 
-.btn-reserve, .btn-walkin, .btn-end-session, .btn-cancel {
+.btn-reserve, .btn-walkin, .btn-end-session, .btn-add-time, .btn-undo-time, .btn-cancel {
   padding: 0.6rem 0.5rem;
   border-radius: 10px;
   font-size: 0.85rem;
@@ -316,9 +317,166 @@
 .btn-walkin:hover:not(:disabled) { background: rgba(16, 185, 129, 0.1); }
 .btn-end-session { width: 100%; background: linear-gradient(135deg, #f87171 0%, #ef4444 100%); color: white; }
 .btn-end-session:hover { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); }
+.btn-add-time { flex: 1; background: transparent; color: #fbbf24; border: 1.5px solid #f59e0b !important; }
+.btn-add-time:hover { background: rgba(245, 158, 11, 0.12); }
+
+.table-extension-control {
+  display: flex;
+  width: 100%;
+  gap: 0.6rem;
+}
+
+.table-extension-control .btn-add-time {
+  flex: 1;
+}
+
+.btn-undo-time {
+  flex: 1;
+  background: transparent;
+  color: #94a3b8;
+  border: 1.5px solid #64748b !important;
+}
+
+.btn-undo-time:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.table-time-modal {
+  position: absolute;
+  top: 52px;
+  right: 16px;
+  left: 16px;
+  z-index: 5;
+  width: auto;
+  overflow: visible;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 8px;
+  background: #172033;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+  padding: 1rem;
+}
+
+.table-time-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.table-time-modal-header h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.table-time-close {
+  border: 0;
+  background: transparent;
+  color: #cbd5e1;
+  padding: 0.2rem;
+}
+
+.table-time-input-label,
+.table-time-modal-note {
+  display: block;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}
+
+.table-time-input {
+  width: 100%;
+  margin: 0.4rem 0 0;
+  border: 1px solid #64748b;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 0.65rem 0.75rem;
+}
+
+.table-time-combobox {
+  position: relative;
+}
+
+.table-time-combobox .table-time-input {
+  padding-right: 2.75rem;
+}
+
+.table-time-preset-toggle {
+  position: absolute;
+  top: 0.4rem;
+  right: 0;
+  width: 2.5rem;
+  height: calc(100% - 0.4rem);
+  border: 0;
+  border-left: 1px solid #64748b;
+  border-radius: 0 6px 6px 0;
+  background: transparent;
+  color: #cbd5e1;
+}
+
+.table-time-presets {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  left: 0;
+  z-index: 7;
+  overflow: hidden;
+  border: 1px solid #64748b;
+  border-radius: 6px;
+  background: #0f172a;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.32);
+}
+
+.table-time-presets button {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  background: transparent;
+  color: #f8fafc;
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+}
+
+.table-time-presets button:hover {
+  background: rgba(245, 158, 11, 0.13);
+}
+
+.table-time-presets button:last-child {
+  border-bottom: 0;
+}
+
+.table-time-modal-note {
+  margin: 0.5rem 0 1rem;
+}
+
+.table-time-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
 .btn-cancel { background: transparent; color: #f87171; border: 1.5px solid #ef4444 !important; }
 .btn-cancel:hover { background: rgba(239, 68, 68, 0.1); }
 .btn-disabled { background: rgba(71, 85, 105, 0.3) !important; color: #475569 !important; border-color: transparent !important; cursor: not-allowed; box-shadow: none !important; }
+
+.table-session-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: -0.25rem 0 1rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #93c5fd;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.table-session-alert.warning { border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.1); color: #fbbf24; }
+.table-session-alert.ended { border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.1); color: #fca5a5; }
 
 .active-tables-card {
   background: rgba(30, 41, 59, 0.5);

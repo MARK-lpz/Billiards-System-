@@ -6,10 +6,12 @@ import ReservationQueue from "../../Elements/Employee/ReservationQueue";
 import ReservationModal from "../../Elements/Employee/ReservationModal.jsx";
 import {
   getAvailableReservationTables,
+  getReservationValidationMessage,
   hasReservationConflict,
 } from "../../utils/reservations";
 import { isValidSmsNumber } from "../../utils/phone";
 import { appendAuditLog } from "../../utils/audit";
+import { useNotifications } from "../../Elements/Global/useNotifications";
 
 const todayStr = () => new Date().toLocaleDateString("en-CA");
 const createId = () => Date.now() + Math.floor(Math.random() * 1000);
@@ -21,6 +23,7 @@ export default function ReservationDesk({
   setReservations,
   setLogs,
 }) {
+  const { addNotification } = useNotifications();
   const [reservationFilter, setReservationFilter] = useState("all");
   const [activeModal, setActiveModal] = useState(null);
   const [walkInForm, setWalkInForm] = useState({ customerName: "", tableId: "" });
@@ -103,6 +106,7 @@ export default function ReservationDesk({
       customer: { previous: null, current: { name: walkInForm.customerName.trim() } },
       table: { id: tableId, name: table?.name || `Table ${tableId}`, previousStatus: table?.status, currentStatus: "occupied" },
     });
+    addNotification({ message: `Walk-in started at ${table?.name || `Table ${tableId}`}.` });
 
     setWalkInForm({ customerName: "", tableId: "" });
     closeModal();
@@ -115,6 +119,15 @@ export default function ReservationDesk({
 
     if (reservationForm.phone.trim() && !isValidSmsNumber(reservationForm.phone)) {
       window.alert("Please enter a valid SMS number in 09XXXXXXXXX format.");
+      return;
+    }
+
+    const reservationValidationMessage = getReservationValidationMessage(
+      reservationForm.date,
+      reservationForm.time
+    );
+    if (reservationValidationMessage) {
+      window.alert(reservationValidationMessage);
       return;
     }
 
@@ -166,6 +179,9 @@ export default function ReservationDesk({
       },
       table: { id: booking.tableId, name: booking.tableName, previousStatus: table?.status, currentStatus: table?.status },
     });
+    addNotification({
+      message: `${booking.customerName} reservation request saved for ${booking.tableName} on ${booking.date} at ${booking.time}.`,
+    });
 
     setReservationForm({
       customerName: "",
@@ -197,6 +213,7 @@ export default function ReservationDesk({
         reservation: { id: booking.id, previousStatus: booking.status, currentStatus: "arrived", date: booking.date, time: booking.time },
         table: { id: booking.tableId, name: booking.tableName, previousStatus: "reserved", currentStatus: "reserved" },
       });
+      addNotification({ message: `${booking.customerName} arrived for ${booking.tableName}.` });
       return;
     }
 
@@ -213,6 +230,7 @@ export default function ReservationDesk({
         reservation: { id: booking.id, previousStatus: booking.status, currentStatus: "seated", date: booking.date, time: booking.time },
         table: { id: booking.tableId, name: booking.tableName, previousStatus: "reserved", currentStatus: "occupied" },
       });
+      addNotification({ message: `${booking.customerName} was seated at ${booking.tableName}.` });
       return;
     }
 
@@ -235,6 +253,7 @@ export default function ReservationDesk({
         reservation: { id: booking.id, previousStatus: booking.status, currentStatus: nextStatus, date: booking.date, time: booking.time },
         table: { id: booking.tableId, name: booking.tableName, previousStatus: currentTable?.status, currentStatus: currentTable?.status === "occupied" ? "available" : currentTable?.status },
       });
+      addNotification({ message: `${booking.customerName} booking was ${nextStatus}.` });
     }
   };
 
