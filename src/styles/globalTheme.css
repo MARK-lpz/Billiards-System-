@@ -1,5 +1,5 @@
 .light {
-  --bg-root:          #f1f5f9;
+  --bg-root:          rgb(207, 225, 253);
   --bg-surface:       #ffffff;
   --bg-subtle:        #f8fafc;
   --bg-muted:         #f1f5f9;
@@ -23,7 +23,7 @@
 .light .main-content      { background-color: var(--bg-root); }
 
 .light .sidebar {
-  background-color: var(--bg-subtle);
+  background-color: rgb(233, 242, 254);
   border-right-color: var(--border);
 }
 
