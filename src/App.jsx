@@ -4,6 +4,8 @@ import Dashboard from './Pages/Admin/AdminDashboard'
 import EmployeeDashboard from './Pages/Employee/Employeedashboard'
 import TournamentQR from './Pages/Guest/tournament-qr'
 import TournamentForm from './Pages/Guest/billiards-form'
+import OnlineReservationForm from './Pages/Guest/OnlineReservationForm'
+import GuestLanding from './Pages/Guest/GuestLanding'
 import LoadingBar from './Elements/Global/Loading'
 import './styles/Modal.css'
 import './styles/globalTheme.css'
@@ -11,6 +13,7 @@ import './styles/globalThemeAdmin.css'
 import './styles/globalThemeEmployee.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
 import { initialReservations } from './utils/reservations'
+import { fetchRemoteReservations } from './utils/reservationApi'
 import { createAuditEntry, normalizeAuditLogs } from './utils/audit'
 
 const initialTables = [
@@ -38,11 +41,19 @@ const initialTransactions = []
 const initialCustomers = []
 const initialEvents = []
 const legacyEventIds = new Set([101, 102])
+const PUBLIC_ROUTES = {
+  guest: "/",
+}
+
+const getPublicView = () => "guest"
 
 const sanitizeEvents = (events) =>
   Array.isArray(events) ? events.filter((event) => !legacyEventIds.has(event?.id)) : initialEvents
 function App() {
-  const [currentView, setCurrentView] = useState('login')
+  const isStaffApp = typeof window !== "undefined" && window.location.hostname === "app.breakandchill.com"
+  const [currentView, setCurrentView] = useState(() => (
+    isStaffApp ? "login" : getPublicView(window.location.pathname)
+  ))
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -145,6 +156,68 @@ function App() {
   }, [reservations])
 
   useEffect(() => {
+    const activeReservationIds = new Set(
+      reservations
+        .filter((reservation) => ["approved", "reserved", "arrived", "seated"].includes(reservation.status))
+        .map((reservation) => String(reservation.id))
+    )
+
+    setTables((currentTables) => {
+      let changed = false
+      const nextTables = currentTables.map((table) => {
+        if (
+          table.status !== "reserved" ||
+          !table.reservationId ||
+          activeReservationIds.has(String(table.reservationId))
+        ) {
+          return table
+        }
+
+        changed = true
+        return {
+          ...table,
+          status: "available",
+          startTime: null,
+          customer: "",
+          reservationId: null,
+          reservationDate: "",
+          reservationTime: "",
+        }
+      })
+
+      return changed ? nextTables : currentTables
+    })
+  }, [reservations])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const syncReservations = async () => {
+      try {
+        const remoteReservations = await fetchRemoteReservations()
+        if (cancelled) return
+
+        setReservations((current) => {
+          const remoteById = new Map(remoteReservations.map((reservation) => [String(reservation.id), reservation]))
+          const merged = current.map((reservation) => remoteById.get(String(reservation.id)) || reservation)
+          const localIds = new Set(current.map((reservation) => String(reservation.id)))
+          const next = [...remoteReservations.filter((reservation) => !localIds.has(String(reservation.id))), ...merged]
+          return JSON.stringify(next) === JSON.stringify(current) ? current : next
+        })
+      } catch (error) {
+        console.warn('Unable to sync shared reservations', error)
+      }
+    }
+
+    syncReservations()
+    const interval = setInterval(syncReservations, 3000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
+
+  useEffect(() => {
     try { localStorage.setItem('events', JSON.stringify(sanitizeEvents(events))) }
     catch (error) { console.warn('Unable to persist events', error) }
   }, [events])
@@ -159,6 +232,20 @@ function App() {
     try { localStorage.setItem('customers', JSON.stringify(customers)) }
     catch (error) { console.warn('Unable to persist customers', error) }
   }, [customers])
+
+  useEffect(() => {
+    const expectedPath = isStaffApp ? "/login" : PUBLIC_ROUTES[currentView]
+    if (expectedPath && window.location.pathname !== expectedPath) {
+      window.history.replaceState({}, "", expectedPath)
+    }
+
+    const handlePopState = () => {
+      setCurrentView(isStaffApp ? "login" : getPublicView(window.location.pathname))
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [currentView, isStaffApp])
 
   useEffect(() => {
     const handleStorageChange = (e) => {
@@ -250,7 +337,7 @@ function App() {
     setTimeout(() => {
       setIsLoggedIn(false)
       setUserRole(null)
-      setCurrentView('login')
+      setCurrentView(isStaffApp ? "login" : "guest")
       localStorage.removeItem('authToken')
       localStorage.removeItem('user')
       setLoading(false)
@@ -260,32 +347,55 @@ function App() {
   const navigateTo = (view) => {
     setLoading(true)
     setTimeout(() => {
+      const nextPath = isStaffApp ? "/login" : PUBLIC_ROUTES[view]
+      if (nextPath && window.location.pathname !== nextPath) {
+        window.history.pushState({}, "", nextPath)
+      }
       setCurrentView(view)
       setLoading(false)
     }, 300)
   }
 
   return (
-    <NotificationProvider>
+    <NotificationProvider
+      canReceiveAdminNotifications={isLoggedIn && userRole === 'admin'}
+      canReceiveEmployeeNotifications={isLoggedIn && userRole === 'employee'}
+    >
       <div className={theme}>
         <LoadingBar loading={loading} />
 
-        {currentView === 'login' && !isLoggedIn && (
-          <Login onLogin={handleLogin} onGoToRegister={() => navigateTo('qr')} />
+        {isStaffApp && currentView === 'login' && !isLoggedIn && (
+          <Login onLogin={handleLogin} />
         )}
 
-        {currentView === 'qr' && (
-          <TournamentQR
-            onNavigateToForm={() => navigateTo('form')}
-            onBackToLogin={() => navigateTo('login')}
+        {!isStaffApp && currentView === 'guest' && (
+          <GuestLanding
+            onOpenReservation={() => navigateTo('reservation')}
+            onOpenTournamentForm={() => navigateTo('form')}
           />
         )}
 
-        {currentView === 'form' && (
-          <TournamentForm onGoBack={() => navigateTo('qr')} events={events} setEvents={setEvents} />
+        {!isStaffApp && currentView === 'reservation' && (
+          <OnlineReservationForm
+            tables={tables}
+            reservations={reservations}
+            setReservations={setReservations}
+            onGoBack={() => navigateTo('guest')}
+          />
         )}
 
-        {isLoggedIn && userRole === 'admin' && (
+        {!isStaffApp && currentView === 'qr' && (
+          <TournamentQR
+            onNavigateToForm={() => navigateTo('form')}
+            onBackToLogin={() => navigateTo('guest')}
+          />
+        )}
+
+        {!isStaffApp && currentView === 'form' && (
+          <TournamentForm onGoBack={() => navigateTo('guest')} events={events} setEvents={setEvents} />
+        )}
+
+        {isStaffApp && isLoggedIn && userRole === 'admin' && (
           <Dashboard
             onLogout={handleLogout}
             onReload={handleReload}
@@ -306,7 +416,7 @@ function App() {
           />
         )}
 
-        {isLoggedIn && userRole === 'employee' && (
+        {isStaffApp && isLoggedIn && userRole === 'employee' && (
           <EmployeeDashboard
             onLogout={handleLogout}
             onReload={handleReload}

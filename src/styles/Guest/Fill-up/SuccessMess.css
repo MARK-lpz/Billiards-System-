@@ -106,3 +106,38 @@
 .light .detail-value {
   color: #0f172a;
 }
+
+.no-active-events {
+  display: grid;
+  justify-items: center;
+  padding: clamp(1.5rem, 5vw, 3rem) 0;
+  text-align: center;
+}
+
+.no-active-events-icon {
+  display: grid;
+  width: 4.25rem;
+  height: 4.25rem;
+  margin-bottom: 1.25rem;
+  place-items: center;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 50%;
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  font-size: 1.85rem;
+}
+
+.no-active-events h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.45rem;
+  font-weight: 700;
+}
+
+.no-active-events p {
+  max-width: 25rem;
+  margin: 0.75rem 0 0;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}

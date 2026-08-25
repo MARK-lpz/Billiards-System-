@@ -59,7 +59,18 @@ export default function PoolTables({ tables, setTables }) {
 
   const cancelReserve = (id) => {
     setTables(prev => prev.map(t => 
-      t.id === id ? { ...t, status: "available", startTime: null, customer: "", addedMinutes: 0 } : t
+      t.id === id
+        ? {
+            ...t,
+            status: "available",
+            startTime: null,
+            customer: "",
+            addedMinutes: 0,
+            reservationId: null,
+            reservationDate: "",
+            reservationTime: "",
+          }
+        : t
     ));
   };
 

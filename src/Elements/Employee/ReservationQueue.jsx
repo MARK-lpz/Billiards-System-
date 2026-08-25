@@ -1,26 +1,32 @@
 // ReservationQueue.jsx
+const HISTORY_STATUSES = new Set(["completed", "cancelled", "rejected", "expired"]);
+
 export default function ReservationQueue({
   reservations,
+  allReservations = reservations,
   reservationFilter,
   setReservationFilter,
   onBookingStatus,
 }) {
   const filterCounts = {
-    all: reservations.length,
-    pending: reservations.filter((booking) => booking.status === "pending").length,
-    reserved: reservations.filter((booking) => booking.status === "reserved").length,
-    arrived: reservations.filter((booking) => booking.status === "arrived").length,
-    seated: reservations.filter((booking) =>
-      ["seated", "completed"].includes(booking.status)
+    all: allReservations.filter((booking) => !HISTORY_STATUSES.has(booking.status)).length,
+    pending: allReservations.filter((booking) => booking.status === "pending").length,
+    approved: allReservations.filter((booking) =>
+      ["approved", "reserved"].includes(booking.status)
     ).length,
+    arrived: allReservations.filter((booking) => booking.status === "arrived").length,
+    history: allReservations.filter((booking) => HISTORY_STATUSES.has(booking.status)).length,
   };
 
   const getStatusLabel = (status) => {
     if (status === "pending") return "Pending Approval";
     if (status === "approved" || status === "reserved") return "Approved";
     if (status === "arrived") return "Arrived";
-    if (status === "seated" || status === "completed") return "Completed";
+    if (status === "seated") return "Assigned";
+    if (status === "completed") return "Completed";
     if (status === "cancelled") return "Cancelled";
+    if (status === "rejected") return "Rejected";
+    if (status === "expired") return "Expired";
     return status;
   };
 
@@ -29,7 +35,8 @@ export default function ReservationQueue({
     if (status === "approved" || status === "reserved") return "rd-badge-approved";
     if (status === "arrived") return "rd-badge-approved";
     if (status === "seated" || status === "completed") return "rd-badge-completed";
-    if (status === "cancelled") return "rd-badge-rejected";
+    if (["cancelled", "rejected"].includes(status)) return "rd-badge-rejected";
+    if (status === "expired") return "rd-badge-expired";
     return "rd-badge-pending";
   };
 
@@ -39,9 +46,9 @@ export default function ReservationQueue({
         {[
           ["all", "All"],
           ["pending", "Pending"],
-          ["reserved", "Approved"],
+          ["approved", "Approved"],
           ["arrived", "Arrived"],
-          ["seated", "Completed"],
+          ["history", "History"],
         ].map(([value, label]) => (
           <button
             key={value}
@@ -91,11 +98,13 @@ export default function ReservationQueue({
                       </span>
                     </td>
                     <td className="rd-table-notes">
-                      {booking.status === "pending"
+                      {booking.notes || (booking.status === "pending"
                         ? "Waiting for admin approval"
                         : booking.source === "existing"
                           ? "Imported from table status"
-                          : "Front desk booking"}
+                          : booking.source === "online"
+                            ? "Online reservation"
+                            : "Front desk booking")}
                     </td>
                     <td>
                       <div className="rd-actions">
@@ -138,7 +147,7 @@ export default function ReservationQueue({
                           </button>
                         )}
 
-                        {(booking.status === "seated" || booking.status === "completed") && (
+                        {booking.status === "seated" && (
                           <button
                             type="button"
                             className="rd-secondary-btn"
@@ -148,7 +157,7 @@ export default function ReservationQueue({
                           </button>
                         )}
 
-                        {!["cancelled", "completed", "seated"].includes(booking.status) && (
+                        {["pending", "approved", "reserved", "arrived"].includes(booking.status) && (
                           <button
                             type="button"
                             className="rd-danger-btn"
@@ -167,7 +176,7 @@ export default function ReservationQueue({
         ) : (
           <div className="rd-empty">
             <i className="bi bi-inbox"></i>
-            <p>No reservations found</p>
+            <p>{reservationFilter === "history" ? "No reservation history yet" : "No active reservations found"}</p>
           </div>
         )}
       </div>

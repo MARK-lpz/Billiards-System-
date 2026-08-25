@@ -104,6 +104,16 @@ export default function PoolTableCard({
         </div>
       )}
 
+      {isReserved && (table.reservationDate || table.reservationTime) && (
+        <div className="pool-table-reservation-slot">
+          <i className="bi bi-calendar-check me-2" aria-hidden="true"></i>
+          <span>
+            Reserved for {table.reservationDate || "selected date"}
+            {table.reservationTime ? ` at ${table.reservationTime}` : ""}
+          </span>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="pool-table-actions">
         {isAvailable && (

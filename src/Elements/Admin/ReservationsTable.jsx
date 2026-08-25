@@ -1,4 +1,6 @@
-export default function ReservationsTable({ reservations, onUpdate, onEdit }) {
+const HISTORY_STATUSES = new Set(["completed", "rejected", "cancelled", "expired"]);
+
+export default function ReservationsTable({ reservations, onUpdate, onEdit, emptyMessage }) {
   return (
     <div className="card reservations-table-card">
       <div className="card-body">
@@ -20,11 +22,14 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit }) {
                 <tr>
                   <td colSpan={7} className="reservations-empty">
                     <i className="bi bi-inbox"></i>
-                    <p>No reservations found</p>
+                    <p>{emptyMessage || "No reservations found"}</p>
                   </td>
                 </tr>
               ) : (
-                reservations.map(r => (
+                reservations.map(r => {
+                  const isHistorical = HISTORY_STATUSES.has(r.status);
+
+                  return (
                   <tr key={r.id}>
                     <td className="reservations-customer">{r.customerName || r.customer}</td>
                     <td className="reservations-datetime">
@@ -78,16 +83,19 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit }) {
                             </button>
                           </>
                         )}
-                        <button
-                          className="btn btn-sm btn-outline-secondary"
-                          onClick={() => onEdit(r)}
-                        >
-                          <i className="bi bi-pencil"></i>
-                        </button>
+                        {!isHistorical && (
+                          <button
+                            className="btn btn-sm btn-outline-secondary"
+                            onClick={() => onEdit(r)}
+                          >
+                            <i className="bi bi-pencil"></i>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

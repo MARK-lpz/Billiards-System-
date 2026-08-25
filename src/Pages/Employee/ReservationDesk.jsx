@@ -1,5 +1,5 @@
 // ReservationDesk.jsx
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "../../styles/Employee/ReservationDesk.css";
 import ReservationStats from "../../Elements/Employee/ReservationStats";
 import ReservationQueue from "../../Elements/Employee/ReservationQueue";
@@ -12,9 +12,31 @@ import {
 import { isValidSmsNumber } from "../../utils/phone";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../../Elements/Global/useNotifications";
+import {
+  createRemoteReservation,
+  updateRemoteReservation,
+} from "../../utils/reservationApi";
 
 const todayStr = () => new Date().toLocaleDateString("en-CA");
 const createId = () => Date.now() + Math.floor(Math.random() * 1000);
+const HISTORY_STATUSES = new Set(["completed", "cancelled", "rejected", "expired"]);
+
+const normalizeTableName = (name) =>
+  String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+const getTableNumber = (name) => {
+  const match = normalizeTableName(name).match(/table\s*(\d+)$/i);
+  return match ? Number(match[1]) : null;
+};
+
+const isBookingTable = (table, booking) =>
+  String(table.id) === String(booking.tableId ?? booking.table) ||
+  normalizeTableName(table.name) === normalizeTableName(booking.tableName) ||
+  (getTableNumber(table.name) !== null &&
+    getTableNumber(table.name) === getTableNumber(booking.tableName));
 
 export default function ReservationDesk({
   tables = [],
@@ -23,7 +45,7 @@ export default function ReservationDesk({
   setReservations,
   setLogs,
 }) {
-  const { addNotification } = useNotifications();
+  const { addNotification, queueAdminNotification } = useNotifications();
   const [reservationFilter, setReservationFilter] = useState("all");
   const [activeModal, setActiveModal] = useState(null);
   const [walkInForm, setWalkInForm] = useState({ customerName: "", tableId: "" });
@@ -64,7 +86,15 @@ export default function ReservationDesk({
   );
 
   const visibleReservations = useMemo(() => {
-    if (reservationFilter === "all") return reservations;
+    if (reservationFilter === "all") {
+      return reservations.filter((booking) => !HISTORY_STATUSES.has(booking.status));
+    }
+    if (reservationFilter === "approved") {
+      return reservations.filter((booking) => ["approved", "reserved"].includes(booking.status));
+    }
+    if (reservationFilter === "history") {
+      return reservations.filter((booking) => HISTORY_STATUSES.has(booking.status));
+    }
     return reservations.filter((booking) => booking.status === reservationFilter);
   }, [reservationFilter, reservations]);
 
@@ -85,6 +115,44 @@ export default function ReservationDesk({
       )
     );
   };
+
+  const updateBookingTable = (booking, updates) => {
+    setTables((prev) =>
+      prev.map((table) =>
+        isBookingTable(table, booking) ? { ...table, ...updates } : table
+      )
+    );
+  };
+
+  useEffect(() => {
+    setTables((previousTables) => {
+      let changed = false;
+      const nextTables = previousTables.map((table) => {
+        const booking = reservations.find(
+          (entry) =>
+            ["approved", "reserved", "arrived"].includes(entry.status) &&
+            isBookingTable(table, entry)
+        );
+
+        if (!booking || !["available", "reserved"].includes(table.status)) {
+          return table;
+        }
+
+        const nextTable = {
+          ...table,
+          status: "reserved",
+          customer: booking.customerName,
+          reservationDate: booking.date,
+          reservationTime: booking.time,
+        };
+
+        if (JSON.stringify(nextTable) !== JSON.stringify(table)) changed = true;
+        return nextTable;
+      });
+
+      return changed ? nextTables : previousTables;
+    });
+  }, [reservations, setTables]);
 
   const closeModal = () => setActiveModal(null);
 
@@ -112,7 +180,7 @@ export default function ReservationDesk({
     closeModal();
   };
 
-  const handleReservationSubmit = (e) => {
+  const handleReservationSubmit = async (e) => {
     e.preventDefault();
     const tableId = Number(reservationForm.tableId);
     if (!reservationForm.customerName.trim() || !tableId) return;
@@ -157,51 +225,65 @@ export default function ReservationDesk({
       source: "new",
     };
 
-    setReservations((prev) => [booking, ...prev]);
+    try {
+      const savedBooking = await createRemoteReservation(booking);
+      setReservations((prev) => [savedBooking, ...prev]);
 
-    addLog({
-      action: "Created reservation",
-      detail: `${booking.customerName} submitted a reservation request for ${booking.tableName} on ${booking.date} ${booking.time || ""}`.trim(),
-      customer: {
-        previous: null,
-        current: {
-          name: booking.customerName,
-          phone: booking.phone,
-          partySize: booking.partySize,
+      addLog({
+        action: "Created reservation",
+        detail: `${savedBooking.customerName} submitted a reservation request for ${savedBooking.tableName} on ${savedBooking.date} ${savedBooking.time || ""}`.trim(),
+        customer: {
+          previous: null,
+          current: {
+            name: savedBooking.customerName,
+            phone: savedBooking.phone,
+            partySize: savedBooking.partySize,
+          },
         },
-      },
-      reservation: {
-        id: booking.id,
-        previousStatus: null,
-        currentStatus: "pending",
-        date: booking.date,
-        time: booking.time,
-      },
-      table: { id: booking.tableId, name: booking.tableName, previousStatus: table?.status, currentStatus: table?.status },
-    });
-    addNotification({
-      message: `${booking.customerName} reservation request saved for ${booking.tableName} on ${booking.date} at ${booking.time}.`,
-    });
+        reservation: {
+          id: savedBooking.id,
+          previousStatus: null,
+          currentStatus: "pending",
+          date: savedBooking.date,
+          time: savedBooking.time,
+        },
+        table: { id: savedBooking.tableId, name: savedBooking.tableName, previousStatus: table?.status, currentStatus: table?.status },
+      });
+      addNotification({
+        message: `${savedBooking.customerName} reservation request saved for ${savedBooking.tableName} on ${savedBooking.date} at ${savedBooking.time}.`,
+      });
 
-    setReservationForm({
-      customerName: "",
-      phone: "",
-      partySize: 2,
-      date: todayStr(),
-      time: "",
-      tableId: "",
-    });
+      setReservationForm({
+        customerName: "",
+        phone: "",
+        partySize: 2,
+        date: todayStr(),
+        time: "",
+        tableId: "",
+      });
 
-    closeModal();
+      closeModal();
+    } catch (error) {
+      window.alert(error.message || "Unable to save the reservation.");
+    }
   };
 
-  const handleBookingStatus = (bookingId, nextStatus) => {
+  const handleBookingStatus = async (bookingId, nextStatus) => {
     const booking = reservations.find((entry) => entry.id === bookingId);
     if (!booking) return;
 
+    const nextBooking = { ...booking, status: nextStatus };
+
+    try {
+      await updateRemoteReservation(nextBooking);
+    } catch (error) {
+      window.alert(error.message || "Unable to update this reservation.");
+      return;
+    }
+
     setReservations((prev) =>
       prev.map((entry) =>
-        entry.id === bookingId ? { ...entry, status: nextStatus } : entry
+        entry.id === bookingId ? nextBooking : entry
       )
     );
 
@@ -218,7 +300,7 @@ export default function ReservationDesk({
     }
 
     if (nextStatus === "seated") {
-      updateTable(booking.tableId, {
+      updateBookingTable(booking, {
         status: "occupied",
         customer: booking.customerName,
         startTime: Date.now(),
@@ -235,9 +317,9 @@ export default function ReservationDesk({
     }
 
     if (nextStatus === "cancelled" || nextStatus === "completed") {
-      const currentTable = tables.find((table) => table.id === booking.tableId);
+      const currentTable = tables.find((table) => isBookingTable(table, booking));
       if (currentTable?.status === "occupied" && currentTable.customer === booking.customerName) {
-        updateTable(booking.tableId, {
+        updateBookingTable(booking, {
           status: "available",
           customer: "",
           startTime: null,
@@ -254,6 +336,14 @@ export default function ReservationDesk({
         table: { id: booking.tableId, name: booking.tableName, previousStatus: currentTable?.status, currentStatus: currentTable?.status === "occupied" ? "available" : currentTable?.status },
       });
       addNotification({ message: `${booking.customerName} booking was ${nextStatus}.` });
+
+      if (nextStatus === "cancelled") {
+        queueAdminNotification({
+          type: "reservation-cancellation",
+          message: `Cancellation request: ${booking.customerName}'s booking for ${booking.tableName} on ${booking.date} at ${booking.time}.`,
+          data: { reservationId: booking.id, tableId: booking.tableId },
+        });
+      }
     }
   };
 
@@ -292,6 +382,7 @@ export default function ReservationDesk({
 
       <ReservationQueue
         reservations={visibleReservations}
+        allReservations={reservations}
         reservationFilter={reservationFilter}
         setReservationFilter={setReservationFilter}
         onBookingStatus={handleBookingStatus}

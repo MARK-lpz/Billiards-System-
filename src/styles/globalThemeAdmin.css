@@ -6,7 +6,7 @@
 .light .reports-stat-card,
 .light .audit-stat-card,
 .light .stat-card {
-  background: var(--bg-surface) !important;
+  background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
   border-radius: 12px !important;
   box-shadow: var(--shadow) !important;
@@ -96,7 +96,7 @@
 .light .pool-table-card,
 .light .product-card,
 .light .active-tables-card {
-  background: var(--bg-surface) !important;
+  background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
   border-radius: 12px !important;
   box-shadow: var(--shadow) !important;
@@ -186,7 +186,7 @@
 }
 
 .light .stat-card {
-  background: var(--bg-surface) !important;
+  background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
 }
 
@@ -335,7 +335,7 @@
 }
 
 .light .account-management-card {
-  background: var(--bg-surface) !important;
+  background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
   box-shadow: var(--shadow) !important;
 }
@@ -461,7 +461,7 @@
 .light .sales-summary-card,
 .light .order-queue-stat,
 .light .order-ticket-card {
-  background: var(--bg-surface) !important;
+  background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
   box-shadow: none !important;
 }

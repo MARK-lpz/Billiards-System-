@@ -1,7 +1,83 @@
 /* Employee Theme Overrides */
 
+/* Employee table controls need stronger separation from the light page canvas. */
+.light .employee-table-grid .table-card {
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.07);
+}
+
+.light .employee-table-grid .card-available {
+  background: #eaf2ed;
+  border-color: #86ad97;
+}
+
+.light .employee-table-grid .card-reserved {
+  background: #f2f0e5;
+  border-color: #c1a762;
+}
+
+.light .employee-table-grid .card-occupied {
+  background: #f3e9ea;
+  border-color: #c78b91;
+}
+
+.light .employee-table-grid .card-cleaning {
+  background: #e9f1f3;
+  border-color: #7faeba;
+}
+
+.light .employee-table-grid .card-maintenance {
+  background: #eceff5;
+  border-color: #93a5c5;
+}
+
+.light .employee-table-grid .table-name {
+  color: #0f172a !important;
+}
+
+.light .employee-table-grid .table-rate,
+.light .employee-table-grid .rate-icon {
+  color: #52616b !important;
+}
+
+.light .employee-table-grid .btn-walkin {
+  background: #e2eee6;
+  border-color: #26785d !important;
+  color: #17654b;
+}
+
+.light .employee-table-grid .btn-walkin:hover:not(:disabled) {
+  background: #d5e5db;
+}
+
+.light .employee-table-grid .btn-cancel {
+  background: #f3e7e8;
+  border-color: #b75159 !important;
+  color: #9f3b43;
+}
+
+.light .employee-table-grid .btn-cancel:hover:not(:disabled) {
+  background: #ecd9db;
+}
+
+.light .employee-table-grid .btn-add-time {
+  background: #f2f0e5;
+  color: #866314;
+}
+
+.light .employee-table-grid .btn-undo-time {
+  background: #f8fafc;
+  border-color: #64748b !important;
+  color: #334155;
+}
+
+.light .employee-table-grid .status-available { color: #17654b; }
+.light .employee-table-grid .status-reserved { color: #8a6411; }
+.light .employee-table-grid .status-occupied { color: #a83d48; }
+.light .employee-table-grid .status-cleaning { color: #1d6f86; }
+.light .employee-table-grid .status-maintenance { color: #435f9d; }
+
 .light .stat-card-employee {
-  background: var(--bg-surface) !important;
+  background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
 }
 
@@ -9,7 +85,7 @@
 .light .stat-value  { color: var(--text-primary) !important; }
 
 .light .content-card {
-  background: var(--bg-surface) !important;
+  background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
 }
 
@@ -99,7 +175,7 @@
 
 .light .cust-page .tm-stat-card,
 .light .cust-page .cust-card {
-  background: var(--bg-surface) !important;
+  background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
   box-shadow: none !important;
 }
@@ -186,7 +262,7 @@
 
 .light .rd-stat-card,
 .light .rd-table-card {
-  background: var(--bg-surface) !important;
+  background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
   box-shadow: none !important;
 }
@@ -309,7 +385,7 @@
 .light .qa-reservation-item,
 .light .qa-equipment-item,
 .light .qa-summary-pill {
-  background: var(--bg-surface) !important;
+  background: var(--bg-card) !important;
   border-color: var(--border) !important;
   box-shadow: none !important;
 }
@@ -366,7 +442,7 @@
 .light .tourna-card,
 .light .tourna-detail-card,
 .light .tourna-empty-card {
-  background: var(--bg-surface) !important;
+  background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
   box-shadow: none !important;
 }

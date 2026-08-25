@@ -17,6 +17,45 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
+.tournament-back-btn {
+  position: fixed;
+  top: 1.25rem;
+  left: 1.25rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0 0.85rem;
+  color: #f8fafc;
+  background: rgba(7, 8, 13, 0.72);
+  border: 1px solid rgba(0, 201, 122, 0.45);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.tournament-back-btn:hover {
+  background: rgba(0, 201, 122, 0.16);
+  border-color: #00c97a;
+  transform: translateX(-2px);
+}
+
+.tournament-back-btn:focus-visible {
+  outline: 3px solid rgba(0, 201, 122, 0.35);
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .tournament-back-btn {
+    top: 0.75rem;
+    left: 0.75rem;
+  }
+}
+
 .tournament-wrapper {
   width: 100%;
   max-width: 580px;

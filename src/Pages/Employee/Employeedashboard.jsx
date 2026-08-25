@@ -30,7 +30,7 @@ export default function EmployeeDashboard({
   theme,
   setTheme,
 }) {
-  const { addNotification } = useNotifications();
+  const { addNotification, queueAdminNotification } = useNotifications();
   const [activeNav, setActiveNav] = useState("dashboard");
   const [search, setSearch] = useState("");
   const [timers, setTimers] = useState({});
@@ -216,6 +216,11 @@ export default function EmployeeDashboard({
           },
       });
       addNotification({ message: `Reservation for ${getTableLabel(table)} was cancelled.` });
+      queueAdminNotification({
+        type: "reservation-cancellation",
+        message: `Cancellation request: ${table?.customer || 'Customer'} reservation for ${getTableLabel(table)} was cancelled by an employee.`,
+        data: { tableId: id },
+      });
     }
     }
   };
@@ -257,7 +262,7 @@ export default function EmployeeDashboard({
           <>
             <StatCards stats={stats} />
             <h2 className="section-title">Pool Tables</h2>
-            <div className="tables-grid">
+            <div className="tables-grid employee-table-grid">
               {filtered.map((table) => (
                 <TableCard
                   key={table.id}

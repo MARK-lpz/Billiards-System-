@@ -251,6 +251,15 @@
   gap: 6px;
 }
 
+.pool-table-reservation-slot {
+  display: flex;
+  align-items: center;
+  margin: -0.35rem 0 0.85rem;
+  color: #fbbf24;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
 /* Actions */
 .pool-table-actions {
   display: flex;

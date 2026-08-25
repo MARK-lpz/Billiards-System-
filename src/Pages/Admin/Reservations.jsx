@@ -29,6 +29,7 @@ export default function Reservations({ reservations, setReservations, tables, se
         reservations={reservationState.filteredReservations}
         onUpdate={reservationState.updateReservation}
         onEdit={reservationState.openEdit}
+        emptyMessage={reservationState.filter === "history" ? "No reservation history yet" : "No active reservations found"}
       />
 
       {reservationState.modal === "form" && (

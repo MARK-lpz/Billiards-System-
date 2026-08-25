@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { appendAuditLog } from "../../utils/audit";
 import { isValidSmsNumber } from "../../utils/phone";
 import { useNotifications } from "../Global/useNotifications";
+import { updateRemoteReservation } from "../../utils/reservationApi";
 import {
   getAvailableReservationTables,
   hasReservationConflict,
@@ -17,7 +18,8 @@ const emptyReservationForm = {
   notes: "",
 };
 
-const statusFilters = ["all", "pending", "approved", "rejected", "completed"];
+const HISTORY_STATUSES = new Set(["completed", "rejected", "cancelled", "expired"]);
+const statusFilters = ["all", "pending", "approved", "history"];
 
 export default function useAdminReservations({
   reservations,
@@ -40,13 +42,18 @@ export default function useAdminReservations({
     excludeId: editId,
   });
 
-  const filteredReservations =
-    filter === "all" ? reservations : reservations.filter((reservation) => reservation.status === filter);
+  const filteredReservations = reservations.filter((reservation) => {
+    if (filter === "all") return !HISTORY_STATUSES.has(reservation.status);
+    if (filter === "history") return HISTORY_STATUSES.has(reservation.status);
+    return reservation.status === filter;
+  });
 
   const counts = statusFilters.reduce((acc, status) => {
     acc[status] =
       status === "all"
-        ? reservations.length
+        ? reservations.filter((reservation) => !HISTORY_STATUSES.has(reservation.status)).length
+        : status === "history"
+          ? reservations.filter((reservation) => HISTORY_STATUSES.has(reservation.status)).length
         : reservations.filter((reservation) => reservation.status === status).length;
     return acc;
   }, {});
@@ -83,7 +90,7 @@ export default function useAdminReservations({
       return;
     }
 
-    if (previousStatus === "approved" && ["rejected", "completed", "pending"].includes(nextStatus)) {
+    if (previousStatus === "approved" && ["rejected", "completed", "pending", "expired"].includes(nextStatus)) {
       releaseTable(tableId, reservation);
     }
   };
@@ -91,18 +98,28 @@ export default function useAdminReservations({
   const reserveTable = (tableId, reservation) => {
     if (!setTables) return;
 
-    setTables((prev) =>
-      prev.map((table) =>
-        table.id === tableId
-          ? {
-              ...table,
-              status: "reserved",
-              startTime: null,
-              customer: reservation.customerName || reservation.customer || "",
-            }
+    setTables((prev) => {
+      const matchingTable = prev.find((table) => isReservationTable(table, tableId, reservation));
+      const reservationDetails = {
+        status: "reserved",
+        startTime: null,
+        customer: reservation.customerName || reservation.customer || "",
+        reservationId: reservation.id,
+        reservationDate: reservation.date || "",
+        reservationTime: reservation.time || "",
+      };
+
+      if (!matchingTable) {
+        console.warn(`Unable to find ${reservation.tableName || `table ${tableId}`} in the configured pool tables.`);
+        return prev;
+      }
+
+      return prev.map((table) =>
+        isReservationTable(table, tableId, reservation)
+          ? { ...table, ...reservationDetails }
           : table
-      )
-    );
+      );
+    });
   };
 
   const releaseTable = (tableId, reservation) => {
@@ -110,12 +127,22 @@ export default function useAdminReservations({
 
     setTables((prev) =>
       prev.map((table) => {
-        if (table.id !== tableId) return table;
+        if (!isReservationTable(table, tableId, reservation)) return table;
 
         const sameCustomer = (reservation.customerName || reservation.customer || "") === (table.customer || "");
         const canRelease = table.status === "reserved" || sameCustomer;
 
-        return canRelease ? { ...table, status: "available", startTime: null, customer: "" } : table;
+        return canRelease
+          ? {
+              ...table,
+              status: "available",
+              startTime: null,
+              customer: "",
+              reservationId: null,
+              reservationDate: "",
+              reservationTime: "",
+            }
+          : table;
       })
     );
   };
@@ -132,6 +159,9 @@ export default function useAdminReservations({
     );
 
     setTableStateForReservation(nextReservation, nextStatus, currentReservation.status);
+    updateRemoteReservation(nextReservation).catch((error) => {
+      console.warn("Unable to sync reservation update", error);
+    });
 
     if (changes.status && changes.status !== currentReservation.status) {
       logReservationEvent({
@@ -258,13 +288,9 @@ export default function useAdminReservations({
   useEffect(() => {
     if (!setTables) return;
 
-    const approvedMap = new Map(
-      reservations
-        .filter((reservation) => reservation.status === "approved")
-        .map((reservation) => [Number(reservation.tableId ?? reservation.table), reservation])
-    );
+    const approvedReservations = reservations.filter((reservation) => reservation.status === "approved");
 
-    setTables((prev) => syncApprovedReservationsToTables(prev, approvedMap));
+    setTables((prev) => syncApprovedReservationsToTables(prev, approvedReservations));
   }, [reservations, setTables]);
 
   return {
@@ -298,6 +324,24 @@ const buildCustomerAudit = (reservation) => {
   return { previous: customer, current: customer };
 };
 
+const normalizeTableName = (name) =>
+  String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+const getTableNumber = (name) => {
+  const match = normalizeTableName(name).match(/table\s*(\d+)$/i);
+  return match ? Number(match[1]) : null;
+};
+
+const isReservationTable = (table, tableId, reservation) =>
+  String(table.id) === String(tableId) ||
+  (normalizeTableName(table.name) !== "" &&
+    normalizeTableName(table.name) === normalizeTableName(reservation.tableName)) ||
+  (getTableNumber(table.name) !== null &&
+    getTableNumber(table.name) === getTableNumber(reservation.tableName));
+
 const buildTableAudit = (reservation, previousStatus, nextStatus) => {
   if (!reservation?.tableId) return null;
 
@@ -321,23 +365,56 @@ const buildReservationAudit = (reservation, previousStatus, nextStatus) => {
   };
 };
 
-const syncApprovedReservationsToTables = (tables, approvedMap) => {
+const syncApprovedReservationsToTables = (tables, approvedReservations) => {
   let changed = false;
+  const generatedTableCards = new Set();
 
-  const nextTables = tables.map((table) => {
-    const approvedReservation = approvedMap.get(table.id);
-    if (!approvedReservation || !["available", "reserved"].includes(table.status)) return table;
+  approvedReservations.forEach((reservation) => {
+    const tableId = Number(reservation.tableId ?? reservation.table);
+    const matchingTables = tables.filter((table) => isReservationTable(table, tableId, reservation));
+    const configuredTable = matchingTables.find((table) => String(table.id) !== String(tableId)) || matchingTables[0];
 
-    const nextCustomer = approvedReservation.customerName || approvedReservation.customer || "";
-    if (table.status === "reserved" && table.customer === nextCustomer) return table;
+    matchingTables.forEach((table) => {
+      if (table !== configuredTable && String(table.reservationId) === String(reservation.id)) {
+        generatedTableCards.add(table);
+      }
+    });
+  });
 
-    changed = true;
-    return {
-      ...table,
+  const nextTables = tables.filter((table) => !generatedTableCards.has(table));
+  changed = generatedTableCards.size > 0;
+
+  approvedReservations.forEach((reservation) => {
+    const tableId = Number(reservation.tableId ?? reservation.table);
+    const index = nextTables.findIndex((table) => isReservationTable(table, tableId, reservation));
+    const reservationDetails = {
       status: "reserved",
       startTime: null,
-      customer: nextCustomer,
+      customer: reservation.customerName || reservation.customer || "",
+      reservationId: reservation.id,
+      reservationDate: reservation.date || "",
+      reservationTime: reservation.time || "",
     };
+
+    if (index === -1) {
+      console.warn(`Unable to find ${reservation.tableName || `table ${tableId}`} in the configured pool tables.`);
+      return;
+    }
+
+    const table = nextTables[index];
+    if (!["available", "reserved"].includes(table.status)) return;
+
+    const hasSameReservation =
+      table.status === "reserved" &&
+      table.reservationId === reservationDetails.reservationId &&
+      table.customer === reservationDetails.customer &&
+      table.reservationDate === reservationDetails.reservationDate &&
+      table.reservationTime === reservationDetails.reservationTime;
+
+    if (hasSameReservation) return;
+
+    nextTables[index] = { ...table, ...reservationDetails };
+    changed = true;
   });
 
   return changed ? nextTables : tables;

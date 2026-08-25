@@ -9,7 +9,7 @@ const QR_API = (url, size, theme) => {
 };
 
 export default function TournamentQR({ onNavigateToForm, onBackToLogin, theme }) {
-  const url = "http://localhost:3000/tournament-form";
+  const url = "https://breakandchill.com/";
   const qrSize = 280;
   const isLight = theme === "light";
 

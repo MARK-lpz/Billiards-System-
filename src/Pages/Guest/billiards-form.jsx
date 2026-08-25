@@ -8,7 +8,7 @@ import TournamentDetailsForm from "../../Elements/Guest/TournaDetails";
 import SuccessMessage from "../../Elements/Guest/SuccessMess";
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
 
-export default function TournamentForm({ events = [], setEvents }) {
+export default function TournamentForm({ events = [], setEvents, onGoBack }) {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -22,7 +22,9 @@ export default function TournamentForm({ events = [], setEvents }) {
     teamName: "",
   });
   const [submitted, setSubmitted] = useState(false);
-  const availableEvents = events.filter((event) => event.status !== "completed");
+  const availableEvents = events.filter((event) =>
+    ["upcoming", "active"].includes(String(event.status || "").toLowerCase())
+  );
   const selectedEvent = availableEvents.find((event) => String(event.id) === String(form.eventId)) || null;
   const contactIsValid = isValidSmsNumber(form.contact);
   const contactWarning = getSmsWarning(form.contact);
@@ -101,6 +103,15 @@ export default function TournamentForm({ events = [], setEvents }) {
 
   return (
     <div className="tournament-container">
+      <button
+        type="button"
+        className="tournament-back-btn"
+        onClick={onGoBack}
+        title="Back to showcase"
+      >
+        <i className="bi bi-arrow-left" aria-hidden="true"></i>
+        <span>Back</span>
+      </button>
       <div className="tournament-wrapper">
         {/* Header */}
         <div className="tournament-header fade-in">
@@ -120,7 +131,15 @@ export default function TournamentForm({ events = [], setEvents }) {
         <div className="tournament-card">
           <div className="card-top-line" />
 
-          {!submitted ? (
+          {availableEvents.length === 0 ? (
+            <div className="no-active-events fade-in" role="status">
+              <div className="no-active-events-icon">
+                <i className="bi bi-calendar-x" aria-hidden="true"></i>
+              </div>
+              <h2>No Active Tournaments</h2>
+              <p>There are no tournaments open for registration right now. Please check back after Break &amp; Chill posts a new event.</p>
+            </div>
+          ) : !submitted ? (
             <form onSubmit={handleSubmit} className="fade-in">
               <PersonalInfoForm form={form} onChange={handleChange} contactWarning={contactWarning} />
               <TournamentDetailsForm
@@ -136,12 +155,6 @@ export default function TournamentForm({ events = [], setEvents }) {
                 <i className="bi bi-check-circle-fill" style={{ marginRight: 8 }}></i>
                 Register for Tournament
               </button>
-              {availableEvents.length === 0 && (
-                <p className="required-text">
-                  <i className="bi bi-exclamation-circle" style={{ marginRight: 6 }}></i>
-                  No active tournaments are available yet. Please wait for an admin to create one.
-                </p>
-              )}
               {!isComplete && (
                 <p className="required-text">
                   <i className="bi bi-info-circle" style={{ marginRight: 6 }}></i>

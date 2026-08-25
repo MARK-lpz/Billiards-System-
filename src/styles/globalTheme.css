@@ -1,10 +1,11 @@
 .light {
-  --bg-root:          rgb(207, 225, 253);
+  --bg-root:          #cfd4ca;
   --bg-surface:       #ffffff;
-  --bg-subtle:        #f8fafc;
-  --bg-muted:         #f1f5f9;
-  --border:           #e2e8f0;
-  --border-strong:    #cbd5e1;
+  --bg-card:          #e2e6de;
+  --bg-subtle:        #e9ede5;
+  --bg-muted:         #dce2d8;
+  --border:           #bac4b5;
+  --border-strong:    #aab6a4;
   --text-primary:     #0f172a;
   --text-secondary:   #334155;
   --text-muted:       #64748b;
@@ -23,7 +24,7 @@
 .light .main-content      { background-color: var(--bg-root); }
 
 .light .sidebar {
-  background-color: rgb(233, 242, 254);
+  background-color: #d9ded4;
   border-right-color: var(--border);
 }
 
@@ -481,7 +482,7 @@
 }
 
 .light .order-history-card {
-  background: var(--bg-surface) !important;
+  background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
   box-shadow: none !important;
 }
@@ -517,7 +518,7 @@
 }
 
 .light .recent-transactions-card {
-  background: var(--bg-surface) !important;
+  background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
   box-shadow: none !important;
 }

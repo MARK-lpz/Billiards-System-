@@ -10,6 +10,8 @@ export default defineConfig({
     }),
   ],
   server: {
+    host: '0.0.0.0',
+    allowedHosts: ['app.breakandchill.com', 'breakandchill.com'],
     proxy: {
       '/api': {
         target: 'http://localhost/Billiards/backend/api',
