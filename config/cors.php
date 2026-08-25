@@ -1,6 +1,17 @@
 <?php
-// Allow requests from React frontend
-header("Access-Control-Allow-Origin: http://localhost:5173");
+$allowedOrigins = [
+    'http://localhost:5173',
+    'http://breakandchill.com:5173',
+    'http://app.breakandchill.com:5173',
+    'https://breakandchill.com',
+    'https://app.breakandchill.com',
+];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+if (in_array($origin, $allowedOrigins, true)) {
+    header("Access-Control-Allow-Origin: $origin");
+}
+
 header("Access-Control-Allow-Methods: POST, GET, PUT, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
