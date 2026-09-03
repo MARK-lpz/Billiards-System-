@@ -40,7 +40,7 @@ const getIssueLogs = (logs = []) =>
     .sort((a, b) => Number(b.id || 0) - Number(a.id || 0))
     .slice(0, 4);
 
-export default function TaskList({ logs = [], setLogs }) {
+export default function TaskList({ logs = [], setLogs, onOpenEquipment }) {
   const issueLogs = getIssueLogs(logs);
   const [selectedIssue, setSelectedIssue] = useState(null);
 
@@ -112,7 +112,13 @@ export default function TaskList({ logs = [], setLogs }) {
                   key={entry.id}
                   type="button"
                   className="task-item issue-item issue-item-btn"
-                  onClick={() => setSelectedIssue(entry)}
+                  onClick={() => {
+                    if (onOpenEquipment) {
+                      onOpenEquipment(entry);
+                      return;
+                    }
+                    setSelectedIssue(entry);
+                  }}
                 >
                   <div className="task-checkbox task-checkbox--icon">
                     <i className="bi bi-exclamation-diamond"></i>

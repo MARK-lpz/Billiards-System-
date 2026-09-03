@@ -29,13 +29,17 @@ const slides = [
 
 const registrationQrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=520x520&data=https%3A%2F%2Fbreakandchill.com%2F&bgcolor=ffffff&color=0d1b2a&margin=12&format=png";
 
-export default function GuestLanding({ onOpenReservation, onOpenTournamentForm }) {
+export default function GuestLanding({ onOpenReservation, onOpenTournamentForm, onlineReservationsOpen = true }) {
   const [activeSlide, setActiveSlide] = useState(0);
-  const [reservationsClosed, setReservationsClosed] = useState(isOnlineReservationClosed);
+  const [automaticReservationsClosed, setAutomaticReservationsClosed] = useState(isOnlineReservationClosed);
   const active = slides[activeSlide];
+  const reservationsClosed = automaticReservationsClosed || !onlineReservationsOpen;
+  const reservationClosedMessage = !onlineReservationsOpen
+    ? "Online reservations are temporarily closed by the owner. Please check back later."
+    : "Break & Chill closes at 10:00 PM. Please reserve again tomorrow.";
 
   useEffect(() => {
-    const refreshReservationAvailability = () => setReservationsClosed(isOnlineReservationClosed());
+    const refreshReservationAvailability = () => setAutomaticReservationsClosed(isOnlineReservationClosed());
     const interval = window.setInterval(refreshReservationAvailability, 60_000);
 
     return () => window.clearInterval(interval);
@@ -60,7 +64,7 @@ export default function GuestLanding({ onOpenReservation, onOpenTournamentForm }
           className="guest-template-register"
           onClick={onOpenReservation}
           disabled={reservationsClosed}
-          title={reservationsClosed ? "Online reservations are closed after 10:00 PM." : "Reserve a table"}
+          title={reservationsClosed ? reservationClosedMessage : "Reserve a table"}
         >
           {reservationsClosed ? "Reservations Closed" : "Reserve a Table"}
         </button>
@@ -71,7 +75,7 @@ export default function GuestLanding({ onOpenReservation, onOpenTournamentForm }
           <i className="bi bi-calendar-x" aria-hidden="true"></i>
           <span>
             <strong>Online table reservations are closed.</strong>
-            Break &amp; Chill closes at 10:00 PM. Please reserve again tomorrow.
+            {reservationClosedMessage}
           </span>
         </div>
       )}
@@ -117,7 +121,7 @@ export default function GuestLanding({ onOpenReservation, onOpenTournamentForm }
             className="guest-template-primary"
             onClick={onOpenReservation}
             disabled={reservationsClosed}
-            title={reservationsClosed ? "Online reservations are closed after 10:00 PM." : "Reserve a table"}
+            title={reservationsClosed ? reservationClosedMessage : "Reserve a table"}
           >
             {reservationsClosed ? "Reservations Closed" : "Reserve a Table"}
             <i className={`bi ${reservationsClosed ? "bi-lock" : "bi-arrow-right"}`}></i>

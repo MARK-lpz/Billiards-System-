@@ -5,7 +5,16 @@ import ReservationModal from "../../Elements/Admin/ReservationModal";
 import ReservationsTable from "../../Elements/Admin/ReservationsTable";
 import useAdminReservations from "../../Elements/Admin/useAdminReservations";
 
-export default function Reservations({ reservations, setReservations, tables, setTables, setLogs }) {
+export default function Reservations({
+  reservations,
+  setReservations,
+  tables,
+  setTables,
+  setLogs,
+  onlineReservationsOpen,
+  isUpdatingOnlineReservations,
+  onOnlineReservationsChange,
+}) {
   const reservationState = useAdminReservations({
     reservations,
     setReservations,
@@ -16,7 +25,12 @@ export default function Reservations({ reservations, setReservations, tables, se
 
   return (
     <div className="reservations-container">
-      <ReservationHeader onNew={reservationState.openNew} />
+      <ReservationHeader
+        onNew={reservationState.openNew}
+        onlineReservationsOpen={onlineReservationsOpen}
+        isUpdatingOnlineReservations={isUpdatingOnlineReservations}
+        onOnlineReservationsChange={onOnlineReservationsChange}
+      />
 
       <ReservationFilters
         counts={reservationState.counts}

@@ -11,8 +11,21 @@ const typeIcon = {
 const severityClass = {
   high: "audit-severity-high",
   medium: "audit-severity-medium",
+  reject: "audit-severity-reject",
   info: "audit-severity-info",
   low: "audit-severity-low",
+};
+
+const getSeverityDisplay = (log) => {
+  const action = String(log.action || "").toLowerCase();
+  const status = String(log.reservation?.currentStatus || log.reservation?.status || "").toLowerCase();
+
+  if (log.type === "reservation" && (action.includes("rejected") || status === "rejected")) {
+    return { label: "reject", className: severityClass.reject };
+  }
+
+  const severity = log.severity || "info";
+  return { label: severity, className: severityClass[severity] || severityClass.info };
 };
 
 export default function AuditLogList({
@@ -48,32 +61,36 @@ export default function AuditLogList({
               <p>No audit events found for this filter.</p>
             </div>
           ) : (
-            logs.map((log, index) => (
-              <button
-                key={log.id}
-                type="button"
-                className={`audit-log-item audit-log-button ${
-                  index < logs.length - 1 ? "audit-log-item-border" : ""
-                }`}
-                onClick={() => onSelectLog(log)}
-              >
-                <div className="audit-log-time">{log.time}</div>
-                <i className={`bi ${typeIcon[log.type] || typeIcon.other} audit-log-icon`}></i>
-                <span className={`badge audit-badge audit-badge-${log.type || "other"}`}>
-                  {log.type || "other"}
-                </span>
-                <div className="audit-log-content">
-                  <div className="audit-log-staff-action">
-                    <span className="audit-log-staff">{log.staff}</span>
-                    <span className="audit-log-action">- {log.action}</span>
-                    <span className={`audit-severity-pill ${severityClass[log.severity] || severityClass.info}`}>
-                      {log.severity || "info"}
-                    </span>
+            logs.map((log, index) => {
+              const severity = getSeverityDisplay(log);
+
+              return (
+                <button
+                  key={log.id}
+                  type="button"
+                  className={`audit-log-item audit-log-button ${
+                    index < logs.length - 1 ? "audit-log-item-border" : ""
+                  }`}
+                  onClick={() => onSelectLog(log)}
+                >
+                  <div className="audit-log-time">{log.time}</div>
+                  <i className={`bi ${typeIcon[log.type] || typeIcon.other} audit-log-icon`}></i>
+                  <span className={`badge audit-badge audit-badge-${log.type || "other"}`}>
+                    {log.type || "other"}
+                  </span>
+                  <div className="audit-log-content">
+                    <div className="audit-log-staff-action">
+                      <span className="audit-log-staff">{log.staff}</span>
+                      <span className="audit-log-action">- {log.action}</span>
+                      <span className={`audit-severity-pill ${severity.className}`}>
+                        {severity.label}
+                      </span>
+                    </div>
+                    <div className="audit-log-detail">{log.detail}</div>
                   </div>
-                  <div className="audit-log-detail">{log.detail}</div>
-                </div>
-              </button>
-            ))
+                </button>
+              );
+            })
           )}
         </div>
       </div>

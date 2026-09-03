@@ -138,6 +138,30 @@
   margin-top: 4px;
 }
 
+.cart-stock-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin-top: 6px;
+  color: #fbbf24;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.cart-stock-warning i {
+  margin-top: 1px;
+  color: #f59e0b;
+}
+
+.light .cart-stock-warning {
+  color: #9a6700;
+}
+
+.light .cart-stock-warning i {
+  color: #b45309;
+}
+
 .cart-item-qty {
   display: flex;
   align-items: center;
@@ -326,6 +350,178 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.payment-confirmation-copy {
+  margin: 0 0 16px;
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.payment-review-summary {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.payment-review-row,
+.payment-review-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 13px;
+  font-size: 13px;
+}
+
+.payment-review-row {
+  color: #cbd5e1;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.payment-review-total {
+  color: #f8fafc;
+  font-weight: 800;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.payment-review-total strong {
+  color: #34d399;
+}
+
+.light .payment-confirmation-copy { color: #64748b; }
+.light .payment-review-summary { border-color: #cbd5e1; }
+.light .payment-review-row { color: #334155; border-color: #e2e8f0; }
+.light .payment-review-total { color: #0f172a; background: #ecfdf5; }
+.light .payment-review-total strong { color: #047857; }
+
+.payment-details-section {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+}
+
+.payment-details-heading,
+.payment-change-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.payment-details-heading {
+  margin-bottom: 12px;
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.payment-details-heading strong { color: #34d399; }
+
+.payment-field-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.payment-cash-input {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 7px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.payment-cash-input span {
+  padding: 9px 0 9px 11px;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.payment-cash-input input,
+.payment-reference-input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f8fafc;
+  font: inherit;
+}
+
+.payment-cash-input input { padding: 9px 11px 9px 6px; }
+
+.payment-reference-input {
+  padding: 9px 11px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 7px;
+}
+
+.payment-cash-input:focus-within,
+.payment-reference-input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+.payment-field-error,
+.payment-method-note {
+  margin: 7px 0 0;
+  font-size: 11px;
+}
+
+.payment-field-error { color: #fca5a5; }
+.payment-method-note { color: #94a3b8; }
+
+.payment-change-row {
+  margin-top: 12px;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.payment-change-row strong { color: #34d399; }
+.receipt-payment-detail { color: #94a3b8; }
+
+.light .payment-details-section { border-color: #cbd5e1; }
+.light .payment-details-heading { color: #0f172a; }
+.light .payment-details-heading strong,
+.light .payment-change-row strong { color: #047857; }
+.light .payment-field-label,
+.light .payment-method-note,
+.light .payment-change-row { color: #64748b; }
+.light .payment-cash-input { background: #fff; border-color: #cbd5e1; }
+.light .payment-cash-input input,
+.light .payment-reference-input { color: #0f172a; }
+.light .payment-reference-input { border-color: #cbd5e1; background: #fff; }
+.light .receipt-payment-detail { color: #64748b; }
+
+.payment-final-confirmation {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px solid rgba(251, 191, 36, 0.42);
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.payment-final-confirmation > i {
+  color: #fbbf24;
+  font-size: 1.15rem;
+}
+
+.payment-final-confirmation div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.payment-final-confirmation strong { color: #f8fafc; }
+.payment-final-confirmation span { color: #cbd5e1; font-size: 12px; line-height: 1.45; }
+
+.light .payment-final-confirmation { background: #fffbeb; border-color: #fcd34d; }
+.light .payment-final-confirmation strong { color: #78350f; }
+.light .payment-final-confirmation span { color: #92400e; }
 
 /* Responsive */
 @media (max-width: 1024px) {

@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from "react";
 import "../../styles/Employee/Employeedashboard.css";
 import Sidebar from "../../Elements/Employee/SidebarEmp";
-import StatCards from "../../Elements/Global/StatCards";
+import PoolTableStats from "../../Elements/Admin/PoolTableStats";
 import TableCard from "../../Elements/Global/TableCard";
 import Notification from "../../Elements/Global/Notification";
 import LoadingBar from "../../Elements/Global/Loading";
@@ -22,6 +22,8 @@ export default function EmployeeDashboard({
   setLogs,
   products,
   setProducts,
+  equipment,
+  setEquipment,
   transactions,
   setTransactions,
   reservations,
@@ -36,6 +38,7 @@ export default function EmployeeDashboard({
   const [timers, setTimers] = useState({});
   const [sessionInfo, setSessionInfo] = useState({});
   const [loading, setLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const handleReload = () => {
     setLoading(true);
@@ -81,11 +84,17 @@ export default function EmployeeDashboard({
     available: tables.filter((t) => t.status === "available").length,
     occupied: tables.filter((t) => t.status === "occupied").length,
     reserved: tables.filter((t) => t.status === "reserved").length,
+    total: tables.length,
   };
 
-  const filtered = tables.filter((t) =>
-    `table ${t.id} ${t.status}`.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = tables.filter((table) => {
+    const matchesSearch = `table ${table.id} ${table.status}`
+      .toLowerCase()
+      .includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "all" || table.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
 
   const getTableLabel = (table) => table?.name || `T${table?.id}`;
 
@@ -254,13 +263,25 @@ export default function EmployeeDashboard({
         );
 
       case "quick-actions":
-        return <QuickActions tables={tables} setTables={setTables} setLogs={setLogs} />;
+        return (
+          <QuickActions
+            tables={tables}
+            setTables={setTables}
+            setLogs={setLogs}
+            equipment={equipment}
+            setEquipment={setEquipment}
+          />
+        );
 
       case "dashboard":
       default:
         return (
           <>
-            <StatCards stats={stats} />
+            <PoolTableStats
+              stats={stats}
+              activeStatus={statusFilter}
+              onFilterChange={setStatusFilter}
+            />
             <h2 className="section-title">Pool Tables</h2>
             <div className="tables-grid employee-table-grid">
               {filtered.map((table) => (

@@ -8,6 +8,7 @@ export default function CartPanel({
   pendingCount,
   servedCount,
   unsyncedCount,
+  stockAlert,
   onUpdateQty,
   onSetMethod,
   onProcessPayment,
@@ -35,13 +36,26 @@ export default function CartPanel({
     if (draft === undefined) return;
 
     const parsedQty = Number.parseInt(draft, 10);
-    onUpdateQty(item.id, Number.isNaN(parsedQty) ? item.qty : parsedQty);
+    const appliedQty = onUpdateQty(item.id, Number.isNaN(parsedQty) ? item.qty : parsedQty);
 
     setQtyDrafts((prev) => {
       const next = { ...prev };
-      delete next[item.id];
+      next[item.id] = String(appliedQty ?? item.qty);
       return next;
     });
+  };
+
+  const handleQtyChange = (item, value) => {
+    if (value === "") {
+      setQtyDrafts((prev) => ({ ...prev, [item.id]: value }));
+      return;
+    }
+
+    const parsedQty = Number.parseInt(value, 10);
+    if (Number.isNaN(parsedQty)) return;
+
+    const appliedQty = onUpdateQty(item.id, parsedQty);
+    setQtyDrafts((prev) => ({ ...prev, [item.id]: String(appliedQty ?? item.qty) }));
   };
 
   return (
@@ -96,6 +110,12 @@ export default function CartPanel({
                         ? "Sent to inventory automatically"
                         : `${Math.max(0, item.qty - (item.syncedQty || 0))} syncing to inventory`}
                     </div>
+                    {stockAlert?.productId === item.id && (
+                      <div className="cart-stock-warning" role="alert">
+                        <i className="bi bi-exclamation-triangle-fill"></i>
+                        {stockAlert.message}
+                      </div>
+                    )}
                   </div>
 
                   <div className="cart-item-qty">
@@ -110,12 +130,7 @@ export default function CartPanel({
                       inputMode="numeric"
                       className="qty-input"
                       value={qtyDrafts[item.id] ?? String(item.qty)}
-                      onChange={(event) =>
-                        setQtyDrafts((prev) => ({
-                          ...prev,
-                          [item.id]: event.target.value,
-                        }))
-                      }
+                      onChange={(event) => handleQtyChange(item, event.target.value)}
                       onBlur={() => commitQty(item)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") {

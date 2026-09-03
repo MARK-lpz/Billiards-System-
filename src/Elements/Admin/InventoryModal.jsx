@@ -17,15 +17,9 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
             </div>
             
             <div className="modal-body">
-              <div className="mb-3">
-                <label className="form-label">SKU / Item Code</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={form.sku || ""}
-                  onChange={e => setForm({ ...form, sku: e.target.value })}
-                  placeholder="e.g. DRK-COLA-001"
-                />
+              <div className="inventory-product-number-note">
+                <i className="bi bi-hash"></i>
+                <span>Product No. is assigned automatically when the product is added.</span>
               </div>
 
               <div className="mb-3">

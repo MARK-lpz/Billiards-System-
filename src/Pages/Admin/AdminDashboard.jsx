@@ -24,6 +24,7 @@ import PoolTables from "./PoolTables";
 import Inventory from "./Inventory";
 import Events from "./Events";
 import Equipment from "./Equipment";
+import AccountManagement from "./AccountManagement";
 import AuditTrail from "./AuditTrail";
 import AdminProfile from "./AdminProfile";
 
@@ -55,6 +56,8 @@ export default function Dashboard({
   setLogs,
   products,
   setProducts,
+  equipment,
+  setEquipment,
   transactions,
   setTransactions,
   reservations,
@@ -63,39 +66,21 @@ export default function Dashboard({
   setEvents,
   theme,
   setTheme,
+  onlineReservationsOpen,
+  isUpdatingOnlineReservations,
+  onOnlineReservationsChange,
 }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const [equipment, setEquipment] = useState([
-    {
-      id: 1,
-      name: "Cue Stick #1",
-      type: "Cue Stick",
-      condition: "good",
-      previousMaintenance: "2026-02-01",
-      lastMaintenance: "2026-03-01",
-      status: "active",
-    },
-    {
-      id: 2,
-      name: "Ball Set #1",
-      type: "Ball Set",
-      condition: "fair",
-      previousMaintenance: "2026-01-15",
-      lastMaintenance: "2026-02-15",
-      status: "active",
-    },
-  ]);
+  const [selectedEquipmentIssue, setSelectedEquipmentIssue] = useState(null);
 
   const reportedIssuesCount = logs.filter((entry) => isIssueEntry(entry) && !isResolvedIssue(entry)).length;
 
   const availableTablesCount = tables.filter((table) => table.status === "available").length;
 
-  const pendingTasksCount =
-    tables.filter((table) => ["cleaning", "maintenance"].includes(table.status)).length +
-    reportedIssuesCount;
+  // Pending tasks and the Reported Issues panel use the same unresolved-report source.
+  const pendingTasksCount = reportedIssuesCount;
 
   const handleReload = () => {
     setLoading(true);
@@ -109,6 +94,11 @@ export default function Dashboard({
       setActiveNav(navId);
       setLoading(false);
     }, 300);
+  };
+
+  const openEquipmentIssue = (issue) => {
+    setSelectedEquipmentIssue(issue);
+    handleNavChange("equipment");
   };
 
   const renderModule = () => {
@@ -130,6 +120,9 @@ export default function Dashboard({
           tables={tables}
           setTables={setTables}
           setLogs={setLogs}
+          onlineReservationsOpen={onlineReservationsOpen}
+          isUpdatingOnlineReservations={isUpdatingOnlineReservations}
+          onOnlineReservationsChange={onOnlineReservationsChange}
         />;
       
       case 'reports':
@@ -162,10 +155,17 @@ export default function Dashboard({
         return <Equipment 
           equipment={equipment}
           setEquipment={setEquipment}
+          logs={logs}
+          setLogs={setLogs}
+          selectedIssue={selectedEquipmentIssue}
+          onSelectedIssueHandled={() => setSelectedEquipmentIssue(null)}
         />;
 
       case 'audit-trail':
         return <AuditTrail logs={logs} setLogs={setLogs} />;
+
+      case 'accounts':
+        return <AccountManagement setLogs={setLogs} />;
 
       case 'profile':
         return <AdminProfile />;
@@ -218,7 +218,7 @@ export default function Dashboard({
             {/* Main grid — 50/50 equal columns */}
             <div className="admin-dashboard-grid">
               <ActiveTables tables={tables} onViewPoolTables={() => handleNavChange('pool-tables')} />
-              <TaskList logs={logs} setLogs={setLogs} />
+              <TaskList logs={logs} setLogs={setLogs} onOpenEquipment={openEquipmentIssue} />
             </div>
           </>
         );

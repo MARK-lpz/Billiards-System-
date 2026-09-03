@@ -12,8 +12,8 @@ export default function AuditAccountManager({
       <div className="card-body">
         <div className="account-management-header">
           <div>
-            <h6 className="audit-log-header">Manage Employee Accounts</h6>
-            <p>Create admin/employee accounts or update employee passwords and details.</p>
+            <h2 className="audit-log-header">Employee Accounts</h2>
+            <p>Create an employee account or update an employee username and password.</p>
           </div>
           <button type="button" className="btn btn-secondary btn-sm" onClick={onClear}>
             Clear
@@ -32,29 +32,9 @@ export default function AuditAccountManager({
             value={accountForm.password}
             onChange={(event) => onChange("password", event.target.value)}
           />
-          <select value={accountForm.role} onChange={(event) => onChange("role", event.target.value)}>
-            <option value="employee">Employee</option>
-            <option value="admin">Admin</option>
-          </select>
-          <input
-            placeholder="Gmail"
-            type="email"
-            value={accountForm.email}
-            onChange={(event) => onChange("email", event.target.value)}
-          />
-          <input
-            placeholder="Full name"
-            value={accountForm.fullName}
-            onChange={(event) => onChange("fullName", event.target.value)}
-          />
-          <input
-            placeholder="Phone"
-            value={accountForm.phone}
-            onChange={(event) => onChange("phone", event.target.value)}
-          />
           <button type="submit" className="btn btn-success">
             <i className="bi bi-person-plus me-2"></i>
-            {accountForm.id ? "Update Account" : "Create Account"}
+            {accountForm.id ? "Update Employee" : "Create Employee"}
           </button>
         </form>
 
@@ -66,8 +46,7 @@ export default function AuditAccountManager({
               <div>
                 <strong>{account.username}</strong>
                 <span>
-                  {account.role}
-                  {account.email ? ` - ${account.email}` : ""}
+                  Employee
                 </span>
               </div>
               <button

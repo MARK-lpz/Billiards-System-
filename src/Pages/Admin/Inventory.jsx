@@ -9,7 +9,6 @@ export default function Inventory({ products, setProducts }) {
   const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ 
-    sku: "",
     name: "", 
     category: "Food", 
     supplier: "",
@@ -23,12 +22,21 @@ export default function Inventory({ products, setProducts }) {
   const [editId, setEditId] = useState(null);
   const [filter, setFilter] = useState("all");
 
+  const getNextProductNumber = () => {
+    const highestProductNumber = products.reduce((highest, product) => {
+      const productNumber = Number.parseInt(product.productNumber, 10);
+      return Number.isFinite(productNumber) ? Math.max(highest, productNumber) : highest;
+    }, 0);
+
+    return String(highestProductNumber + 1).padStart(3, "0");
+  };
+
   const save = () => {
     if (editId) {
       setProducts(prev => prev.map(p => p.id === editId ? { ...p, ...form } : p));
       addNotification({ message: `${form.name} inventory details updated.` });
     } else {
-      setProducts(prev => [...prev, { id: Date.now(), ...form }]);
+      setProducts(prev => [...prev, { id: Date.now(), productNumber: getNextProductNumber(), ...form }]);
       addNotification({ message: `${form.name} added to inventory.` });
     }
     setModal(null);
@@ -56,7 +64,7 @@ export default function Inventory({ products, setProducts }) {
   };
 
   const openAddModal = () => {
-    setForm({ sku: "", name: "", category: "Food", supplier: "", location: "", expiryDate: "", price: 0, stock: 0, minStock: 10, unit: "pcs" });
+    setForm({ name: "", category: "Food", supplier: "", location: "", expiryDate: "", price: 0, stock: 0, minStock: 10, unit: "pcs" });
     setEditId(null);
     setModal("form");
   };

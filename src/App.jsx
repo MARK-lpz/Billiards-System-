@@ -14,7 +14,11 @@ import './styles/globalThemeEmployee.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
 import { initialReservations } from './utils/reservations'
 import { fetchRemoteReservations } from './utils/reservationApi'
+import { fetchReservationSettings, updateReservationSettings } from './utils/reservationSettingsApi'
+import { fetchRemoteTables, saveRemoteTables } from './utils/tableApi'
 import { createAuditEntry, normalizeAuditLogs } from './utils/audit'
+import { fetchRemoteIssues } from './utils/issueApi'
+import { fetchRemoteEvents, saveRemoteEvents } from './utils/eventApi'
 
 const initialTables = [
   { id: 1, name: 'Table 1', rate: 15, status: 'available', startTime: null, customer: '', durationMinutes: 60, addedMinutes: 0 },
@@ -32,9 +36,30 @@ const initialTables = [
 ]
 
 const initialProducts = [
-  { id: 1, sku: "DRK-COCA-001", name: "Coca Cola", category: "Beverage", supplier: "Local Beverage Supplier", location: "Chiller A", expiryDate: "2026-12-31", price: 25, stock: 50, minStock: 10, unit: "pcs" },
-  { id: 2, sku: "FOD-CHIP-001", name: "Chips", category: "Food", supplier: "Snack Distributor", location: "Shelf B2", expiryDate: "2026-10-15", price: 15, stock: 30, minStock: 10, unit: "pcs" },
-  { id: 3, sku: "EQP-CHALK-001", name: "Cue Chalk", category: "Equipment", supplier: "Billiards Supply", location: "Counter Drawer", expiryDate: "", price: 50, stock: 20, minStock: 5, unit: "pcs" },
+  { id: 1, productNumber: "001", name: "Coca Cola", category: "Beverage", supplier: "Local Beverage Supplier", location: "Chiller A", expiryDate: "2026-12-31", price: 25, stock: 50, minStock: 10, unit: "pcs" },
+  { id: 2, productNumber: "002", name: "Chips", category: "Food", supplier: "Snack Distributor", location: "Shelf B2", expiryDate: "2026-10-15", price: 15, stock: 30, minStock: 10, unit: "pcs" },
+  { id: 3, productNumber: "003", name: "Cue Chalk", category: "Equipment", supplier: "Billiards Supply", location: "Counter Drawer", expiryDate: "", price: 50, stock: 20, minStock: 5, unit: "pcs" },
+]
+
+const initialEquipment = [
+  {
+    id: 1,
+    name: "Cue Stick #1",
+    type: "Cue Stick",
+    condition: "good",
+    previousMaintenance: "2026-02-01",
+    lastMaintenance: "2026-03-01",
+    status: "active",
+  },
+  {
+    id: 2,
+    name: "Ball Set #1",
+    type: "Ball Set",
+    condition: "fair",
+    previousMaintenance: "2026-01-15",
+    lastMaintenance: "2026-02-15",
+    status: "active",
+  },
 ]
 
 const initialTransactions = []
@@ -49,6 +74,13 @@ const getPublicView = () => "guest"
 
 const sanitizeEvents = (events) =>
   Array.isArray(events) ? events.filter((event) => !legacyEventIds.has(event?.id)) : initialEvents
+
+const issueSyncKey = (issue) => [
+  issue?.action || "",
+  issue?.detail || "",
+  issue?.staff || "",
+  issue?.timestamp || `${issue?.date || ""} ${issue?.time || ""}`,
+].join("|")
 function App() {
   const isStaffApp = typeof window !== "undefined" && window.location.hostname === "app.breakandchill.com"
   const [currentView, setCurrentView] = useState(() => (
@@ -57,6 +89,8 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [onlineReservationsOpen, setOnlineReservationsOpen] = useState(true)
+  const [isUpdatingOnlineReservations, setIsUpdatingOnlineReservations] = useState(false)
 
   const [tables, setTables] = useState(() => {
     try {
@@ -110,6 +144,39 @@ function App() {
       return initialEvents
     }
   })
+  const [tableStatusLoaded, setTableStatusLoaded] = useState(false)
+  const [eventsLoaded, setEventsLoaded] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const syncReservationSettings = async () => {
+      try {
+        const settings = await fetchReservationSettings()
+        if (!cancelled) {
+          setOnlineReservationsOpen(settings.onlineReservationsOpen !== false)
+        }
+      } catch (error) {
+        console.warn('Unable to sync online reservation availability', error)
+      }
+    }
+
+    syncReservationSettings()
+    const interval = setInterval(syncReservationSettings, 3000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
+
+  const [equipment, setEquipment] = useState(() => {
+    try {
+      const stored = localStorage.getItem('equipment')
+      return stored ? JSON.parse(stored) : initialEquipment
+    } catch {
+      return initialEquipment
+    }
+  })
 
   const [reservations, setReservations] = useState(() => {
     try {
@@ -136,6 +203,42 @@ function App() {
   }, [tables])
 
   useEffect(() => {
+    let cancelled = false
+
+    const syncTableStatus = async () => {
+      try {
+        const remoteTables = await fetchRemoteTables()
+        if (cancelled) return
+
+        if (remoteTables.length) {
+          setTables((current) =>
+            JSON.stringify(current) === JSON.stringify(remoteTables) ? current : remoteTables
+          )
+        }
+      } catch (error) {
+        console.warn('Unable to sync shared table status', error)
+      } finally {
+        if (!cancelled) setTableStatusLoaded(true)
+      }
+    }
+
+    syncTableStatus()
+    const interval = setInterval(syncTableStatus, 3000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isStaffApp || !tableStatusLoaded) return
+
+    saveRemoteTables(tables).catch((error) => {
+      console.warn('Unable to save shared table status', error)
+    })
+  }, [isStaffApp, tableStatusLoaded, tables])
+
+  useEffect(() => {
     try { localStorage.setItem('activityLogs', JSON.stringify(logs)) }
     catch (error) { console.warn('Unable to persist activity logs', error) }
   }, [logs])
@@ -146,6 +249,11 @@ function App() {
   }, [products])
 
   useEffect(() => {
+    try { localStorage.setItem('equipment', JSON.stringify(equipment)) }
+    catch (error) { console.warn('Unable to persist equipment', error) }
+  }, [equipment])
+
+  useEffect(() => {
     try { localStorage.setItem('transactions', JSON.stringify(transactions)) }
     catch (error) { console.warn('Unable to persist transactions', error) }
   }, [transactions])
@@ -154,6 +262,39 @@ function App() {
     try { localStorage.setItem('reservations', JSON.stringify(reservations)) }
     catch (error) { console.warn('Unable to persist reservations', error) }
   }, [reservations])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const syncIssues = async () => {
+      try {
+        const remoteIssues = await fetchRemoteIssues()
+        if (cancelled) return
+
+        setLogs((currentLogs) => {
+          const remoteIds = new Set(remoteIssues.map((issue) => String(issue.id)))
+          const remoteIssueKeys = new Set(remoteIssues.map(issueSyncKey))
+          const localLogs = currentLogs.filter(
+            (entry) =>
+              !entry.remoteIssue &&
+              !remoteIds.has(String(entry.id)) &&
+              !remoteIssueKeys.has(issueSyncKey(entry))
+          )
+          const syncedIssues = remoteIssues.map((issue) => ({ ...issue, remoteIssue: true }))
+          return [...syncedIssues, ...localLogs]
+        })
+      } catch (error) {
+        console.warn('Unable to sync shared employee issues', error)
+      }
+    }
+
+    syncIssues()
+    const interval = setInterval(syncIssues, 3000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
 
   useEffect(() => {
     const activeReservationIds = new Set(
@@ -223,6 +364,43 @@ function App() {
   }, [events])
 
   useEffect(() => {
+    let cancelled = false
+
+    const syncEvents = async () => {
+      try {
+        const remoteEvents = await fetchRemoteEvents()
+        if (cancelled) return
+
+        if (remoteEvents.length) {
+          setEvents((current) => {
+            const next = sanitizeEvents(remoteEvents)
+            return JSON.stringify(next) === JSON.stringify(current) ? current : next
+          })
+        }
+      } catch (error) {
+        console.warn('Unable to sync shared tournaments', error)
+      } finally {
+        if (!cancelled) setEventsLoaded(true)
+      }
+    }
+
+    syncEvents()
+    const interval = setInterval(syncEvents, 3000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isStaffApp || !eventsLoaded) return
+
+    saveRemoteEvents(events).catch((error) => {
+      console.warn('Unable to save shared tournaments', error)
+    })
+  }, [events, eventsLoaded, isStaffApp])
+
+  useEffect(() => {
     try { localStorage.setItem('theme', theme) }
     catch (error) { console.warn('Unable to persist theme', error) }
   }, [theme])
@@ -258,12 +436,30 @@ function App() {
         }
       }
 
+      if (e.key === 'activityLogs') {
+        try {
+          const nextLogs = e.newValue ? normalizeAuditLogs(JSON.parse(e.newValue)) : []
+          setLogs(nextLogs)
+        } catch (error) {
+          console.warn('Failed to parse activity logs from storage', error)
+        }
+      }
+
       if (e.key === 'events') {
         try {
           const nextEvents = e.newValue ? sanitizeEvents(JSON.parse(e.newValue)) : initialEvents
           setEvents(nextEvents)
         } catch (error) {
           console.warn('Failed to parse events from storage', error)
+        }
+      }
+
+      if (e.key === 'equipment') {
+        try {
+          const nextEquipment = e.newValue ? JSON.parse(e.newValue) : initialEquipment
+          setEquipment(nextEquipment)
+        } catch (error) {
+          console.warn('Failed to parse equipment from storage', error)
         }
       }
 
@@ -297,6 +493,11 @@ function App() {
       const stored = localStorage.getItem('products')
       if (stored) setProducts(JSON.parse(stored))
     } catch (error) { console.warn('Unable to reload products', error) }
+
+    try {
+      const stored = localStorage.getItem('equipment')
+      if (stored) setEquipment(JSON.parse(stored))
+    } catch (error) { console.warn('Unable to reload equipment', error) }
 
     try {
       const stored = localStorage.getItem('transactions')
@@ -356,6 +557,21 @@ function App() {
     }, 300)
   }
 
+  const handleOnlineReservationAvailability = async (nextAvailability) => {
+    setIsUpdatingOnlineReservations(true)
+    try {
+      const settings = await updateReservationSettings({
+        onlineReservationsOpen: nextAvailability,
+      })
+      setOnlineReservationsOpen(settings.onlineReservationsOpen !== false)
+    } catch (error) {
+      console.warn('Unable to update online reservation availability', error)
+      throw error
+    } finally {
+      setIsUpdatingOnlineReservations(false)
+    }
+  }
+
   return (
     <NotificationProvider
       canReceiveAdminNotifications={isLoggedIn && userRole === 'admin'}
@@ -372,6 +588,7 @@ function App() {
           <GuestLanding
             onOpenReservation={() => navigateTo('reservation')}
             onOpenTournamentForm={() => navigateTo('form')}
+            onlineReservationsOpen={onlineReservationsOpen}
           />
         )}
 
@@ -379,8 +596,10 @@ function App() {
           <OnlineReservationForm
             tables={tables}
             reservations={reservations}
+            events={events}
             setReservations={setReservations}
             onGoBack={() => navigateTo('guest')}
+            onlineReservationsOpen={onlineReservationsOpen}
           />
         )}
 
@@ -405,6 +624,8 @@ function App() {
             setLogs={setLogs}
             products={products}
             setProducts={setProducts}
+            equipment={equipment}
+            setEquipment={setEquipment}
             transactions={transactions}
             setTransactions={setTransactions}
             reservations={reservations}
@@ -413,6 +634,9 @@ function App() {
             setEvents={setEvents}
             theme={theme}
             setTheme={setTheme}
+            onlineReservationsOpen={onlineReservationsOpen}
+            isUpdatingOnlineReservations={isUpdatingOnlineReservations}
+            onOnlineReservationsChange={handleOnlineReservationAvailability}
           />
         )}
 
@@ -425,6 +649,8 @@ function App() {
             setLogs={setLogs}
             products={products}
             setProducts={setProducts}
+            equipment={equipment}
+            setEquipment={setEquipment}
             transactions={transactions}
             setTransactions={setTransactions}
             reservations={reservations}

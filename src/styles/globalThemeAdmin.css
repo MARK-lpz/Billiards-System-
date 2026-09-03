@@ -105,6 +105,8 @@
 .light .events-card.events-card-upcoming { border-color: rgba(59, 130, 246, 0.3) !important; }
 .light .equipment-card.repair            { border-color: rgba(239, 68, 68, 0.35) !important; }
 
+
+
 .light .inventory-table,
 .light .reservations-table,
 .light .reports-table {
@@ -394,6 +396,11 @@
   color: #d97706 !important;
 }
 
+.light .audit-severity-reject {
+  background: rgba(249, 115, 22, 0.12) !important;
+  color: #ea580c !important;
+}
+
 .light .audit-severity-high {
   background: rgba(239, 68, 68, 0.12) !important;
   color: #dc2626 !important;
@@ -457,6 +464,76 @@
 
 .light .sales-pos-title    { color: var(--text-primary) !important; }
 .light .sales-pos-subtitle { color: var(--text-muted) !important; }
+
+.light .equipment-reports-btn {
+  background: rgba(217, 119, 6, 0.09) !important;
+  border-color: rgba(180, 83, 9, 0.38) !important;
+  color: #92400e !important;
+}
+
+.light .equipment-reports-btn:hover {
+  background: rgba(217, 119, 6, 0.16) !important;
+  color: #78350f !important;
+}
+
+.light .equipment-reports-btn span {
+  background: #b45309 !important;
+  color: #ffffff !important;
+}
+
+.light .equipment-issue-modal-subtitle,
+.light .equipment-issue-row-copy small,
+.light .equipment-issue-empty { color: var(--text-muted) !important; }
+
+.light .equipment-issue-row {
+  background: var(--bg-muted) !important;
+  border-color: var(--border) !important;
+}
+
+.light .equipment-issue-row:hover {
+  background: rgba(217, 119, 6, 0.08) !important;
+  border-color: rgba(180, 83, 9, 0.42) !important;
+}
+
+.light .equipment-issue-row-copy strong,
+.light .equipment-issue-modal-grid strong { color: var(--text-primary) !important; }
+.light .equipment-issue-row-copy span { color: #1d4ed8 !important; }
+
+.light .equipment-issue-modal-alert {
+  background: rgba(217, 119, 6, 0.08) !important;
+  border-color: rgba(180, 83, 9, 0.28) !important;
+  color: #92400e !important;
+}
+
+.light .equipment-issue-modal-grid > div,
+.light .equipment-issue-description {
+  background: var(--bg-muted) !important;
+  border-color: var(--border) !important;
+}
+
+.light .equipment-issue-modal-grid span,
+.light .equipment-issue-description > span,
+.light .equipment-issue-description p { color: var(--text-muted) !important; }
+
+.light .equipment-resolve-confirmation span { color: var(--text-secondary) !important; }
+
+.light .equipment-actions .btn-warning {
+  background: rgba(217, 119, 6, 0.1) !important;
+  border-color: rgba(180, 83, 9, 0.42) !important;
+  color: #92400e !important;
+}
+
+.light .equipment-no-report { color: var(--text-muted) !important; }
+.light .equipment-report-linked { color: #92400e !important; }
+
+.light .equipment-side-notice {
+  background: #ecfdf5 !important;
+  border-color: rgba(5, 150, 105, 0.32) !important;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14) !important;
+}
+
+.light .equipment-side-notice strong { color: #065f46 !important; }
+.light .equipment-side-notice span { color: #047857 !important; }
 
 .light .sales-summary-card,
 .light .order-queue-stat,
@@ -725,6 +802,7 @@
 .light .audit-trail-subtitle,
 .light .reservations-subtitle,
 .light .sales-pos-subtitle { color: var(--text-muted) !important; }
+
 
 .light .inventory-add-btn,
 .light .events-add-btn,

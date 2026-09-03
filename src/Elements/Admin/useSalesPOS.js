@@ -3,10 +3,33 @@ import { nowStr, readStorage, todayStr } from "./salesPosConfig";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../Global/useNotifications";
 
+const isCompletedTicket = (ticket) =>
+  ticket.status === "served" || ticket.items.every((item) => item.served);
+
+const toServedTicket = (ticket) => ({
+  ...ticket,
+  status: "served",
+  servedAt: ticket.servedAt || nowStr(),
+  items: ticket.items.map((item) => ({ ...item, served: true })),
+});
+
+const getPendingTickets = (storageKeyPrefix) =>
+  readStorage(`${storageKeyPrefix}:tickets`, []).filter((ticket) => !isCompletedTicket(ticket));
+
+const getServedTickets = (storageKeyPrefix) => {
+  const savedTickets = readStorage(`${storageKeyPrefix}:served-tickets`, []);
+  const savedTicketIds = new Set(savedTickets.map((ticket) => ticket.id));
+  const migratedTickets = readStorage(`${storageKeyPrefix}:tickets`, [])
+    .filter(isCompletedTicket)
+    .filter((ticket) => !savedTicketIds.has(ticket.id))
+    .map(toServedTicket);
+
+  return [...migratedTickets, ...savedTickets];
+};
+
 export default function useSalesPOS({
   products,
   setProducts,
-  transactions,
   setTransactions,
   setLogs,
   cashierLabel,
@@ -16,20 +39,24 @@ export default function useSalesPOS({
   const [cart, setCart] = useState(() => readStorage(`${storageKeyPrefix}:cart`, []));
   const [method, setMethod] = useState(() => readStorage(`${storageKeyPrefix}:method`, "cash"));
   const [receipt, setReceipt] = useState(null);
+  const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("All");
   const [tab, setTab] = useState("billing");
-  const [orderTickets, setOrderTickets] = useState(() => readStorage(`${storageKeyPrefix}:tickets`, []));
+  const [orderTickets, setOrderTickets] = useState(() => getPendingTickets(storageKeyPrefix));
+  const [servedOrderTickets, setServedOrderTickets] = useState(() => getServedTickets(storageKeyPrefix));
+  const [stockAlert, setStockAlert] = useState(null);
 
   useEffect(() => {
     try {
       localStorage.setItem(`${storageKeyPrefix}:cart`, JSON.stringify(cart));
       localStorage.setItem(`${storageKeyPrefix}:method`, JSON.stringify(method));
       localStorage.setItem(`${storageKeyPrefix}:tickets`, JSON.stringify(orderTickets));
+      localStorage.setItem(`${storageKeyPrefix}:served-tickets`, JSON.stringify(servedOrderTickets));
     } catch (error) {
       console.warn("Unable to persist POS state", error);
     }
-  }, [cart, method, orderTickets, storageKeyPrefix]);
+  }, [cart, method, orderTickets, servedOrderTickets, storageKeyPrefix]);
 
   const cats = ["All", ...new Set(products.map((product) => product.category).filter(Boolean))];
   const filteredProducts = products.filter((product) => {
@@ -52,8 +79,8 @@ export default function useSalesPOS({
     (sum, ticket) => sum + ticket.items.filter((item) => !item.served).length,
     0
   );
-  const servedItemsCount = orderTickets.reduce(
-    (sum, ticket) => sum + ticket.items.filter((item) => item.served).length,
+  const servedItemsCount = servedOrderTickets.reduce(
+    (sum, ticket) => sum + ticket.items.reduce((itemTotal, item) => itemTotal + item.qty, 0),
     0
   );
 
@@ -148,8 +175,22 @@ export default function useSalesPOS({
     const syncedQty = existing?.syncedQty || 0;
     const maxAllowed = getMaxAllowedQty(product.id, syncedQty);
 
-    if (existing && existing.qty >= maxAllowed) return;
-    if (!existing && product.stock <= 0) return;
+    if (existing && existing.qty >= maxAllowed) {
+      setStockAlert({
+        productId: product.id,
+        message: `${product.name} is out of stock. Only ${maxAllowed} pcs can be added to this bill.`,
+      });
+      return;
+    }
+    if (!existing && product.stock <= 0) {
+      setStockAlert({
+        productId: product.id,
+        message: `${product.name} is out of stock.`,
+      });
+      return;
+    }
+
+    setStockAlert(null);
 
     setCart((prev) => {
       if (existing) {
@@ -164,25 +205,42 @@ export default function useSalesPOS({
 
   const updateQty = (id, qty) => {
     const item = cart.find((entry) => entry.id === id);
-    if (!item) return;
+    if (!item) return 0;
+
+    const requestedQty = Number.isFinite(Number(qty)) ? Math.max(0, Math.floor(Number(qty))) : item.qty;
 
     if (!item.inventoryItem) {
-      const nextQty = Math.max(0, qty);
+      const nextQty = requestedQty;
       setCart((prev) => {
         if (nextQty <= 0) return prev.filter((entry) => entry.id !== id);
         return prev.map((entry) => (entry.id === id ? { ...entry, qty: nextQty } : entry));
       });
-      return;
+      setStockAlert(null);
+      return nextQty;
     }
 
-    const clampedQty = Math.max(0, Math.min(qty, getMaxAllowedQty(item.id, item.syncedQty || 0)));
+    const maxAllowedQty = getMaxAllowedQty(item.id, item.syncedQty || 0);
+    const clampedQty = Math.min(requestedQty, maxAllowedQty);
+
+    if (requestedQty > maxAllowedQty) {
+      setStockAlert({
+        productId: item.id,
+        message:
+          maxAllowedQty === 0
+            ? `${item.name} is out of stock. Remove it from the bill or restock it first.`
+            : `Low stock: only ${maxAllowedQty} pcs of ${item.name} are available. Quantity was adjusted.`,
+      });
+    } else {
+      setStockAlert(null);
+    }
+
     const delta = clampedQty - item.qty;
-    if (!delta) return;
+    if (!delta) return clampedQty;
 
     if (delta > 0) {
       setCart((prev) => prev.map((entry) => (entry.id === id ? { ...entry, qty: clampedQty } : entry)));
       queueInventoryItems([{ ...item, unsyncedQty: delta }]);
-      return;
+      return clampedQty;
     }
 
     const restoredQty = restoreInventoryItems(item.id, Math.abs(delta));
@@ -195,35 +253,53 @@ export default function useSalesPOS({
         entry.id === id ? { ...entry, qty: nextQty, syncedQty: nextSyncedQty } : entry
       );
     });
+    return nextQty;
   };
 
   const sendOrderToInventory = () => {
     queueInventoryItems(unsyncedItems);
   };
 
+  const moveTicketToHistory = (ticket) => {
+    const servedTicket = toServedTicket(ticket);
+
+    setOrderTickets((prev) => prev.filter((entry) => entry.id !== ticket.id));
+    setServedOrderTickets((prev) => [servedTicket, ...prev]);
+  };
+
   const setItemServed = (ticketId, itemId) => {
+    const ticket = orderTickets.find((entry) => entry.id === ticketId);
+    if (!ticket) return;
+
+    const items = ticket.items.map((item) => (item.id === itemId ? { ...item, served: !item.served } : item));
+    if (items.every((item) => item.served)) {
+      moveTicketToHistory({ ...ticket, items });
+      return;
+    }
+
     setOrderTickets((prev) =>
-      prev.map((ticket) => {
-        if (ticket.id !== ticketId) return ticket;
-        const items = ticket.items.map((item) => (item.id === itemId ? { ...item, served: !item.served } : item));
-        const status = items.every((item) => item.served) ? "served" : "pending";
-        return { ...ticket, items, status };
-      })
+      prev.map((entry) => (entry.id === ticketId ? { ...entry, items, status: "pending" } : entry))
     );
   };
 
   const markTicketServed = (ticketId) => {
-    setOrderTickets((prev) =>
-      prev.map((ticket) =>
-        ticket.id === ticketId
-          ? { ...ticket, status: "served", items: ticket.items.map((item) => ({ ...item, served: true })) }
-          : ticket
-      )
-    );
+    const ticket = orderTickets.find((entry) => entry.id === ticketId);
+    if (!ticket) return;
+
+    moveTicketToHistory(ticket);
   };
 
   const processPayment = () => {
     if (!cart.length) return;
+
+    setPaymentReviewOpen(true);
+  };
+
+  const confirmPayment = (paymentDetails = {}) => {
+    if (!cart.length) {
+      setPaymentReviewOpen(false);
+      return;
+    }
 
     const tx = {
       id: Date.now(),
@@ -243,6 +319,7 @@ export default function useSalesPOS({
       discAmt,
       total,
       method,
+      paymentDetails,
       status: "completed",
     };
 
@@ -259,6 +336,7 @@ export default function useSalesPOS({
         subtotal,
         discount: discAmt,
         method,
+        ...paymentDetails,
       },
       customer: null,
     });
@@ -268,16 +346,19 @@ export default function useSalesPOS({
     setReceipt(tx);
     setCart([]);
     setMethod("cash");
+    setPaymentReviewOpen(false);
   };
 
   return {
     cart,
     method,
     receipt,
+    paymentReviewOpen,
     search,
     catFilter,
     tab,
     orderTickets,
+    servedOrderTickets,
     cats,
     filteredProducts,
     subtotal,
@@ -286,7 +367,9 @@ export default function useSalesPOS({
     unsyncedCount,
     pendingItemsCount,
     servedItemsCount,
+    stockAlert,
     setReceipt,
+    setPaymentReviewOpen,
     setSearch,
     setCatFilter,
     setTab,
@@ -297,5 +380,6 @@ export default function useSalesPOS({
     setItemServed,
     markTicketServed,
     processPayment,
+    confirmPayment,
   };
 }

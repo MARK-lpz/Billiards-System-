@@ -13,6 +13,7 @@ export default function SalesBillingDesk({
   pendingCount,
   servedCount,
   unsyncedCount,
+  stockAlert,
   onSearchChange,
   onSetCategory,
   onAddToCart,
@@ -59,6 +60,7 @@ export default function SalesBillingDesk({
         pendingCount={pendingCount}
         servedCount={servedCount}
         unsyncedCount={unsyncedCount}
+        stockAlert={stockAlert}
         onUpdateQty={onUpdateQty}
         onSetMethod={onSetMethod}
         onProcessPayment={onProcessPayment}

@@ -360,15 +360,6 @@ export default function ReservationDesk({
         <div className="rd-top-actions">
           <button
             type="button"
-            className="rd-secondary-btn"
-            onClick={() => setActiveModal("walkin")}
-          >
-            <i className="bi bi-person-walking me-2"></i>
-            Accept Walk-In
-          </button>
-
-          <button
-            type="button"
             className="rd-primary-btn"
             onClick={() => setActiveModal("reservation")}
           >

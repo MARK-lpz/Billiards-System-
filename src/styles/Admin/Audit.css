@@ -120,6 +120,25 @@
   padding: 20px;
 }
 
+.account-management-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.account-management-sections .account-management-card {
+  margin-bottom: 0;
+}
+
+.account-form--credentials {
+  grid-template-columns: 1fr 1fr;
+}
+
+.account-form--credentials select,
+.account-form--credentials .btn-success {
+  grid-column: span 2;
+}
+
 .account-management-header {
   display: flex;
   justify-content: space-between;
@@ -452,6 +471,11 @@
   color: #fcd34d;
 }
 
+.audit-severity-reject {
+  background: rgba(249, 115, 22, 0.16);
+  color: #fdba74;
+}
+
 .audit-severity-info {
   background: rgba(96, 165, 250, 0.16);
   color: #93c5fd;
@@ -560,6 +584,10 @@
 }
 
 @media (max-width: 900px) {
+  .account-management-sections { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
   .audit-log-item,
   .audit-detail-fields,
   .audit-detail-fields--summary {
@@ -568,6 +596,11 @@
 
   .account-form {
     grid-template-columns: 1fr;
+  }
+
+  .account-form--credentials select,
+  .account-form--credentials .btn-success {
+    grid-column: auto;
   }
 }
 

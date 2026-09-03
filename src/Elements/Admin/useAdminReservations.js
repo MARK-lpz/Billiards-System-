@@ -173,7 +173,7 @@ export default function useAdminReservations({
         reservation: nextReservation,
         previousStatus: currentReservation.status,
         nextStatus,
-        severity: changes.status === "rejected" ? "medium" : "info",
+        severity: changes.status === "rejected" ? "reject" : "info",
       });
       addNotification({
         message: `${nextReservation.customerName} reservation ${changes.status}.`,

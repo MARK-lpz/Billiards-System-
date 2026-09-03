@@ -1,4 +1,5 @@
 import ReceiptModal from "./ReceiptModal";
+import PaymentConfirmationModal from "./PaymentConfirmationModal";
 import SalesBillingDesk from "./SalesBillingDesk";
 import SalesOrderQueue from "./SalesOrderQueue";
 import SalesPosTabs from "./SalesPosTabs";
@@ -18,7 +19,6 @@ export default function BaseSalesPOS({
   const salesPos = useSalesPOS({
     products,
     setProducts,
-    transactions,
     setTransactions,
     setLogs,
     cashierLabel,
@@ -44,7 +44,7 @@ export default function BaseSalesPOS({
       <SalesPosTabs
         tab={salesPos.tab}
         pendingItemsCount={salesPos.pendingItemsCount}
-        transactionCount={transactions.length}
+        transactionCount={transactions.length + salesPos.servedOrderTickets.length}
         onChange={salesPos.setTab}
       />
 
@@ -61,6 +61,7 @@ export default function BaseSalesPOS({
           pendingCount={salesPos.pendingItemsCount}
           servedCount={salesPos.servedItemsCount}
           unsyncedCount={salesPos.unsyncedCount}
+          stockAlert={salesPos.stockAlert}
           onSearchChange={salesPos.setSearch}
           onSetCategory={salesPos.setCatFilter}
           onAddToCart={salesPos.addToCart}
@@ -80,7 +81,18 @@ export default function BaseSalesPOS({
         />
       )}
 
-      {salesPos.tab === "recent" && <SalesTransactionHistory transactions={transactions} />}
+      {salesPos.tab === "recent" && (
+        <SalesTransactionHistory transactions={transactions} servedOrderTickets={salesPos.servedOrderTickets} />
+      )}
+      {salesPos.paymentReviewOpen && (
+        <PaymentConfirmationModal
+          cart={salesPos.cart}
+          total={salesPos.total}
+          method={salesPos.method}
+          onCancel={() => salesPos.setPaymentReviewOpen(false)}
+          onConfirm={salesPos.confirmPayment}
+        />
+      )}
       {salesPos.receipt && <ReceiptModal receipt={salesPos.receipt} onClose={() => salesPos.setReceipt(null)} />}
     </div>
   );

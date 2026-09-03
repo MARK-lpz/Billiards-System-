@@ -14,6 +14,7 @@ export default function PoolTables({ tables, setTables }) {
   const [walkIn, setWalkIn] = useState({ tableId: null, customer: "" });
   const [endingTable, setEndingTable] = useState(null);
   const [endingExtensionMinutes, setEndingExtensionMinutes] = useState("30");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const startWalkIn = () => {
     const customer = walkIn.customer || "Walk-in Customer";
@@ -163,6 +164,26 @@ export default function PoolTables({ tables, setTables }) {
     total: tables.length,
   };
 
+  const visibleTables = [...(statusFilter === "all"
+    ? tables
+    : tables.filter((table) => table.status === statusFilter)
+  )].sort((left, right) => Number(left.id) - Number(right.id));
+
+  const renderTableCard = (table) => (
+    <PoolTableCard
+      key={table.id}
+      table={table}
+      onWalkIn={() => openWalkInModal(table.id)}
+      onEndSession={() => requestEndSession(table.id)}
+      onCheckIn={() => checkIn(table.id)}
+      onCancelReserve={() => cancelReserve(table.id)}
+      onAddTime={(minutes) => addTime(table.id, minutes)}
+      onUndoTime={(minutes) => undoTime(table.id, minutes)}
+      onEdit={() => openEditModal(table)}
+      onDelete={() => deleteTable(table.id)}
+    />
+  );
+
   return (
     <div className="pool-tables-container">
       {/* Header */}
@@ -177,24 +198,14 @@ export default function PoolTables({ tables, setTables }) {
         </button>
       </div>
 
-      <PoolTableStats stats={stats} />
+      <PoolTableStats
+        stats={stats}
+        activeStatus={statusFilter}
+        onFilterChange={setStatusFilter}
+      />
 
-      {/* Tables Grid */}
       <div className="pool-tables-grid">
-        {tables.map(table => (
-          <PoolTableCard
-            key={table.id}
-            table={table}
-            onWalkIn={() => openWalkInModal(table.id)}
-            onEndSession={() => requestEndSession(table.id)}
-            onCheckIn={() => checkIn(table.id)}
-            onCancelReserve={() => cancelReserve(table.id)}
-            onAddTime={(minutes) => addTime(table.id, minutes)}
-            onUndoTime={(minutes) => undoTime(table.id, minutes)}
-            onEdit={() => openEditModal(table)}
-            onDelete={() => deleteTable(table.id)}
-          />
-        ))}
+        {visibleTables.map(renderTableCard)}
       </div>
 
       {/* Walk-in Modal */}

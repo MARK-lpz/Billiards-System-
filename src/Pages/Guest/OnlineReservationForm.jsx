@@ -4,9 +4,10 @@ import "../../styles/Guest/Fill-up/TournaHeader.css";
 import "../../styles/Guest/Fill-up/Fields.css";
 import "../../styles/Guest/Fill-up/SuccessMess.css";
 import {
-  getAvailableReservationTables,
+  DEFAULT_RESERVATION_DURATION_MINUTES,
   RESERVATION_CUTOFF_TIME,
   getReservationValidationMessage,
+  getTableReservationAvailability,
   hasReservationConflict,
 } from "../../utils/reservations";
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
@@ -51,8 +52,10 @@ const formatTime = (time) =>
 export default function OnlineReservationForm({
   tables = [],
   reservations = [],
+  events = [],
   setReservations,
   onGoBack,
+  onlineReservationsOpen = true,
 }) {
   const { queueStaffNotification } = useNotifications();
   const [form, setForm] = useState(initialForm);
@@ -60,19 +63,28 @@ export default function OnlineReservationForm({
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const availableTables = useMemo(
+  const tableAvailability = useMemo(
     () =>
-      getAvailableReservationTables({
-        tables,
-        reservations,
-        date: form.date,
-        time: form.time,
-      }),
-    [tables, reservations, form.date, form.time]
+      new Map(
+        tables.map((table) => [
+          String(table.id),
+          getTableReservationAvailability({
+            table,
+            reservations,
+            events,
+            candidate: { tableId: table.id, date: form.date, time: form.time },
+          }),
+        ])
+      ),
+    [tables, reservations, events, form.date, form.time]
   );
   const phoneWarning = getSmsWarning(form.phone);
   const scheduleWarning = form.date && form.time ? getPublicScheduleMessage(form.date, form.time) : "";
-  const selectedTable = availableTables.find((table) => String(table.id) === form.tableId);
+  const selectedTable = tables.find((table) => String(table.id) === form.tableId);
+  const selectedTableAvailability = selectedTable ? tableAvailability.get(String(selectedTable.id)) : null;
+  const unavailableTables = [...tableAvailability.entries()]
+    .filter(([, availability]) => !availability.available)
+    .map(([id, availability]) => ({ table: tables.find((table) => String(table.id) === id), ...availability }));
 
   const updateForm = (field, value) => {
     setSubmitError("");
@@ -85,6 +97,11 @@ export default function OnlineReservationForm({
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (!onlineReservationsOpen) {
+      setSubmitError("Online reservations are temporarily closed by the owner. Please check back later.");
+      return;
+    }
 
     if (!isValidSmsNumber(form.phone)) {
       setSubmitError("Please enter a valid mobile number in 09XXXXXXXXX format.");
@@ -102,7 +119,17 @@ export default function OnlineReservationForm({
       return;
     }
 
-    const candidate = { tableId: selectedTable.id, date: form.date, time: form.time };
+    if (!selectedTableAvailability?.available) {
+      setSubmitError(selectedTableAvailability?.reason || "This table is not available for the selected time.");
+      return;
+    }
+
+    const candidate = {
+      tableId: selectedTable.id,
+      date: form.date,
+      time: form.time,
+      durationMinutes: DEFAULT_RESERVATION_DURATION_MINUTES,
+    };
     if (hasReservationConflict(reservations, candidate)) {
       setSubmitError("This table was just reserved for that time. Please choose another table.");
       return;
@@ -121,6 +148,7 @@ export default function OnlineReservationForm({
       notes: form.notes.trim(),
       status: "pending",
       source: "online",
+      durationMinutes: DEFAULT_RESERVATION_DURATION_MINUTES,
       requestedAt: new Date().toISOString(),
     };
 
@@ -171,7 +199,15 @@ export default function OnlineReservationForm({
         <div className="tournament-card">
           <div className="card-top-line" />
 
-          {submittedReservation ? (
+          {!onlineReservationsOpen ? (
+            <div className="success-container success-bounce" role="status">
+              <div className="success-icon">
+                <i className="bi bi-calendar-x-fill"></i>
+              </div>
+              <h2 className="success-title">Online Reservations Closed</h2>
+              <p className="success-message">The owner has temporarily closed online reservations. Please check back later.</p>
+            </div>
+          ) : submittedReservation ? (
             <div className="success-container success-bounce">
               <div className="success-icon">
                 <i className="bi bi-calendar2-check-fill"></i>
@@ -241,12 +277,31 @@ export default function OnlineReservationForm({
                   <label className="label" htmlFor="reservation-table">Available Table</label>
                   <select id="reservation-table" className="field-input" value={form.tableId} onChange={(event) => updateForm("tableId", event.target.value)} required>
                     <option value="">{form.time ? "Select a table" : "Select date and time first"}</option>
-                    {availableTables.map((table) => (
-                      <option key={table.id} value={table.id}>{table.name || `Table ${table.id}`} - PHP {table.rate}/hr</option>
-                    ))}
+                    {tables.map((table) => {
+                      const availability = tableAvailability.get(String(table.id));
+                      const isUnavailable = form.date && form.time && !availability?.available;
+                      const label = `${table.name || `Table ${table.id}`} - PHP ${table.rate}/hr`;
+
+                      return (
+                        <option key={table.id} value={table.id} disabled={isUnavailable}>
+                          {isUnavailable ? `${label} (${availability.reason})` : label}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>
+              {form.date && form.time && unavailableTables.length > 0 && (
+                <div className="reservation-availability-notice" role="status">
+                  <i className="bi bi-exclamation-circle" aria-hidden="true"></i>
+                  <div>
+                    <strong>Unavailable at this time</strong>
+                    {unavailableTables.map(({ table, reason }) => (
+                      <span key={table?.id}>{reason}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="form-field-full">
                 <label className="label" htmlFor="reservation-notes">Notes</label>
                 <textarea id="reservation-notes" className="field-input reservation-notes" value={form.notes} onChange={(event) => updateForm("notes", event.target.value)} placeholder="Optional special request" rows="3" />

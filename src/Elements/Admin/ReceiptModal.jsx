@@ -54,6 +54,24 @@
                 <div className="receipt-payment-method">
                   Payment: {receipt.method === "cash" ? <><i className="bi bi-cash ms-1"></i> Cash</> : <><i className="bi bi-phone ms-1"></i> eWallet</>}
                 </div>
+                {receipt.paymentDetails?.cashReceived !== null && receipt.paymentDetails?.cashReceived !== undefined && (
+                  <>
+                    <div className="receipt-item receipt-payment-detail">
+                      <span>Cash received</span>
+                      <span>{fmtPeso(receipt.paymentDetails.cashReceived)}</span>
+                    </div>
+                    <div className="receipt-item receipt-payment-detail">
+                      <span>Change</span>
+                      <span>{fmtPeso(receipt.paymentDetails.change)}</span>
+                    </div>
+                  </>
+                )}
+                {receipt.paymentDetails?.referenceNumber && (
+                  <div className="receipt-item receipt-payment-detail">
+                    <span>GCash reference</span>
+                    <span>{receipt.paymentDetails.referenceNumber}</span>
+                  </div>
+                )}
               </div>
             </div>
 

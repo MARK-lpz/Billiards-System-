@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import "../../styles/Employee/QuickActions.css";
-import { appendAuditLog } from "../../utils/audit";
+import { createAuditEntry } from "../../utils/audit";
+import { createRemoteIssue } from "../../utils/issueApi";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 
 const defaultBorrowForm = {
@@ -52,10 +53,10 @@ const formatStatus = (status) =>
 
 const formatPesoRate = (value) => `₱${Number(value || 0)}/hr`;
 
-export default function QuickActions({ tables = [], setTables, setLogs }) {
+export default function QuickActions({ tables = [], setTables, setLogs, equipment = [], setEquipment }) {
   const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
-  const [issueForm, setIssueForm] = useState({ type: "", description: "", tableNumber: "" });
+  const [issueForm, setIssueForm] = useState({ type: "", description: "", tableNumber: "", equipmentId: "" });
   const [borrowForm, setBorrowForm] = useState(defaultBorrowForm);
   const [damageForm, setDamageForm] = useState(defaultDamageForm);
   const [equipmentRecords, setEquipmentRecords] = useState([]);
@@ -83,7 +84,8 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
   }, [modal]);
 
   const addLog = (action, detail, extra = {}) => {
-    appendAuditLog(setLogs, {
+    const entry = createAuditEntry({
+      id: extra.id,
       type: extra.type || "other",
       staff: "Employee",
       action,
@@ -95,12 +97,17 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
       customer: extra.customer || null,
       extra,
     });
+    if (setLogs) {
+      setLogs((previous) => [entry, ...previous]);
+    }
     addNotification({ message: `${action}: ${detail}` });
+    return entry;
   };
 
   const handleSubmitIssue = (e) => {
     e.preventDefault();
     const selectedTable = tables.find((table) => String(table.id) === String(issueForm.tableNumber));
+    const selectedEquipment = equipment.find((item) => String(item.id) === String(issueForm.equipmentId));
     const issueTypeLabel =
       {
         equipment: "Equipment Malfunction",
@@ -109,20 +116,26 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
         customer: "Customer Complaint",
         other: "Other",
       }[issueForm.type] || "General Issue";
+    const issueId = `issue-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    addLog(
+    const issueEntry = addLog(
       "Reported issue",
       `${issueTypeLabel}${selectedTable ? ` for ${selectedTable.name}` : ""}: ${issueForm.description.trim()}`,
       {
+        id: issueId,
         type: "issue",
         entity: "issue",
         severity: issueForm.type === "customer" ? "medium" : "high",
         issueType: issueTypeLabel,
         issueTable: selectedTable?.name || "",
+        issueEquipmentId: selectedEquipment?.id || null,
+        issueEquipmentName: selectedEquipment?.name || "",
         issueDescription: issueForm.description.trim(),
         issue: {
           type: issueTypeLabel,
           table: selectedTable?.name || "",
+          equipmentId: selectedEquipment?.id || null,
+          equipmentName: selectedEquipment?.name || "",
           description: issueForm.description.trim(),
         },
         table: selectedTable
@@ -130,18 +143,22 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
           : null,
       }
     );
+    createRemoteIssue(issueEntry).catch((error) => {
+      console.warn("Unable to send issue to the shared feed", error);
+      addNotification({ message: "Issue saved locally, but could not reach the shared admin feed." });
+    });
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);
       setModal(null);
-      setIssueForm({ type: "", description: "", tableNumber: "" });
+      setIssueForm({ type: "", description: "", tableNumber: "", equipmentId: "" });
     }, 2000);
   };
 
   const closeModal = () => {
     setModal(null);
     setSubmitted(false);
-    setIssueForm({ type: "", description: "", tableNumber: "" });
+    setIssueForm({ type: "", description: "", tableNumber: "", equipmentId: "" });
     setBorrowForm(defaultBorrowForm);
     setDamageForm(defaultDamageForm);
   };
@@ -393,7 +410,7 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
                               required
                               className="form-select"
                               value={issueForm.type}
-                              onChange={(e) => setIssueForm({ ...issueForm, type: e.target.value })}
+                              onChange={(e) => setIssueForm({ ...issueForm, type: e.target.value, equipmentId: "" })}
                             >
                               <option value="">Select issue type...</option>
                               <option value="equipment">Equipment Malfunction</option>
@@ -403,6 +420,26 @@ export default function QuickActions({ tables = [], setTables, setLogs }) {
                               <option value="other">Other</option>
                             </select>
                           </div>
+
+                          {issueForm.type === "equipment" && (
+                            <div className="mb-3">
+                              <label className="form-label">Affected Equipment</label>
+                              <select
+                                required
+                                className="form-select"
+                                value={issueForm.equipmentId}
+                                onChange={(e) => setIssueForm({ ...issueForm, equipmentId: e.target.value })}
+                              >
+                                <option value="">Select equipment...</option>
+                                {equipment.map((item) => (
+                                  <option key={item.id} value={item.id}>
+                                    {item.name} - {item.type}
+                                  </option>
+                                ))}
+                              </select>
+                              <small className="form-text text-muted">The report will be linked to this equipment for admin review.</small>
+                            </div>
+                          )}
 
                           <div className="mb-3">
                             <label className="form-label">Table Number</label>

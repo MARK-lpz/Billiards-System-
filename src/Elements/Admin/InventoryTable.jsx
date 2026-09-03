@@ -6,7 +6,7 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock }
           <table className="table inventory-table">
             <thead>
               <tr>
-                <th>SKU</th>
+                <th>Product No.</th>
                 <th>Product Name</th>
                 <th>Category</th>
                 <th>Supplier</th>
@@ -26,7 +26,9 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock }
                 
                 return (
                   <tr key={product.id} className={isLowStock ? "inventory-row-warning" : ""}>
-                    <td className="inventory-sku">{product.sku || "-"}</td>
+                    <td className="inventory-sku">
+                      {product.productNumber || String(product.id).padStart(3, "0")}
+                    </td>
                     <td>
                       <div className="inventory-product-name">
                         <i className="bi bi-box me-2"></i>

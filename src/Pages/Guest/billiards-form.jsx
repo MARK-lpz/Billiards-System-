@@ -7,6 +7,7 @@ import PersonalInfoForm from "../../Elements/Guest/PersonalInfo";
 import TournamentDetailsForm from "../../Elements/Guest/TournaDetails";
 import SuccessMessage from "../../Elements/Guest/SuccessMess";
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
+import { registerRemoteTournamentParticipant } from "../../utils/eventApi";
 
 export default function TournamentForm({ events = [], setEvents, onGoBack }) {
   const [form, setForm] = useState({
@@ -22,6 +23,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
     teamName: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const availableEvents = events.filter((event) =>
     ["upcoming", "active"].includes(String(event.status || "").toLowerCase())
   );
@@ -41,19 +43,21 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedEvent || !contactIsValid) return;
-    
+
+    setSubmitError("");
     try {
       const playerName = [form.firstName, form.lastName].filter(Boolean).join(" ").trim();
       const playerLabel = form.teamName?.trim() ? `${playerName} (${form.teamName.trim()})` : playerName;
+      const updatedEvent = await registerRemoteTournamentParticipant({
+        eventId: selectedEvent.id,
+        participant: playerLabel,
+      });
 
       if (setEvents) {
         setEvents((prev) =>
           prev.map((event) =>
             event.id === selectedEvent.id
-              ? {
-                  ...event,
-                  participants: [...(event.participants || []), playerLabel],
-                }
+              ? updatedEvent
               : event
           )
         );
@@ -74,18 +78,10 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
       existingNotifications.unshift(notification);
       localStorage.setItem('adminNotifications', JSON.stringify(existingNotifications));
 
-      // TODO: Replace with actual API call when backend is ready
-      // await fetch('YOUR_API_ENDPOINT/tournament-registrations', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(form)
-      // });
-
       setSubmitted(true);
     } catch (error) {
       console.error('Error sending notification:', error);
-      // Still show success to user even if notification fails
-      setSubmitted(true);
+      setSubmitError(error.message || "Unable to submit your registration. Please try again.");
     }
   };
 
@@ -96,6 +92,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
       teamName: "",
     });
     setSubmitted(false);
+    setSubmitError("");
   };
 
   const requiredFields = ["firstName", "lastName", "contact", "email", "age", "eventId", "gameType", "format", "skillLevel"];
@@ -161,6 +158,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
                   {contactWarning || "Please fill in all required fields"}
                 </p>
               )}
+              {submitError && <p className="required-text">{submitError}</p>}
             </form>
           ) : (
             <SuccessMessage form={form} onReset={handleReset} />
