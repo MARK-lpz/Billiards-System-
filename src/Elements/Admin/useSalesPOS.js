@@ -62,7 +62,7 @@ export default function useSalesPOS({
   const filteredProducts = products.filter((product) => {
     const matchSearch = product.name.toLowerCase().includes(search.toLowerCase());
     const matchCategory = catFilter === "All" || product.category === catFilter;
-    return matchSearch && matchCategory && product.stock > 0;
+    return matchSearch && matchCategory;
   });
 
   const inventoryCartItems = cart.filter((item) => item.inventoryItem);

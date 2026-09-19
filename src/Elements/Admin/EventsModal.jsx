@@ -83,6 +83,19 @@ export default function EventsModal({ form, setForm, tables = [], isEdit = false
                 />
               </div>
 
+              <div className="mb-3">
+                <label className="form-label">Entry Fee (₱)</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  value={form.entryFee ?? 0}
+                  onChange={e => setForm({ ...form, entryFee: Number(e.target.value) })}
+                  min="0"
+                  placeholder="0"
+                />
+                <small className="form-text text-muted">Players pay this through GCash when they register. Leave at 0 for a free tournament.</small>
+              </div>
+
               {/* Table Assignment */}
               <div className="mb-3">
                 <label className="form-label">Assign Tables</label>

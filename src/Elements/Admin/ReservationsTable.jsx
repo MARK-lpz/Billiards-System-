@@ -1,3 +1,6 @@
+import { useState } from "react";
+import ConfirmDialog from "../Global/ConfirmDialog";
+
 const HISTORY_STATUSES = new Set(["completed", "rejected", "cancelled", "expired"]);
 
 const getReservationMode = (reservation) => {
@@ -9,6 +12,14 @@ const getReservationMode = (reservation) => {
 };
 
 export default function ReservationsTable({ reservations, onUpdate, onEdit, emptyMessage }) {
+  // Cancelling cannot be undone, so the click only arms the confirmation.
+  const [cancelTarget, setCancelTarget] = useState(null);
+
+  const confirmCancel = () => {
+    onUpdate(cancelTarget.id, { status: "rejected" });
+    setCancelTarget(null);
+  };
+
   return (
     <div className="card reservations-table-card">
       <div className="card-body">
@@ -92,7 +103,7 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
                               </button>
                               <button
                                 className="btn btn-sm btn-danger"
-                                onClick={() => onUpdate(r.id, { status: "rejected" })}
+                                onClick={() => setCancelTarget(r)}
                               >
                                 <i className="bi bi-x-circle me-1"></i>
                                 Cancel
@@ -117,6 +128,24 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
           </table>
         </div>
       </div>
+
+      {cancelTarget && (
+        <ConfirmDialog
+          title="Cancel this reservation?"
+          message={
+            <>
+              <strong>{cancelTarget.customerName || cancelTarget.customer}</strong> on{" "}
+              {cancelTarget.tableName || `Table ${cancelTarget.tableId ?? cancelTarget.table}`} for{" "}
+              {cancelTarget.date} at {cancelTarget.time} will be cancelled and the slot freed for someone else.
+            </>
+          }
+          detail="This cannot be undone. The booking moves to history and has to be created again if the customer still wants it."
+          confirmLabel="Yes, Cancel Reservation"
+          cancelLabel="Keep Reservation"
+          onConfirm={confirmCancel}
+          onClose={() => setCancelTarget(null)}
+        />
+      )}
     </div>
   );
 }

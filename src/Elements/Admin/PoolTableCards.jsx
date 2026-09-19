@@ -54,7 +54,6 @@ export default function PoolTableCard({
     : 0;
   const remainingSeconds = plannedSeconds ? Math.max(0, plannedSeconds - elapsedSeconds) : null;
   const isEndingSoon = isOccupied && remainingSeconds !== null && remainingSeconds > 0 && remainingSeconds <= 600;
-  const isOvertime = isOccupied && plannedSeconds > 0 && elapsedSeconds >= plannedSeconds;
   const charge = elapsedSeconds > 0 ? ((elapsedSeconds / 3600) * table.rate).toFixed(2) : "0.00";
 
   const formatTime = (seconds) => {
@@ -72,32 +71,51 @@ export default function PoolTableCard({
         <div className="pool-table-rate">₱{table.rate}/hr</div>
       </div>
 
-      {/* Timer and Charge (for occupied tables) */}
+      {/* Occupied session layout */}
       {isOccupied && (
-        <div className="pool-table-timer-section">
-          <div className="pool-table-timer">
-            <i className="bi bi-clock me-2"></i>
-            {formatTime(elapsedSeconds)}
+        <>
+          <div className="pool-table-occupied-metrics">
+            <div className="pool-table-timer-section">
+              <div className="pool-table-timer">
+                <i className="bi bi-clock me-2"></i>
+                {formatTime(elapsedSeconds)}
+              </div>
+            </div>
+            {remainingSeconds !== null && (
+              <div className={`pool-table-remaining ${isEndingSoon ? "warning" : ""}`}>
+                <i className={`bi ${remainingSeconds === 0 ? "bi-stopwatch" : "bi-hourglass-split"} me-2`}></i>
+                {remainingSeconds === 0 ? "Timer stopped" : `${formatTime(remainingSeconds)} remaining`}
+              </div>
+            )}
+            <div className="pool-table-charge">₱{parseFloat(charge).toLocaleString()}</div>
           </div>
-          <div className="pool-table-charge">₱{parseFloat(charge).toLocaleString()}</div>
-        </div>
-      )}
 
-      {isOccupied && remainingSeconds !== null && (
-        <div className={`pool-table-time-alert ${isOvertime ? "danger" : isEndingSoon ? "warning" : ""}`}>
-          <i className={`bi ${isOvertime || isEndingSoon ? "bi-exclamation-triangle" : "bi-hourglass-split"} me-2`}></i>
-          {isOvertime ? "Session time ended - timer stopped" : `${formatTime(remainingSeconds)} remaining`}
-        </div>
+          <div className="pool-table-occupied-info">
+            <div className="pool-table-session-status">
+              <div className="pool-status-dot pool-status-occupied"></div>
+              <span>Occupied</span>
+            </div>
+
+            {table.customer && (
+              <div className="pool-table-customer">
+                <i className="bi bi-person-fill me-2"></i>
+                {table.customer}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Status Badge */}
-      <div className="pool-table-status">
-        <div className={`pool-status-dot pool-status-${table.status}`}></div>
-        <span className="pool-status-text">{statusLabel[table.status] || table.status}</span>
-      </div>
+      {!isOccupied && (
+        <div className="pool-table-status">
+          <div className={`pool-status-dot pool-status-${table.status}`}></div>
+          <span className="pool-status-text">{statusLabel[table.status] || table.status}</span>
+        </div>
+      )}
 
       {/* Customer Name */}
-      {table.customer && (
+      {!isOccupied && table.customer && (
         <div className="pool-table-customer">
           <i className="bi bi-person-fill me-2"></i>
           {table.customer}
@@ -116,58 +134,66 @@ export default function PoolTableCard({
 
       {/* Action Buttons */}
       <div className="pool-table-actions">
-        {isAvailable && (
-          <button className="btn btn-sm btn-outline-success" onClick={onWalkIn}>
-            <i className="bi bi-person-plus me-1"></i>
-            Walk-in
-          </button>
-        )}
+        <div className="pool-table-primary-actions">
+          {isAvailable && (
+            <button className="btn btn-sm btn-outline-success" onClick={onWalkIn}>
+              <i className="bi bi-person-plus me-1"></i>
+              Walk-in
+            </button>
+          )}
 
-        {isOccupied && (
-          <>
-            <div className="pool-table-extension-control">
-              <button
-                className="btn btn-sm btn-outline-warning"
-                onClick={() => setIsTimeModalOpen(true)}
-              >
-                <i className="bi bi-stopwatch me-1"></i>
-                Manage Time
+          {isOccupied && (
+            <>
+              <div className="pool-table-extension-control">
+                <button
+                  className="btn btn-sm btn-outline-warning"
+                  onClick={() => setIsTimeModalOpen(true)}
+                >
+                  <i className="bi bi-stopwatch me-1"></i>
+                  Manage Time
+                </button>
+              </div>
+              <button className="btn btn-sm btn-danger pool-table-end-btn" onClick={onEndSession}>
+                <i className="bi bi-stop-circle me-1"></i>
+                End Session
               </button>
-            </div>
-            <button className="btn btn-sm btn-danger pool-table-end-btn" onClick={onEndSession}>
-              <i className="bi bi-stop-circle me-1"></i>
-              End Session
-            </button>
-          </>
-        )}
+            </>
+          )}
 
-        {isReserved && (
-          <>
-            <button className="btn btn-sm btn-warning" onClick={onCheckIn}>
-              <i className="bi bi-check-circle me-1"></i>
-              Check In
-            </button>
-            <button className="btn btn-sm btn-outline-danger" onClick={onCancelReserve}>
-              <i className="bi bi-x-circle me-1"></i>
-              Cancel
-            </button>
-          </>
-        )}
+          {isReserved && (
+            <>
+              <button className="btn btn-sm btn-warning" onClick={onCheckIn}>
+                <i className="bi bi-check-circle me-1"></i>
+                Check In
+              </button>
+              <button className="btn btn-sm btn-outline-danger" onClick={onCancelReserve}>
+                <i className="bi bi-x-circle me-1"></i>
+                Cancel
+              </button>
+            </>
+          )}
 
-        {(isCleaning || isMaintenance) && (
-          <button className="btn btn-sm btn-secondary pool-table-maintenance-btn" disabled>
-            <i className={`${isCleaning ? "bi bi-stars" : "bi bi-tools"} me-1`}></i>
-            {isCleaning ? "Cleaning" : "Maintenance"}
-          </button>
-        )}
+          {(isCleaning || isMaintenance) && (
+            <button className="btn btn-sm btn-secondary pool-table-maintenance-btn" disabled>
+              <i className={`${isCleaning ? "bi bi-stars" : "bi bi-tools"} me-1`}></i>
+              {isCleaning ? "Cleaning" : "Maintenance"}
+            </button>
+          )}
+        </div>
 
-        <button className="btn btn-sm btn-outline-secondary pool-table-edit-btn" onClick={onEdit}>
-          <i className="bi bi-pencil"></i>
-        </button>
-        {onDelete && (
-          <button className="btn btn-sm btn-outline-secondary pool-table-delete-btn" onClick={onDelete}>
-            <i className="bi bi-trash"></i>
-          </button>
+        {(onEdit || onDelete) && (
+          <div className="pool-table-utility-actions">
+            {onEdit && (
+              <button className="btn btn-sm btn-outline-secondary pool-table-edit-btn" onClick={onEdit} aria-label={`Edit ${table.name}`} title="Edit table">
+                <i className="bi bi-pencil"></i>
+              </button>
+            )}
+            {onDelete && (
+              <button className="btn btn-sm btn-outline-secondary pool-table-delete-btn" onClick={onDelete} aria-label={`Delete ${table.name}`} title="Delete table">
+                <i className="bi bi-trash"></i>
+              </button>
+            )}
+          </div>
         )}
       </div>
 

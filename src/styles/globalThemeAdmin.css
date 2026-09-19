@@ -465,21 +465,118 @@
 .light .sales-pos-title    { color: var(--text-primary) !important; }
 .light .sales-pos-subtitle { color: var(--text-muted) !important; }
 
-.light .equipment-reports-btn {
-  background: rgba(217, 119, 6, 0.09) !important;
-  border-color: rgba(180, 83, 9, 0.38) !important;
+.light .equipment-view-toggle {
+  background: var(--bg-muted) !important;
+  border-color: var(--border-color) !important;
+}
+
+.light .equipment-view-tab { color: var(--text-muted) !important; }
+.light .equipment-view-tab:hover { color: var(--text-primary) !important; }
+
+.light .equipment-view-tab span {
+  background: rgba(100, 116, 139, 0.3) !important;
+  color: var(--text-primary) !important;
+}
+
+.light .equipment-view-tab.active {
+  background: rgba(217, 119, 6, 0.1) !important;
+  border-color: rgba(180, 83, 9, 0.42) !important;
   color: #92400e !important;
 }
 
-.light .equipment-reports-btn:hover {
-  background: rgba(217, 119, 6, 0.16) !important;
-  color: #78350f !important;
+.light .equipment-view-tab.active span { background: #b45309 !important; color: #ffffff !important; }
+
+.light .equipment-stat-clickable.selected {
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.22) !important;
 }
 
-.light .equipment-reports-btn span {
-  background: #b45309 !important;
+.light .equipment-stat-yellow.equipment-stat-clickable.selected {
+  border-color: #b45309 !important;
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.22) !important;
+}
+
+.light .equipment-stat-green.equipment-stat-clickable.selected {
+  border-color: #047857 !important;
+  box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.22) !important;
+}
+
+.light .equipment-stat-red.equipment-stat-clickable.selected {
+  border-color: #b91c1c !important;
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.22) !important;
+}
+
+.light .equipment-empty-state {
+  background: var(--bg-muted) !important;
+  border-color: var(--border-color) !important;
+}
+
+.light .equipment-empty-state strong { color: var(--text-primary) !important; }
+.light .equipment-empty-state span,
+.light .equipment-empty-state i { color: var(--text-muted) !important; }
+
+.light .reported-issue-card.is-resolved .equipment-issue-modal-alert {
+  background: #ecfdf5 !important;
+  border-color: #6ee7b7 !important;
+  color: #047857 !important;
+}
+
+.light .reported-issue-resolved-tag {
+  background: #ecfdf5 !important;
+  border-color: #6ee7b7 !important;
+  color: #047857 !important;
+}
+
+.light .equipment-badge-replacement {
+  background: #fffbeb !important;
+  color: #92400e !important;
+  border-color: #fcd34d !important;
+}
+
+.light .equipment-service-btn.repair {
+  background: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+  color: #b91c1c !important;
+}
+
+.light .equipment-service-btn.replace {
+  background: #fffbeb !important;
+  border-color: #fcd34d !important;
+  color: #b45309 !important;
+}
+
+.light .equipment-service-btn.done {
+  background: #ecfdf5 !important;
+  border-color: #6ee7b7 !important;
+  color: #047857 !important;
+}
+
+.light .reported-issue-actions .btn-secondary {
+  background: var(--bg-muted) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-strong) !important;
+}
+
+.light .reported-issue-actions .btn-secondary:hover {
+  background: var(--border) !important;
+}
+
+.light .reported-issue-actions .btn-success {
+  background: #10b981 !important;
   color: #ffffff !important;
 }
+
+.light .reported-issue-card {
+  background: var(--bg-card, #ffffff) !important;
+  border-color: var(--border-color) !important;
+}
+
+.light .reported-issues-empty {
+  background: var(--bg-muted) !important;
+  border-color: var(--border-color) !important;
+}
+
+.light .reported-issues-empty strong { color: var(--text-primary) !important; }
+.light .reported-issues-empty span { color: var(--text-muted) !important; }
 
 .light .equipment-issue-modal-subtitle,
 .light .equipment-issue-row-copy small,
@@ -669,6 +766,13 @@
 }
 
 .light .modal-title  { color: var(--text-primary) !important; }
+.light .confirm-dialog-copy { color: var(--text-primary) !important; }
+.light .confirm-dialog-copy strong { color: var(--text-primary) !important; }
+.light .confirm-dialog-detail {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: #b91c1c !important;
+}
 .light .form-label,
 .light .modal-content .form-label { color: var(--text-muted) !important; }
 .light .btn-close    { filter: invert(0) !important; opacity: 0.6; }

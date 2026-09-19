@@ -348,4 +348,31 @@
   }
 }
 
+/* Cancelled tournaments and the completed lock note */
+.events-badge-cancelled {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
 
+.events-locked-note {
+  display: flex;
+  align-items: center;
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.3);
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.events-cancel-copy {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.events-cancel-copy strong { color: #f8fafc; }

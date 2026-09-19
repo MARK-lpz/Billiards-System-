@@ -623,3 +623,83 @@
     white-space: nowrap;
   }
 }
+
+/* Password reset history (never shows a password) */
+.password-reset-list {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.password-reset-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.32);
+}
+
+.password-reset-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.password-reset-user > i { color: #60a5fa; }
+
+.password-reset-role {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.24);
+  color: #cbd5e1;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.password-reset-when {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.password-reset-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 16px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.28);
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.password-reset-empty > i { color: #34d399; }
+
+.forgot-privacy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 12px 0 0;
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.forgot-privacy-note > i { flex-shrink: 0; margin-top: 2px; color: #34d399; }
+
+.light .password-reset-row { background: var(--bg-muted); border-color: var(--border-color); }
+.light .password-reset-user { color: var(--text-primary); }
+.light .password-reset-when { color: var(--text-muted); }
+.light .password-reset-empty { background: var(--bg-muted); border-color: var(--border-color); color: var(--text-muted); }

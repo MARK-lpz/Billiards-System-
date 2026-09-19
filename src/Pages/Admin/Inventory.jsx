@@ -8,16 +8,14 @@ import { useNotifications } from "../../Elements/Global/useNotifications";
 export default function Inventory({ products, setProducts }) {
   const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
-  const [form, setForm] = useState({ 
-    name: "", 
-    category: "Food", 
-    supplier: "",
-    location: "",
+  const [form, setForm] = useState({
+    name: "",
+    category: "Food",
     expiryDate: "",
-    price: 0, 
-    stock: 0, 
-    minStock: 10, 
-    unit: "pcs" 
+    price: 0,
+    stock: 0,
+    minStock: 10,
+    unit: "pcs"
   });
   const [editId, setEditId] = useState(null);
   const [filter, setFilter] = useState("all");
@@ -50,11 +48,11 @@ export default function Inventory({ products, setProducts }) {
   };
 
   const restockProduct = (id, amount) => {
-    setProducts(prev => prev.map(p => 
+    setProducts(prev => prev.map(p =>
       p.id === id ? { ...p, stock: p.stock + amount } : p
     ));
     const product = products.find((item) => item.id === id);
-    addNotification({ message: `${product?.name || "Product"} restocked by ${amount} ${product?.unit || "units"}.` });
+    addNotification({ message: `${product?.name || "Product"} restocked by ${amount} pcs.` });
   };
 
   const openEditModal = (product) => {
@@ -64,7 +62,7 @@ export default function Inventory({ products, setProducts }) {
   };
 
   const openAddModal = () => {
-    setForm({ name: "", category: "Food", supplier: "", location: "", expiryDate: "", price: 0, stock: 0, minStock: 10, unit: "pcs" });
+    setForm({ name: "", category: "Food", expiryDate: "", price: 0, stock: 0, minStock: 10, unit: "pcs" });
     setEditId(null);
     setModal("form");
   };
@@ -155,22 +153,22 @@ export default function Inventory({ products, setProducts }) {
                   <i className="bi bi-box-seam me-2"></i>
                   Restock Product
                 </h5>
-                <button 
-                  type="button" 
-                  className="btn-close btn-close-white" 
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
                   onClick={() => setModal(null)}
                 ></button>
               </div>
               <div className="modal-body">
                 <p className="text-light mb-3">
-                  <strong>{form.name}</strong> - Current Stock: {form.stock} {form.unit}
+                  <strong>{form.name}</strong> - Current Stock: {form.stock} pcs
                 </p>
                 <div className="mb-3">
                   <label className="form-label">Restock Amount</label>
-                  <input 
-                    type="number" 
-                    className="form-control" 
-                    value={form.restockAmount || 0} 
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={form.restockAmount || 0}
                     onChange={e => setForm({ ...form, restockAmount: e.target.value })}
                     min="1"
                   />

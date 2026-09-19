@@ -11,11 +11,16 @@ export default function Reports({ transactions, reservations, products }) {
   const currentDate = new Date();
   const currentYear = String(currentDate.getFullYear());
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const today = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
+  const currentMonth = String(currentDate.getMonth() + 1).padStart(2, "0");
+  const [monthlyYear, setMonthlyYear] = useState(currentYear);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const today = `${currentDate.getFullYear()}-${currentMonth}-${String(currentDate.getDate()).padStart(2, "0")}`;
 
   const dailyTx = transactions.filter(t => t.date === today);
   const dailyTotal = dailyTx.reduce((s, t) => s + t.total, 0);
-  const monthlyTx = transactions;
+  // One specific month at a time, e.g. January 2026.
+  const monthPrefix = `${monthlyYear}-${selectedMonth}`;
+  const monthlyTx = transactions.filter((t) => String(t.date || "").startsWith(monthPrefix));
   const monthlyTotal = monthlyTx.reduce((s, t) => s + t.total, 0);
   const availableYears = [...new Set([
     currentYear,
@@ -38,7 +43,17 @@ export default function Reports({ transactions, reservations, products }) {
       case "daily":
         return <DailyReport transactions={dailyTx} total={dailyTotal} />;
       case "monthly":
-        return <MonthlyReport transactions={monthlyTx} total={monthlyTotal} />;
+        return (
+          <MonthlyReport
+            transactions={monthlyTx}
+            total={monthlyTotal}
+            month={selectedMonth}
+            year={monthlyYear}
+            years={availableYears}
+            onMonthChange={setSelectedMonth}
+            onYearChange={setMonthlyYear}
+          />
+        );
       case "yearly":
         return (
           <YearlySalesReport

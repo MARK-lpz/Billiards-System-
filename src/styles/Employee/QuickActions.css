@@ -467,3 +467,19 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Notice shown when reporting an issue will take a table out of service */
+.qa-table-block-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+  color: #fbbf24;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.qa-table-block-note > i { flex-shrink: 0; margin-top: 1px; }
+
+.light .qa-table-block-note { color: #b45309; }

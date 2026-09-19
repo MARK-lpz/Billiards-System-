@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import "../../styles/Admin/Audit.css";
 import AdminCredentialsManager from "../../Elements/Admin/AdminCredentialsManager";
 import AuditAccountManager from "../../Elements/Admin/AuditAccountManager";
+import PasswordResetHistory from "../../Elements/Admin/PasswordResetHistory";
+import { fetchPasswordResets } from "../../utils/passwordResetApi";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 
-const emptyCredentialForm = { id: null, username: "", password: "" };
+const emptyCredentialForm = { id: null, username: "", email: "", password: "" };
 
 export default function AccountManagement({ setLogs }) {
   const { addNotification } = useNotifications();
@@ -20,6 +22,8 @@ export default function AccountManagement({ setLogs }) {
   const [employeeForm, setEmployeeForm] = useState(emptyCredentialForm);
   const [adminMessage, setAdminMessage] = useState("");
   const [employeeMessage, setEmployeeMessage] = useState("");
+  const [passwordResets, setPasswordResets] = useState([]);
+  const [resetMessage, setResetMessage] = useState("");
 
   const adminAccounts = useMemo(
     () => accounts.filter((account) => account.role === "admin"),
@@ -29,6 +33,22 @@ export default function AccountManagement({ setLogs }) {
     () => accounts.filter((account) => account.role !== "admin"),
     [accounts]
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchPasswordResets()
+      .then((resets) => {
+        if (!cancelled) setPasswordResets(resets);
+      })
+      .catch(() => {
+        if (!cancelled) setResetMessage("Password reset history is unavailable right now.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +103,7 @@ export default function AccountManagement({ setLogs }) {
       username,
       password: form.password,
       role,
-      email: existingAccount?.email || "",
+      email: (form.email ?? existingAccount?.email ?? "").trim(),
       fullName: existingAccount?.fullName || existingAccount?.full_name || "",
       phone: existingAccount?.phone || "",
     };
@@ -118,7 +138,11 @@ export default function AccountManagement({ setLogs }) {
 
   const selectAdmin = (id) => {
     const account = adminAccounts.find((item) => String(item.id) === String(id));
-    setAdminForm(account ? { id: account.id, username: account.username || "", password: "" } : emptyCredentialForm);
+    setAdminForm(
+      account
+        ? { id: account.id, username: account.username || "", email: account.email || "", password: "" }
+        : emptyCredentialForm
+    );
     setAdminMessage("");
   };
 
@@ -145,7 +169,12 @@ export default function AccountManagement({ setLogs }) {
   };
 
   const editEmployee = (account) => {
-    setEmployeeForm({ id: account.id, username: account.username || "", password: "" });
+    setEmployeeForm({
+      id: account.id,
+      username: account.username || "",
+      email: account.email || "",
+      password: "",
+    });
     setEmployeeMessage("");
   };
 
@@ -178,6 +207,8 @@ export default function AccountManagement({ setLogs }) {
           onEdit={editEmployee}
           onSubmit={saveEmployee}
         />
+
+        <PasswordResetHistory resets={passwordResets} message={resetMessage} />
       </div>
     </div>
   );

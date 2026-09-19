@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 const navItems = [
-  { icon: "bi-speedometer2", label: "Dashboard", id: "dashboard" },
+  { icon: "bi-speedometer2", label: "Pool Tables", id: "Pool Tables" },
   { icon: "bi-cart", label: "Sales POS", id: "sales" },
   { icon: "bi-calendar2-check", label: "Reservations", id: "reservations" },
   { icon: "bi-clipboard-check", label: "Actions", id: "quick-actions" },

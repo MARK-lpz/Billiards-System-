@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import "../../styles/ForgotModal.css";
+import { resetEmployeePassword } from "../../utils/passwordResetApi";
 
 const DEFAULT_ADMIN_GMAILS = ["admin@gmail.com"];
 
@@ -16,7 +17,7 @@ export default function ForgotPassModal({ visible, onClose }) {
   const [accountType, setAccountType] = useState("employee");
   const [resetEmail, setResetEmail] = useState("");
   const [employeeUsername, setEmployeeUsername] = useState("");
-  const [employeeNote, setEmployeeNote] = useState("");
+  const [employeeEmail, setEmployeeEmail] = useState("");
   const [verifiedReset, setVerifiedReset] = useState(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -29,7 +30,7 @@ export default function ForgotPassModal({ visible, onClose }) {
     setAccountType("employee");
     setResetEmail("");
     setEmployeeUsername("");
-    setEmployeeNote("");
+    setEmployeeEmail("");
     setVerifiedReset(null);
     setNewPassword("");
     setConfirmPassword("");
@@ -55,49 +56,74 @@ export default function ForgotPassModal({ visible, onClose }) {
 
   if (!visible) return null;
 
-  const addAdminNotification = (notification) => {
-    const existingNotifications = JSON.parse(localStorage.getItem("adminNotifications") || "[]");
-    localStorage.setItem(
-      "adminNotifications",
-      JSON.stringify([
-        {
-          id: Date.now(),
-          time: "Just now",
-          unread: true,
-          type: "password-reset",
-          ...notification,
-        },
-        ...existingNotifications,
-      ])
-    );
+  // Tells the admin that a reset happened. Carries no password, by design.
+  const notifyAdminOfReset = (username) => {
+    try {
+      const existing = JSON.parse(localStorage.getItem("adminNotifications") || "[]");
+      localStorage.setItem(
+        "adminNotifications",
+        JSON.stringify([
+          {
+            id: Date.now(),
+            time: "Just now",
+            unread: true,
+            type: "password-reset",
+            message: `${username} reset their own password.`,
+            username,
+          },
+          ...existing,
+        ])
+      );
+    } catch {
+      // A missing notification must never block the employee from signing in.
+    }
   };
 
-  const handleEmployeeRequest = () => {
+  const validateNewPassword = () => {
+    if (!newPassword || !confirmPassword) {
+      setError("Please enter and confirm the new password.");
+      return false;
+    }
+
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return false;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return false;
+    }
+
+    return true;
+  };
+
+  // Employees reset their own password. No admin approval, no waiting.
+  const handleEmployeeReset = async () => {
     const username = employeeUsername.trim();
+    const email = employeeEmail.trim();
+
     if (!username) {
       setError("Please enter your employee username.");
       return false;
     }
 
-    const requestId = Date.now();
-    const request = {
-      id: requestId,
-      role: "employee",
-      username,
-      note: employeeNote.trim(),
-      status: "pending-admin-approval",
-      requestedAt: new Date().toISOString(),
-    };
+    if (!email) {
+      setError("Please enter the email registered to your account.");
+      return false;
+    }
 
-    const existingRequests = JSON.parse(localStorage.getItem("employeePasswordRequests") || "[]");
-    localStorage.setItem("employeePasswordRequests", JSON.stringify([request, ...existingRequests]));
-    addAdminNotification({
-      message: `Employee password reset request from ${username}. Admin permission required.`,
-      requestId,
-      username,
-      requestStatus: "pending-admin-approval",
-    });
-    setSuccessMessage("Your request has been sent to the admin. Please wait for approval before resetting your password.");
+    if (!validateNewPassword()) return false;
+
+    try {
+      await resetEmployeePassword({ username, email, newPassword });
+    } catch (requestError) {
+      setError(requestError?.message || "Unable to reset the password right now.");
+      return false;
+    }
+
+    notifyAdminOfReset(username);
+    setSuccessMessage("Your password has been changed. You can sign in with it now.");
     return true;
   };
 
@@ -124,107 +150,49 @@ export default function ForgotPassModal({ visible, onClose }) {
     return true;
   };
 
-  const getApprovedEmployeeRequest = (username) => {
-    try {
-      const requests = JSON.parse(localStorage.getItem("employeePasswordRequests") || "[]");
-      return requests.find(
-        (request) =>
-          request.username?.toLowerCase() === username.toLowerCase() &&
-          request.status === "approved"
-      );
-    } catch {
-      return null;
-    }
-  };
-
-  const handleEmployeeResetCheck = () => {
-    const username = employeeUsername.trim();
-    if (!username) {
-      setError("Please enter your employee username.");
-      return false;
-    }
-
-    const approvedRequest = getApprovedEmployeeRequest(username);
-    if (!approvedRequest) {
-      return handleEmployeeRequest();
-    }
-
-    setVerifiedReset({ role: "employee", identifier: username, requestId: approvedRequest.id });
-    return true;
-  };
-
-  const handlePasswordReset = () => {
-    if (!newPassword || !confirmPassword) {
-      setError("Please enter and confirm the new password.");
-      return false;
-    }
-
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return false;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
-      return false;
-    }
+  const handleAdminPasswordReset = () => {
+    if (!validateNewPassword()) return false;
 
     const resetRecord = {
       id: Date.now(),
-      role: verifiedReset.role,
+      role: "admin",
       identifier: verifiedReset.identifier,
       status: "password-reset",
       resetAt: new Date().toISOString(),
     };
 
-    const resetKey = verifiedReset.role === "admin" ? "adminPasswordResetRequests" : "employeePasswordRequests";
-    const existingRecords = JSON.parse(localStorage.getItem(resetKey) || "[]");
-    const updatedRecords =
-      verifiedReset.role === "employee"
-        ? existingRecords.map((request) =>
-            request.id === verifiedReset.requestId
-              ? { ...request, status: "password-reset", resetAt: resetRecord.resetAt }
-              : request
-          )
-        : [resetRecord, ...existingRecords];
+    try {
+      const existing = JSON.parse(localStorage.getItem("adminPasswordResetRequests") || "[]");
+      localStorage.setItem("adminPasswordResetRequests", JSON.stringify([resetRecord, ...existing]));
+    } catch {
+      // Recording is best effort; it must not swallow the reset itself.
+    }
 
-    localStorage.setItem(resetKey, JSON.stringify(updatedRecords));
-    localStorage.setItem(
-      "passwordResetDrafts",
-      JSON.stringify([
-        {
-          ...resetRecord,
-          password: newPassword,
-        },
-        ...JSON.parse(localStorage.getItem("passwordResetDrafts") || "[]"),
-      ])
-    );
-
-    setSuccessMessage(
-      verifiedReset.role === "admin"
-        ? "Admin password reset has been recorded."
-        : "Employee password reset has been recorded."
-    );
+    setSuccessMessage("Admin password reset has been recorded.");
     return true;
   };
 
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
+  const handleForgotPassword = async (event) => {
+    event.preventDefault();
     setError("");
     setLoading(true);
 
-    window.setTimeout(() => {
+    try {
       const ok = verifiedReset
-        ? handlePasswordReset()
+        ? handleAdminPasswordReset()
         : accountType === "employee"
-          ? handleEmployeeResetCheck()
+          ? await handleEmployeeReset()
           : handleAdminRequest();
+
       if (ok) {
         setResetSuccess(Boolean(verifiedReset) || accountType === "employee");
       }
+    } finally {
       setLoading(false);
-    }, 250);
+    }
   };
+
+  const showPasswordFields = Boolean(verifiedReset) || accountType === "employee";
 
   return (
     <div className="forgot-modal">
@@ -241,7 +209,7 @@ export default function ForgotPassModal({ visible, onClose }) {
           {resetSuccess ? (
             <div className="forgot-success">
               <i className="bi bi-check-circle-fill success-icon"></i>
-              <h3>{verifiedReset ? "Password reset recorded" : accountType === "employee" ? "Request sent" : "Reset request recorded"}</h3>
+              <h3>{accountType === "employee" && !verifiedReset ? "Password changed" : "Password reset recorded"}</h3>
               <p>{successMessage}</p>
               <button type="button" className="btn btn-primary" onClick={handleClose}>
                 Close
@@ -275,59 +243,44 @@ export default function ForgotPassModal({ visible, onClose }) {
                   </button>
                 </div>
               )}
+
               <p className="forgot-description">
                 {verifiedReset
                   ? `Set a new password for ${verifiedReset.identifier}.`
                   : accountType === "employee"
-                  ? "Employee password reset requests need admin permission before the reset can continue."
-                  : "Enter the registered Gmail address linked to the admin account."}
+                    ? "Confirm your username and the email registered to your account, then choose a new password. Only you will know it."
+                    : "Enter the registered Gmail address linked to the admin account."}
               </p>
+
               {error && <div className="forgot-error">{error}</div>}
-              {verifiedReset ? (
-                <>
-                  <label className="form-label">New Password</label>
-                  <input
-                    type="password"
-                    className="form-input"
-                    placeholder="Enter new password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    disabled={loading}
-                    autoFocus
-                  />
-                  <label className="form-label forgot-field-gap">Confirm Password</label>
-                  <input
-                    type="password"
-                    className="form-input"
-                    placeholder="Confirm new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={loading}
-                  />
-                </>
-              ) : accountType === "employee" ? (
+
+              {!verifiedReset && accountType === "employee" && (
                 <>
                   <label className="form-label">Employee Username</label>
                   <input
                     type="text"
                     className="form-input"
                     placeholder="Enter employee username"
+                    autoComplete="username"
                     value={employeeUsername}
                     onChange={(e) => setEmployeeUsername(e.target.value)}
                     disabled={loading}
                     autoFocus
                   />
-                  <label className="form-label forgot-field-gap">Request Note</label>
-                  <textarea
-                    className="form-input forgot-textarea"
-                    placeholder="Optional reason or contact detail"
-                    value={employeeNote}
-                    onChange={(e) => setEmployeeNote(e.target.value)}
+                  <label className="form-label forgot-field-gap">Registered Email</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    placeholder="The email on your account"
+                    autoComplete="email"
+                    value={employeeEmail}
+                    onChange={(e) => setEmployeeEmail(e.target.value)}
                     disabled={loading}
-                    rows={3}
                   />
                 </>
-              ) : (
+              )}
+
+              {!verifiedReset && accountType === "admin" && (
                 <>
                   <label className="form-label">Registered Gmail Address</label>
                   <input
@@ -341,6 +294,37 @@ export default function ForgotPassModal({ visible, onClose }) {
                   />
                 </>
               )}
+
+              {showPasswordFields && (
+                <>
+                  <label className={`form-label ${verifiedReset ? "" : "forgot-field-gap"}`}>New Password</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    placeholder="Enter new password"
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    disabled={loading}
+                    autoFocus={Boolean(verifiedReset)}
+                  />
+                  <label className="form-label forgot-field-gap">Confirm Password</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    placeholder="Confirm new password"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={loading}
+                  />
+                  <p className="forgot-privacy-note">
+                    <i className="bi bi-shield-lock-fill"></i>
+                    Your new password is sent straight to the server. The admin can see that you reset it, never what it is.
+                  </p>
+                </>
+              )}
+
               <div className="forgot-actions">
                 <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={loading}>
                   Cancel
@@ -348,10 +332,8 @@ export default function ForgotPassModal({ visible, onClose }) {
                 <button type="submit" className="btn btn-success" disabled={loading}>
                   {loading
                     ? "Processing..."
-                    : verifiedReset
+                    : showPasswordFields
                       ? "Reset Password"
-                    : accountType === "employee"
-                      ? "Request Permission"
                       : "Submit Gmail"}
                 </button>
               </div>

@@ -13,7 +13,7 @@ export default function AuditAccountManager({
         <div className="account-management-header">
           <div>
             <h2 className="audit-log-header">Employee Accounts</h2>
-            <p>Create an employee account or update an employee username and password.</p>
+            <p>Create an employee account, or update a username, email and password. The email lets an employee reset their own password.</p>
           </div>
           <button type="button" className="btn btn-secondary btn-sm" onClick={onClear}>
             Clear
@@ -25,6 +25,12 @@ export default function AuditAccountManager({
             placeholder="Username"
             value={accountForm.username}
             onChange={(event) => onChange("username", event.target.value)}
+          />
+          <input
+            placeholder="Email for password resets"
+            type="email"
+            value={accountForm.email}
+            onChange={(event) => onChange("email", event.target.value)}
           />
           <input
             placeholder="New password"
@@ -46,7 +52,7 @@ export default function AuditAccountManager({
               <div>
                 <strong>{account.username}</strong>
                 <span>
-                  Employee
+                  {account.email ? account.email : "No reset email set"}
                 </span>
               </div>
               <button

@@ -1,4 +1,7 @@
 // ReservationQueue.jsx
+import { useState } from "react";
+import ConfirmDialog from "../Global/ConfirmDialog";
+
 const HISTORY_STATUSES = new Set(["completed", "cancelled", "rejected", "expired"]);
 
 export default function ReservationQueue({
@@ -8,6 +11,14 @@ export default function ReservationQueue({
   setReservationFilter,
   onBookingStatus,
 }) {
+  // Cancelling cannot be undone, so the click only arms the confirmation.
+  const [cancelTarget, setCancelTarget] = useState(null);
+
+  const confirmCancel = () => {
+    onBookingStatus(cancelTarget.id, "cancelled");
+    setCancelTarget(null);
+  };
+
   const filterCounts = {
     all: allReservations.filter((booking) => !HISTORY_STATUSES.has(booking.status)).length,
     pending: allReservations.filter((booking) => booking.status === "pending").length,
@@ -161,7 +172,7 @@ export default function ReservationQueue({
                           <button
                             type="button"
                             className="rd-danger-btn"
-                            onClick={() => onBookingStatus(booking.id, "cancelled")}
+                            onClick={() => setCancelTarget(booking)}
                           >
                             Cancel
                           </button>
@@ -180,6 +191,24 @@ export default function ReservationQueue({
           </div>
         )}
       </div>
+
+      {cancelTarget && (
+        <ConfirmDialog
+          title="Cancel this reservation?"
+          message={
+            <>
+              <strong>{cancelTarget.customerName}</strong> on {cancelTarget.tableName} for {cancelTarget.date}
+              {cancelTarget.time ? ` at ${cancelTarget.time}` : ""} will be cancelled and the slot freed for
+              someone else.
+            </>
+          }
+          detail="This cannot be undone. The booking moves to history and has to be created again if the customer still wants it."
+          confirmLabel="Yes, Cancel Reservation"
+          cancelLabel="Keep Reservation"
+          onConfirm={confirmCancel}
+          onClose={() => setCancelTarget(null)}
+        />
+      )}
     </section>
   );
 }

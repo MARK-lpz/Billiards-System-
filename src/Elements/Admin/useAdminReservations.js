@@ -4,6 +4,11 @@ import { isValidSmsNumber } from "../../utils/phone";
 import { useNotifications } from "../Global/useNotifications";
 import { updateRemoteReservation } from "../../utils/reservationApi";
 import {
+  RESERVATIONS_PAGE_SIZE as PAGE_SIZE,
+  matchesSearch,
+  paginate,
+} from "../../utils/reservationList";
+import {
   getAvailableReservationTables,
   hasReservationConflict,
 } from "../../utils/reservations";
@@ -30,6 +35,8 @@ export default function useAdminReservations({
 }) {
   const { addNotification } = useNotifications();
   const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(emptyReservationForm);
   const [editId, setEditId] = useState(null);
@@ -42,11 +49,35 @@ export default function useAdminReservations({
     excludeId: editId,
   });
 
-  const filteredReservations = reservations.filter((reservation) => {
-    if (filter === "all") return !HISTORY_STATUSES.has(reservation.status);
-    if (filter === "history") return HISTORY_STATUSES.has(reservation.status);
-    return reservation.status === filter;
+  const matchedReservations = reservations.filter((reservation) => {
+    const inFilter =
+      filter === "all"
+        ? !HISTORY_STATUSES.has(reservation.status)
+        : filter === "history"
+          ? HISTORY_STATUSES.has(reservation.status)
+          : reservation.status === filter;
+
+    return inFilter && matchesSearch(reservation, search);
   });
+
+  const { pageCount, currentPage, pageStart, items: filteredReservations } = paginate(
+    matchedReservations,
+    page,
+    PAGE_SIZE
+  );
+
+  // Any change to what is being looked at starts again from the first page.
+  const changeFilter = (nextFilter) => {
+    setFilter(nextFilter);
+    setPage(1);
+  };
+
+  const changeSearch = (nextSearch) => {
+    setSearch(nextSearch);
+    setPage(1);
+  };
+
+  const goToPage = (nextPage) => setPage(Math.min(Math.max(1, nextPage), pageCount));
 
   const counts = statusFilters.reduce((acc, status) => {
     acc[status] =
@@ -301,7 +332,15 @@ export default function useAdminReservations({
     filteredReservations,
     form,
     modal,
-    setFilter,
+    search,
+    setSearch: changeSearch,
+    page: currentPage,
+    pageCount,
+    pageSize: PAGE_SIZE,
+    pageStart,
+    totalMatches: matchedReservations.length,
+    goToPage,
+    setFilter: changeFilter,
     setForm,
     setModal,
     statusFilters,

@@ -23,6 +23,12 @@ const buildContextFields = (log) => {
     return [
       { label: "Issue Type", value: log.issue?.type || log.issueType },
       { label: "Table", value: log.issue?.table || log.issueTable },
+      {
+        label: "Table status",
+        value: log.tableBlocked
+          ? "Under maintenance, blocked from online reservations"
+          : log.table?.currentStatus || null,
+      },
       { label: "Severity", value: log.issue?.severity || log.severity },
     ];
   }
@@ -34,6 +40,13 @@ const buildContextFields = (log) => {
         value: log.payment?.total ? `â‚±${Number(log.payment.total).toFixed(2)}` : null,
       },
       { label: "Method", value: log.payment?.method },
+      { label: "Reference", value: log.payment?.referenceNumber },
+      {
+        label: "Reference check",
+        value: log.payment?.referenceVerified
+          ? `Last 4 digits verified (${log.payment?.referenceClosingDigits || ""})`.trim()
+          : null,
+      },
       { label: "Cashier", value: log.staff },
     ];
   }

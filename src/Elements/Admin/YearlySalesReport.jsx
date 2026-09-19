@@ -1,7 +1,11 @@
+import { downloadExcel } from "../../utils/exportExcel";
+
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
+
+const methodLabel = (method) => (method === "cash" ? "Cash" : method === "ewallet" ? "GCash" : method || "—");
 
 const fmtPeso = (value) =>
   `₱${Number(value || 0).toLocaleString("en-PH", {
@@ -34,6 +38,47 @@ export default function YearlySalesReport({ transactions = [], year, years, onYe
     .reduce((sum, transaction) => sum + Number(transaction.total || 0), 0);
   const highestMonthTotal = Math.max(...monthData.map((month) => month.total), 1);
 
+  const handleDownload = () => {
+    const rows = [
+      ["Break & Chill Billiards"],
+      ["Yearly Sales Report"],
+      ["Period", String(year)],
+      ["Generated", new Date().toLocaleString("en-PH")],
+      [],
+      ["Summary"],
+      ["Yearly Revenue", Number(yearlyTotal)],
+      ["Total Transactions", transactionCount],
+      ["Cash Sales", Number(cashSales)],
+      ["GCash Sales", Number(ewalletSales)],
+      [],
+      ["Monthly Breakdown"],
+      ["Month", "Transactions", "Total"],
+      ...monthData.map((month) => [month.month, month.transactionCount, Number(month.total)]),
+      ["TOTAL", transactionCount, Number(yearlyTotal)],
+      [],
+      ["Transactions"],
+      ["Date", "Time", "Transaction No.", "Cashier", "Payment Method", "Reference No.", "Items", "Subtotal", "Discount", "Total"],
+      ...transactions.map((tx) => [
+        tx.date || "",
+        tx.time || "",
+        String(tx.id ?? ""),
+        tx.cashier || "",
+        methodLabel(tx.method),
+        tx.paymentDetails?.referenceNumber || "",
+        (tx.items || []).map((item) => `${item.name} x${item.qty}`).join(", "),
+        Number(tx.subtotal || 0),
+        Number(tx.discAmt || 0),
+        Number(tx.total || 0),
+      ]),
+    ];
+
+    downloadExcel({
+      fileName: `Yearly Sales Report ${year}`,
+      sheetName: `Year ${year}`,
+      rows,
+    });
+  };
+
   return (
     <div className="yearly-sales-report">
       <div className="yearly-sales-toolbar">
@@ -44,14 +89,27 @@ export default function YearlySalesReport({ transactions = [], year, years, onYe
             {year === currentYear ? ` Current month: ${MONTHS[currentMonthIndex]}.` : ""}
           </p>
         </div>
-        <label className="yearly-sales-select">
-          <span>Report year</span>
-          <select value={year} onChange={(event) => onYearChange(event.target.value)}>
-            {years.map((availableYear) => (
-              <option key={availableYear} value={availableYear}>{availableYear}</option>
-            ))}
-          </select>
-        </label>
+        <div className="yearly-sales-toolbar-actions">
+          <label className="yearly-sales-select">
+            <span>Report year</span>
+            <select value={year} onChange={(event) => onYearChange(event.target.value)}>
+              {years.map((availableYear) => (
+                <option key={availableYear} value={availableYear}>{availableYear}</option>
+              ))}
+            </select>
+          </label>
+
+          <button
+            type="button"
+            className="reports-export-btn"
+            onClick={handleDownload}
+            disabled={!transactionCount}
+            title={transactionCount ? `Download ${year} as Excel` : "No sales to export for this year"}
+          >
+            <i className="bi bi-file-earmark-excel me-2"></i>
+            Download Excel
+          </button>
+        </div>
       </div>
 
       <div className="row g-3 mb-4">

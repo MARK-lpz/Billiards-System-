@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import "../../styles/Employee/QuickActions.css";
 import { createAuditEntry } from "../../utils/audit";
 import { createRemoteIssue } from "../../utils/issueApi";
@@ -53,7 +53,9 @@ const formatStatus = (status) =>
 
 const formatPesoRate = (value) => `₱${Number(value || 0)}/hr`;
 
-export default function QuickActions({ tables = [], setTables, setLogs, equipment = [], setEquipment }) {
+const createIssueId = () => `issue-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+export default function QuickActions({ tables = [], setTables, setLogs, equipment = [] }) {
   const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
   const [issueForm, setIssueForm] = useState({ type: "", description: "", tableNumber: "", equipmentId: "" });
@@ -70,6 +72,14 @@ export default function QuickActions({ tables = [], setTables, setLogs, equipmen
     ready: tables.filter((table) => table.status === "available").length,
   };
 
+  const closeModal = useCallback(() => {
+    setModal(null);
+    setSubmitted(false);
+    setIssueForm({ type: "", description: "", tableNumber: "", equipmentId: "" });
+    setBorrowForm(defaultBorrowForm);
+    setDamageForm(defaultDamageForm);
+  }, []);
+
   useEffect(() => {
     if (!modal) return undefined;
 
@@ -81,7 +91,7 @@ export default function QuickActions({ tables = [], setTables, setLogs, equipmen
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [modal]);
+  }, [modal, closeModal]);
 
   const addLog = (action, detail, extra = {}) => {
     const entry = createAuditEntry({
@@ -116,7 +126,9 @@ export default function QuickActions({ tables = [], setTables, setLogs, equipmen
         customer: "Customer Complaint",
         other: "Other",
       }[issueForm.type] || "General Issue";
-    const issueId = `issue-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const issueId = createIssueId();
+    const blocksTable = Boolean(selectedTable) && issueForm.type !== "customer";
+    const nextTableStatus = blocksTable ? "maintenance" : selectedTable?.status;
 
     const issueEntry = addLog(
       "Reported issue",
@@ -138,11 +150,28 @@ export default function QuickActions({ tables = [], setTables, setLogs, equipmen
           equipmentName: selectedEquipment?.name || "",
           description: issueForm.description.trim(),
         },
+        tableBlocked: blocksTable,
         table: selectedTable
-          ? { id: selectedTable.id, name: selectedTable.name, previousStatus: selectedTable.status, currentStatus: selectedTable.status }
+          ? {
+              id: selectedTable.id,
+              name: selectedTable.name,
+              previousStatus: selectedTable.status,
+              currentStatus: nextTableStatus,
+            }
           : null,
       }
     );
+    if (blocksTable && setTables) {
+      setTables((previous) =>
+        previous.map((table) =>
+          table.id === selectedTable.id ? { ...table, status: "maintenance" } : table
+        )
+      );
+      addNotification({
+        message: `${selectedTable.name} is now under maintenance and can no longer be reserved online.`,
+      });
+    }
+
     createRemoteIssue(issueEntry).catch((error) => {
       console.warn("Unable to send issue to the shared feed", error);
       addNotification({ message: "Issue saved locally, but could not reach the shared admin feed." });
@@ -153,14 +182,6 @@ export default function QuickActions({ tables = [], setTables, setLogs, equipmen
       setModal(null);
       setIssueForm({ type: "", description: "", tableNumber: "", equipmentId: "" });
     }, 2000);
-  };
-
-  const closeModal = () => {
-    setModal(null);
-    setSubmitted(false);
-    setIssueForm({ type: "", description: "", tableNumber: "", equipmentId: "" });
-    setBorrowForm(defaultBorrowForm);
-    setDamageForm(defaultDamageForm);
   };
 
   const handleBorrowSubmit = (e) => {
@@ -455,6 +476,17 @@ export default function QuickActions({ tables = [], setTables, setLogs, equipmen
                                 </option>
                               ))}
                             </select>
+                            {issueForm.tableNumber && issueForm.type !== "customer" && (
+                              <small className="form-text qa-table-block-note">
+                                <i className="bi bi-exclamation-triangle-fill"></i> This table will be marked under
+                                maintenance and blocked from online reservations until staff set it back to ready.
+                              </small>
+                            )}
+                            {issueForm.tableNumber && issueForm.type === "customer" && (
+                              <small className="form-text text-muted">
+                                A customer complaint keeps the table bookable. Use Table Damage to take it out of service.
+                              </small>
+                            )}
                           </div>
 
                           <div className="mb-3">

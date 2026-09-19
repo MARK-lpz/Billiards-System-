@@ -13,6 +13,7 @@ import './styles/globalThemeAdmin.css'
 import './styles/globalThemeEmployee.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
 import { initialReservations } from './utils/reservations'
+
 import { fetchRemoteReservations } from './utils/reservationApi'
 import { fetchReservationSettings, updateReservationSettings } from './utils/reservationSettingsApi'
 import { fetchRemoteTables, saveRemoteTables } from './utils/tableApi'
@@ -36,9 +37,9 @@ const initialTables = [
 ]
 
 const initialProducts = [
-  { id: 1, productNumber: "001", name: "Coca Cola", category: "Beverage", supplier: "Local Beverage Supplier", location: "Chiller A", expiryDate: "2026-12-31", price: 25, stock: 50, minStock: 10, unit: "pcs" },
-  { id: 2, productNumber: "002", name: "Chips", category: "Food", supplier: "Snack Distributor", location: "Shelf B2", expiryDate: "2026-10-15", price: 15, stock: 30, minStock: 10, unit: "pcs" },
-  { id: 3, productNumber: "003", name: "Cue Chalk", category: "Equipment", supplier: "Billiards Supply", location: "Counter Drawer", expiryDate: "", price: 50, stock: 20, minStock: 5, unit: "pcs" },
+  { id: 1, productNumber: "001", name: "Coca Cola", category: "Beverage", expiryDate: "2026-12-31", price: 25, stock: 50, minStock: 10, unit: "pcs" },
+  { id: 2, productNumber: "002", name: "Chips", category: "Food", expiryDate: "2026-10-15", price: 15, stock: 30, minStock: 10, unit: "pcs" },
+  { id: 3, productNumber: "003", name: "Cue Chalk", category: "Equipment", expiryDate: "", price: 50, stock: 20, minStock: 5, unit: "pcs" },
 ]
 
 const initialEquipment = [
@@ -656,10 +657,11 @@ function App() {
             reservations={reservations}
             setReservations={setReservations}
             events={events}
+            setEvents={setEvents}
             theme={theme}
             setTheme={setTheme}
-            customers={customers}        
-            setCustomers={setCustomers}  
+            customers={customers}
+            setCustomers={setCustomers}
           />
         )}
       </div>

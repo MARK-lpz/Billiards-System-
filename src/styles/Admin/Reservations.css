@@ -528,3 +528,148 @@
     width: 100%;
   }
 }
+
+/* Filter bar with search */
+.reservations-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.reservations-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 280px;
+  flex: 0 1 340px;
+}
+
+.reservations-search > i {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.reservations-search-input {
+  width: 100%;
+  padding: 10px 36px 10px 34px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.reservations-search-input::placeholder { color: #64748b; }
+
+.reservations-search-input:focus {
+  outline: 0;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+.reservations-search-input::-webkit-search-cancel-button { display: none; }
+
+.reservations-search-clear {
+  position: absolute;
+  right: 8px;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.22);
+  color: #e2e8f0;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.reservations-search-clear:hover { background: rgba(148, 163, 184, 0.35); }
+
+/* Pagination */
+.reservations-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.reservations-pagination-count {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reservations-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reservations-page-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reservations-page-btn:hover:not(:disabled) {
+  border-color: rgba(16, 185, 129, 0.55);
+  color: #6ee7b7;
+}
+
+.reservations-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.reservations-page-indicator {
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.light .reservations-search > i { color: #64748b; }
+
+.light .reservations-search-input {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.light .reservations-search-clear {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.light .reservations-pagination-count { color: #64748b; }
+
+.light .reservations-page-btn {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.light .reservations-page-indicator { color: #0f172a; }
+
+@media (max-width: 640px) {
+  .reservations-search { flex: 1 1 100%; min-width: 0; }
+  .reservations-pagination { justify-content: center; }
+}

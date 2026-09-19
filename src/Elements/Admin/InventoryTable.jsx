@@ -9,8 +9,6 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock }
                 <th>Product No.</th>
                 <th>Product Name</th>
                 <th>Category</th>
-                <th>Supplier</th>
-                <th>Location</th>
                 <th>Price</th>
                 <th>Stock</th>
                 <th>Min Stock</th>
@@ -21,11 +19,19 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock }
             </thead>
             <tbody>
               {products.map(product => {
-                const isLowStock = product.stock <= product.minStock;
-                const isOutOfStock = product.stock === 0;
-                
+                const stockLeft = Number(product.stock) || 0;
+                const minStock = Number(product.minStock) || 0;
+                const isOutOfStock = stockLeft <= 0;
+                const isLowStock = !isOutOfStock && stockLeft <= minStock;
+                const stockTone = isOutOfStock ? "out" : isLowStock ? "low" : "ok";
+                const stockCeiling = Math.max(minStock, 1) * 2;
+                const stockPercent = Math.max(0, Math.min(100, (stockLeft / stockCeiling) * 100));
+
                 return (
-                  <tr key={product.id} className={isLowStock ? "inventory-row-warning" : ""}>
+                  <tr
+                    key={product.id}
+                    className={isOutOfStock ? "inventory-row-danger" : isLowStock ? "inventory-row-warning" : ""}
+                  >
                     <td className="inventory-sku">
                       {product.productNumber || String(product.id).padStart(3, "0")}
                     </td>
@@ -40,15 +46,30 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock }
                         {product.category}
                       </span>
                     </td>
-                    <td className="inventory-detail-cell">{product.supplier || "-"}</td>
-                    <td className="inventory-detail-cell">{product.location || "-"}</td>
-                    <td className="inventory-price">₱{product.price.toLocaleString()}</td>
-                    <td>
-                      <span className={`inventory-stock ${isLowStock ? "low" : ""}`}>
-                        {product.stock} {product.unit}
-                      </span>
+                    <td className="inventory-price">
+                      ₱{product.price.toLocaleString()}
+                      <span className="inventory-price-unit"> / pc</span>
                     </td>
-                    <td className="text-muted">{product.minStock} {product.unit}</td>
+                    <td>
+                      <div className="inventory-stock-cell">
+                        <span className={`inventory-stock ${stockTone}`}>
+                          {isOutOfStock && <i className="bi bi-x-circle-fill"></i>}
+                          {isLowStock && <i className="bi bi-exclamation-triangle-fill"></i>}
+                          {stockLeft} pcs
+                        </span>
+                        <div
+                          className="inventory-stock-bar"
+                          role="img"
+                          aria-label={`${stockLeft} of a healthy level of ${stockCeiling} pcs`}
+                        >
+                          <div
+                            className={`inventory-stock-bar-fill ${stockTone}`}
+                            style={{ width: `${stockPercent}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="text-muted">{product.minStock} pcs</td>
                     <td className="inventory-detail-cell">{product.expiryDate || "N/A"}</td>
                     <td>
                       {isOutOfStock ? (
@@ -70,22 +91,22 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock }
                     </td>
                     <td>
                       <div className="inventory-actions">
-                        <button 
-                          className="btn btn-sm btn-success" 
+                        <button
+                          className="btn btn-sm btn-success"
                           onClick={() => onRestock(product)}
                           title="Restock"
                         >
                           <i className="bi bi-arrow-up-circle"></i>
                         </button>
-                        <button 
-                          className="btn btn-sm btn-primary" 
+                        <button
+                          className="btn btn-sm btn-primary"
                           onClick={() => onEdit(product)}
                           title="Edit"
                         >
                           <i className="bi bi-pencil"></i>
                         </button>
-                        <button 
-                          className="btn btn-sm btn-danger" 
+                        <button
+                          className="btn btn-sm btn-danger"
                           onClick={() => onDelete(product.id)}
                           title="Delete"
                         >

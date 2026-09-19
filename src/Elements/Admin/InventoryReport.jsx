@@ -58,7 +58,7 @@ export default function InventoryReport({ products }) {
                     <td>{p.category}</td>
                     <td className="reports-table-price">₱{p.price}</td>
                     <td className={p.stock <= p.minStock ? "reports-table-low-stock" : ""}>
-                      {p.stock} {p.unit}
+                      {p.stock} pcs
                     </td>
                     <td>{p.minStock}</td>
                     <td>₱{(p.price * p.stock).toLocaleString()}</td>

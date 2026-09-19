@@ -223,3 +223,64 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Walk-in registration */
+.tourna-detail-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tourna-walkin-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tourna-walkin-btn:hover {
+  background: rgba(16, 185, 129, 0.2);
+  color: #a7f3d0;
+}
+
+.tourna-closed-note {
+  display: flex;
+  align-items: center;
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.32);
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tourna-modal-subtitle {
+  margin: 4px 0 0;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.tourna-walkin-preview {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.tourna-walkin-preview strong { color: #6ee7b7; }
+
+.tourna-walkin-error {
+  margin: 8px 0 0;
+  color: #fca5a5;
+  font-size: 12px;
+  font-weight: 600;
+}

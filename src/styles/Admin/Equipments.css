@@ -90,34 +90,6 @@
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-.equipment-reports-btn {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid rgba(251, 191, 36, 0.55);
-  background: rgba(251, 191, 36, 0.12);
-  color: #fcd34d;
-  font-weight: 700;
-  padding: 10px 14px;
-}
-
-.equipment-reports-btn:hover {
-  background: rgba(251, 191, 36, 0.2);
-  color: #fde68a;
-}
-
-.equipment-reports-btn span {
-  display: inline-grid;
-  place-items: center;
-  min-width: 20px;
-  height: 20px;
-  margin-left: 8px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: #fbbf24;
-  color: #1f2937;
-  font-size: 12px;
-}
-
 /* Stats Grid */
 .row.g-3 {
   display: grid;
@@ -583,3 +555,272 @@
   }
 
 }
+
+/* View toggle: reported issues vs equipment */
+.equipment-view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.equipment-view-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.equipment-view-tab:hover { color: #e2e8f0; }
+
+.equipment-view-tab span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.28);
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.equipment-view-tab.active {
+  border-color: rgba(251, 191, 36, 0.55);
+  background: rgba(251, 191, 36, 0.12);
+  color: #fcd34d;
+}
+
+.equipment-view-tab.active span { background: #fbbf24; color: #1f2937; }
+
+/* Reported issue cards */
+.reported-issues-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.reported-issue-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.2s ease;
+}
+
+.reported-issue-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.reported-issue-card .card-body { padding: 18px; }
+
+.reported-issue-card .equipment-issue-description p {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.reported-issue-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.reported-issue-actions .btn {
+  flex: 1;
+  min-width: 140px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reported-issue-actions .btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f0f0f0;
+}
+
+.reported-issue-actions .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.reported-issue-actions .btn-success {
+  background: #10b981;
+  color: #fff;
+}
+
+.reported-issue-actions .btn-success:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.reported-issues-empty,
+.equipment-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 56px 20px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.28);
+  text-align: center;
+}
+
+.reported-issues-empty i,
+.equipment-empty-state i { color: #34d399; font-size: 2rem; }
+.reported-issues-empty strong,
+.equipment-empty-state strong { color: #f8fafc; font-size: 16px; }
+.reported-issues-empty span,
+.equipment-empty-state span { color: #94a3b8; font-size: 13px; max-width: 420px; }
+.equipment-empty-state i { color: #94a3b8; }
+
+@media (max-width: 640px) {
+  .reported-issues-grid { grid-template-columns: 1fr; }
+}
+
+/* Clickable Pending / Resolved summary cards */
+.equipment-stat-clickable {
+  width: 100%;
+  display: block;
+  padding: 0;
+  text-align: center;
+  cursor: pointer;
+  font: inherit;
+}
+
+.equipment-stat-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.equipment-stat-clickable.selected {
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.22);
+}
+
+.equipment-stat-yellow.equipment-stat-clickable.selected {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.22);
+}
+
+.equipment-stat-green.equipment-stat-clickable.selected {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22);
+}
+
+.equipment-stat-red.equipment-stat-clickable.selected {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.22);
+}
+
+/* A resolved report is history, so it reads green rather than amber */
+.reported-issue-card.is-resolved:hover { border-color: rgba(16, 185, 129, 0.4); }
+
+.reported-issue-card.is-resolved .equipment-issue-modal-alert {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.09);
+  color: #6ee7b7;
+}
+
+.reported-issue-resolved-tag {
+  flex: 1;
+  min-width: 140px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Repair and replacement service actions */
+.row.g-3.equipment-summary-stats.is-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.equipment-badge-replacement {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+  padding: 6px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.equipment-service-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.equipment-service-btn {
+  flex: 1;
+  min-width: 130px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.equipment-service-btn.repair {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.equipment-service-btn.repair:hover { background: rgba(239, 68, 68, 0.2); color: #fecaca; }
+
+.equipment-service-btn.replace {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.12);
+  color: #fcd34d;
+}
+
+.equipment-service-btn.replace:hover { background: rgba(251, 191, 36, 0.2); color: #fde68a; }
+
+.equipment-service-btn.done {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+}
+
+.equipment-service-btn.done:hover { background: rgba(16, 185, 129, 0.2); color: #a7f3d0; }

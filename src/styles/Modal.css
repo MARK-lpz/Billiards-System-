@@ -494,3 +494,26 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Confirmation dialog (ConfirmDialog.jsx) */
+.confirm-dialog-copy {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.confirm-dialog-copy strong {
+  color: #f8fafc;
+}
+
+.confirm-dialog-detail {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fecaca;
+  font-size: 13px;
+  line-height: 1.5;
+}

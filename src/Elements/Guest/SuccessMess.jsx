@@ -16,7 +16,7 @@ export default function SuccessMessage({ form, onReset }) {
           ["Tournament", form.eventName || "Selected Event", "bi-trophy"],
           ["Name", `${form.firstName} ${form.lastName}`, "bi-person-fill"],
           ["Contact", form.contact, "bi-telephone-fill"],
-          ["Email", form.email, "bi-envelope-fill"],
+          ...(form.email ? [["Email", form.email, "bi-envelope-fill"]] : []),
           ["Age", form.age, "bi-calendar-fill"],
           ["Game Type", form.gameType, "bi-circle-fill"],
           ["Format", form.format, "bi-trophy"],

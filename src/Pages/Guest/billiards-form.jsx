@@ -8,6 +8,10 @@ import TournamentDetailsForm from "../../Elements/Guest/TournaDetails";
 import SuccessMessage from "../../Elements/Guest/SuccessMess";
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
 import { registerRemoteTournamentParticipant } from "../../utils/eventApi";
+import GcashPayment from "../../Elements/Guest/GcashPayment";
+import { validateReference } from "../../utils/paymentReference";
+import { queueCustomerMessage } from "../../utils/customerMessageApi";
+import { buildTournamentMessage } from "../../utils/customerMessages";
 
 export default function TournamentForm({ events = [], setEvents, onGoBack }) {
   const [form, setForm] = useState({
@@ -21,14 +25,20 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
     format: "",
     skillLevel: "",
     teamName: "",
+    paymentReference: "",
   });
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [customerMessage, setCustomerMessage] = useState("");
   const availableEvents = events.filter((event) =>
     ["upcoming", "active"].includes(String(event.status || "").toLowerCase())
   );
   const selectedEvent = availableEvents.find((event) => String(event.id) === String(form.eventId)) || null;
   const contactIsValid = isValidSmsNumber(form.contact);
+  const entryFee = Number(selectedEvent?.entryFee || 0);
+  const paymentRequired = entryFee > 0;
+  const paymentCheck = validateReference(form.paymentReference || "");
+  const paymentSettled = !paymentRequired || paymentCheck.isValid;
   const contactWarning = getSmsWarning(form.contact);
 
   const handleChange = (e) => {
@@ -43,6 +53,13 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedEvent || !contactIsValid) return;
+
+    if (paymentRequired && !paymentCheck.isValid) {
+      setSubmitError(
+        paymentCheck.error || "Please pay the entry fee through GCash and enter the reference number."
+      );
+      return;
+    }
 
     setSubmitError("");
     try {
@@ -78,6 +95,29 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
       existingNotifications.unshift(notification);
       localStorage.setItem('adminNotifications', JSON.stringify(existingNotifications));
 
+      const playerMessage = buildTournamentMessage({
+        customerName: playerName,
+        eventName: selectedEvent.name,
+        date: selectedEvent.date,
+        time: selectedEvent.time,
+        total: entryFee,
+        reference: paymentRequired ? paymentCheck.digits : "no entry fee",
+      });
+
+      // A failed text must never lose a paid registration, so this is best effort.
+      try {
+        await queueCustomerMessage({
+          phone: form.contact,
+          customerName: playerName,
+          context: "tournament",
+          referenceId: String(selectedEvent.id),
+          message: playerMessage,
+        });
+      } catch (messageError) {
+        console.warn("Unable to queue the player confirmation", messageError);
+      }
+
+      setCustomerMessage(playerMessage);
       setSubmitted(true);
     } catch (error) {
       console.error('Error sending notification:', error);
@@ -89,14 +129,15 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
     setForm({
       firstName: "", lastName: "", contact: "", email: "",
       age: "", eventId: "", gameType: "", format: "", skillLevel: "",
-      teamName: "",
+      teamName: "", paymentReference: "",
     });
     setSubmitted(false);
+    setCustomerMessage("");
     setSubmitError("");
   };
 
-  const requiredFields = ["firstName", "lastName", "contact", "email", "age", "eventId", "gameType", "format", "skillLevel"];
-  const isComplete = requiredFields.every((k) => form[k] !== "") && contactIsValid;
+  const requiredFields = ["firstName", "lastName", "contact", "age", "eventId", "gameType", "format", "skillLevel"];
+  const isComplete = requiredFields.every((k) => form[k] !== "") && contactIsValid && paymentSettled;
 
   return (
     <div className="tournament-container">
@@ -146,6 +187,21 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
                 selectedEvent={selectedEvent}
               />
 
+              {paymentRequired && (
+                <GcashPayment
+                  title="Pay the entry fee with GCash"
+                  total={entryFee}
+                  lines={[
+                    { label: "Tournament", value: selectedEvent.name },
+                    { label: "Entry fee", value: `PHP ${entryFee.toLocaleString("en-PH")}` },
+                  ]}
+                  reference={form.paymentReference}
+                  onReferenceChange={(value) =>
+                    setForm((previous) => ({ ...previous, paymentReference: value }))
+                  }
+                />
+              )}
+
               <div style={{ marginBottom: 28 }} />
 
               <button type="submit" className="submit-btn" disabled={!isComplete}>
@@ -161,7 +217,21 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
               {submitError && <p className="required-text">{submitError}</p>}
             </form>
           ) : (
-            <SuccessMessage form={form} onReset={handleReset} />
+            <>
+              <SuccessMessage form={form} onReset={handleReset} />
+              {customerMessage && (
+                <div className="customer-message-card">
+                  <div className="customer-message-head">
+                    <i className="bi bi-chat-left-text-fill" aria-hidden="true"></i>
+                    <strong>Sent to {form.contact}</strong>
+                  </div>
+                  <p className="customer-message-body">{customerMessage}</p>
+                  <p className="customer-message-note">
+                    Keep this for your records. We will message the same number once your slot is confirmed.
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
 

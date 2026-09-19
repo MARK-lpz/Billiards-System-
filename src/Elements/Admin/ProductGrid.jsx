@@ -24,13 +24,20 @@
       {products.map((product) => {
         const inCart = cart.find((item) => item.id === product.id);
         const categoryColor = getCategoryColor(product.category);
-        const lowStock = product.stock <= 5;
+        const stockLeft = Number(product.stock) || 0;
+        const minStock = Number(product.minStock) > 0 ? Number(product.minStock) : 5;
+        const outOfStock = stockLeft <= 0;
+        const lowStock = !outOfStock && stockLeft <= minStock;
 
         return (
           <div
             key={product.id}
-            className={`product-card ${inCart ? "in-cart" : ""} ${lowStock ? "low-stock" : ""}`}
+            className={`product-card ${inCart ? "in-cart" : ""} ${
+              outOfStock ? "out-of-stock" : lowStock ? "low-stock" : ""
+            }`}
             onClick={() => onAddToCart(product)}
+            aria-disabled={outOfStock}
+            title={outOfStock ? `${product.name} is out of stock. Restock it in Inventory.` : undefined}
           >
             {inCart && <div className="product-cart-badge">{inCart.qty}</div>}
 
@@ -47,12 +54,20 @@
             <div className="product-name">{product.name}</div>
             <div className="product-price">₱{Number(product.price).toFixed(2)}</div>
 
-            <div className="product-stock">
-              <i className="bi bi-box me-1"></i>
-              Stock: {product.stock} {product.unit}
+            <div className={`product-stock ${outOfStock ? "is-out" : lowStock ? "is-low" : ""}`}>
+              <i
+                className={`bi ${
+                  outOfStock ? "bi-x-circle-fill" : lowStock ? "bi-exclamation-triangle-fill" : "bi-box"
+                } me-1`}
+              ></i>
+              Stock: {stockLeft} pcs
             </div>
 
-            {lowStock && <div className="product-low-badge">Low Stock</div>}
+            {outOfStock ? (
+              <div className="product-out-badge">Out of Stock</div>
+            ) : lowStock ? (
+              <div className="product-low-badge">Low Stock</div>
+            ) : null}
           </div>
         );
       })}

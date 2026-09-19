@@ -12,7 +12,7 @@ const formatAssignedTables = (assignedTables = [], tables = []) => {
   return labels.length ? labels.join(", ") : "Not assigned";
 };
 
-export default function EventCard({ event, tables = [], onEdit, onMarkComplete }) {
+export default function EventCard({ event, tables = [], onEdit, onMarkComplete, onCancel }) {
   return (
     <div className={`card events-card ${event.status === "upcoming" ? "events-card-upcoming" : ""}`}>
       <div className="card-body">
@@ -79,7 +79,25 @@ export default function EventCard({ event, tables = [], onEdit, onMarkComplete }
               <i className="bi bi-check-circle me-1"></i>
               Mark Complete
             </button>
+            <button className="btn btn-sm btn-danger" onClick={onCancel}>
+              <i className="bi bi-x-circle me-1"></i>
+              Cancel Event
+            </button>
           </div>
+        )}
+
+        {event.status === "completed" && (
+          <p className="events-locked-note">
+            <i className="bi bi-lock-fill me-2"></i>
+            This tournament is completed and can no longer be cancelled.
+          </p>
+        )}
+
+        {event.status === "cancelled" && (
+          <p className="events-locked-note">
+            <i className="bi bi-x-circle me-2"></i>
+            This tournament was cancelled. Registration is closed.
+          </p>
         )}
       </div>
     </div>

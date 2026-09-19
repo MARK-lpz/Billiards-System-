@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 import ReceiptModal from "./ReceiptModal";
 import PaymentConfirmationModal from "./PaymentConfirmationModal";
 import SalesBillingDesk from "./SalesBillingDesk";
@@ -24,6 +26,14 @@ export default function BaseSalesPOS({
     cashierLabel,
     storageKeyPrefix,
   });
+
+  const usedReferences = useMemo(
+    () =>
+      transactions
+        .map((tx) => tx.paymentDetails?.referenceNumber)
+        .filter(Boolean),
+    [transactions]
+  );
 
   return (
     <div className="sales-pos-container">
@@ -89,6 +99,7 @@ export default function BaseSalesPOS({
           cart={salesPos.cart}
           total={salesPos.total}
           method={salesPos.method}
+          usedReferences={usedReferences}
           onCancel={() => salesPos.setPaymentReviewOpen(false)}
           onConfirm={salesPos.confirmPayment}
         />

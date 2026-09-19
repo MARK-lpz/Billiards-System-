@@ -37,14 +37,58 @@ export default function Reservations({
         filter={reservationState.filter}
         filters={reservationState.statusFilters}
         onChange={reservationState.setFilter}
+        search={reservationState.search}
+        onSearchChange={reservationState.setSearch}
       />
 
       <ReservationsTable
         reservations={reservationState.filteredReservations}
         onUpdate={reservationState.updateReservation}
         onEdit={reservationState.openEdit}
-        emptyMessage={reservationState.filter === "history" ? "No reservation history yet" : "No active reservations found"}
+        emptyMessage={
+          reservationState.search
+            ? `No reservations match "${reservationState.search}"`
+            : reservationState.filter === "history"
+              ? "No reservation history yet"
+              : "No active reservations found"
+        }
       />
+
+      {reservationState.totalMatches > 0 && (
+        <div className="reservations-pagination">
+          <span className="reservations-pagination-count">
+            Showing {reservationState.pageStart + 1}
+            &ndash;{Math.min(reservationState.pageStart + reservationState.pageSize, reservationState.totalMatches)}
+            {" "}of {reservationState.totalMatches}
+          </span>
+
+          <div className="reservations-pagination-controls">
+            <button
+              type="button"
+              className="reservations-page-btn"
+              onClick={() => reservationState.goToPage(reservationState.page - 1)}
+              disabled={reservationState.page <= 1}
+            >
+              <i className="bi bi-chevron-left"></i>
+              Previous
+            </button>
+
+            <span className="reservations-page-indicator">
+              Page {reservationState.page} of {reservationState.pageCount}
+            </span>
+
+            <button
+              type="button"
+              className="reservations-page-btn"
+              onClick={() => reservationState.goToPage(reservationState.page + 1)}
+              disabled={reservationState.page >= reservationState.pageCount}
+            >
+              Next
+              <i className="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      )}
 
       {reservationState.modal === "form" && (
         <ReservationModal

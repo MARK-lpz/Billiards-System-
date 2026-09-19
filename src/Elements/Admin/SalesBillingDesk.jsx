@@ -21,6 +21,9 @@ export default function SalesBillingDesk({
   onSetMethod,
   onProcessPayment,
 }) {
+  const alertOutsideCart =
+    stockAlert && !cart.some((item) => item.id === stockAlert.productId);
+
   return (
     <div className="sales-pos-layout">
       <div className="sales-pos-products">
@@ -46,6 +49,13 @@ export default function SalesBillingDesk({
                 {cat}
               </button>
             ))}
+          </div>
+        )}
+
+        {alertOutsideCart && (
+          <div className="sales-stock-alert" role="alert">
+            <i className="bi bi-exclamation-triangle-fill"></i>
+            <span>{stockAlert.message}</span>
           </div>
         )}
 

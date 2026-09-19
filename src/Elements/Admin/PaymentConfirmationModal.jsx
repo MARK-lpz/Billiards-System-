@@ -1,9 +1,31 @@
 import { useMemo, useState } from "react";
 
-export default function PaymentConfirmationModal({ cart, total, method, onCancel, onConfirm }) {
+import {
+  REFERENCE_MAX_DIGITS,
+  VERIFY_DIGITS,
+  checkClosingDigits,
+  maskReference,
+  sanitizeReference,
+  sanitizeVerifyDigits,
+  validateReference,
+} from "../../utils/paymentReference";
+
+const verifiedTimestamp = () => new Date().toISOString();
+
+export default function PaymentConfirmationModal({
+  cart,
+  total,
+  method,
+  usedReferences = [],
+  onCancel,
+  onConfirm,
+}) {
   const [cashReceived, setCashReceived] = useState(String(total));
   const [referenceNumber, setReferenceNumber] = useState("");
+  const [verifyDigits, setVerifyDigits] = useState("");
   const [finalConfirmationOpen, setFinalConfirmationOpen] = useState(false);
+
+  const isEwallet = method === "ewallet";
 
   const fmtPeso = (value) =>
     `₱${Number(value || 0).toLocaleString("en-PH", {
@@ -14,19 +36,58 @@ export default function PaymentConfirmationModal({ cart, total, method, onCancel
   const receivedAmount = useMemo(() => Number(cashReceived), [cashReceived]);
   const cashIsValid = Number.isFinite(receivedAmount) && receivedAmount >= total;
   const change = cashIsValid ? receivedAmount - total : 0;
-  const canConfirm = method === "cash" ? cashIsValid : referenceNumber.trim().length >= 4;
+
+  const referenceCheck = useMemo(
+    () => validateReference(referenceNumber, usedReferences),
+    [referenceNumber, usedReferences]
+  );
+  const referenceDigits = referenceCheck.digits;
+  const referenceIsValid = referenceCheck.isValid;
+  const referenceError = referenceCheck.error;
+  const referenceWarning = referenceCheck.warning;
+  const referenceIsEmpty = referenceDigits.length === 0;
+
+  const verification = checkClosingDigits(referenceDigits, verifyDigits);
+  const expectedClosingDigits = verification.expected;
+  const maskedReference = maskReference(referenceDigits);
+  const verifyIsComplete = verification.isComplete;
+  const verifyMatches = verification.matches;
+  const verifyMismatch = verification.mismatch;
+
+  const canContinue = isEwallet ? referenceIsValid : cashIsValid;
+  const canComplete = isEwallet ? referenceIsValid && verifyMatches : cashIsValid;
+
+  const handleReferenceChange = (event) => {
+    setReferenceNumber(sanitizeReference(event.target.value));
+    setVerifyDigits("");
+  };
+
+  const handleVerifyChange = (event) => {
+    setVerifyDigits(sanitizeVerifyDigits(event.target.value));
+  };
 
   const requestFinalConfirmation = () => {
-    if (!canConfirm) return;
+    if (!canContinue) return;
 
+    setVerifyDigits("");
     setFinalConfirmationOpen(true);
   };
 
+  const backToDetails = () => {
+    setVerifyDigits("");
+    setFinalConfirmationOpen(false);
+  };
+
   const confirm = () => {
+    if (!canComplete) return;
+
     onConfirm({
-      cashReceived: method === "cash" ? receivedAmount : null,
-      change: method === "cash" ? change : null,
-      referenceNumber: method === "ewallet" ? referenceNumber.trim() : null,
+      cashReceived: isEwallet ? null : receivedAmount,
+      change: isEwallet ? null : change,
+      referenceNumber: isEwallet ? referenceDigits : null,
+      referenceVerified: isEwallet ? true : null,
+      referenceClosingDigits: isEwallet ? expectedClosingDigits : null,
+      referenceVerifiedAt: isEwallet ? verifiedTimestamp() : null,
     });
   };
 
@@ -38,7 +99,7 @@ export default function PaymentConfirmationModal({ cart, total, method, onCancel
             <div className="modal-header">
               <h5 className="modal-title">
                 <i className="bi bi-credit-card"></i>
-                Review Payment
+                {finalConfirmationOpen && isEwallet ? "Approve Payment" : "Review Payment"}
               </h5>
               <button type="button" className="btn-close btn-close-white" aria-label="Close" onClick={onCancel}></button>
             </div>
@@ -55,7 +116,7 @@ export default function PaymentConfirmationModal({ cart, total, method, onCancel
                   </div>
                 ))}
                 <div className="payment-review-total">
-                  <span>Total via {method === "cash" ? "Cash" : "GCash"}</span>
+                  <span>Total via {isEwallet ? "GCash" : "Cash"}</span>
                   <strong>{fmtPeso(total)}</strong>
                 </div>
               </div>
@@ -63,10 +124,56 @@ export default function PaymentConfirmationModal({ cart, total, method, onCancel
               {!finalConfirmationOpen && <div className="payment-details-section">
                 <div className="payment-details-heading">
                   <span>Payment details</span>
-                  <strong>{method === "cash" ? "Cash" : "GCash"}</strong>
+                  <strong>{isEwallet ? "GCash" : "Cash"}</strong>
                 </div>
 
-                {method === "cash" ? (
+                {isEwallet ? (
+                  <>
+                    <label className="payment-field-label" htmlFor="gcash-reference">
+                      GCash reference number
+                    </label>
+                    <input
+                      id="gcash-reference"
+                      type="text"
+                      className={`payment-reference-input ${referenceError ? "is-invalid-reference" : ""} ${
+                        referenceIsEmpty ? "is-warning-reference" : ""
+                      }`}
+                      placeholder="Enter the reference on the customer receipt"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      maxLength={REFERENCE_MAX_DIGITS}
+                      value={referenceNumber}
+                      onChange={handleReferenceChange}
+                      aria-invalid={Boolean(referenceError)}
+                      aria-describedby="gcash-reference-help"
+                      autoFocus
+                    />
+                    <div className="payment-reference-meter">
+                      <span>{referenceDigits.length} digits</span>
+                      {referenceIsValid && (
+                        <span className="payment-reference-ok">
+                          <i className="bi bi-check-circle"></i> Format accepted
+                        </span>
+                      )}
+                      {referenceIsEmpty && <span className="payment-reference-required">Required</span>}
+                    </div>
+                    {referenceError ? (
+                      <p className="payment-field-error" id="gcash-reference-help" role="alert">
+                        {referenceError}
+                      </p>
+                    ) : referenceWarning ? (
+                      <p className="payment-field-warning" id="gcash-reference-help" role="alert">
+                        <i className="bi bi-exclamation-triangle-fill"></i>
+                        <span>{referenceWarning}</span>
+                      </p>
+                    ) : (
+                      <p className="payment-method-note" id="gcash-reference-help">
+                        Digits only. The next step asks you to verify the last {VERIFY_DIGITS} digits against the
+                        customer receipt.
+                      </p>
+                    )}
+                  </>
+                ) : (
                   <>
                     <label className="payment-field-label" htmlFor="cash-received">
                       Amount received
@@ -92,24 +199,64 @@ export default function PaymentConfirmationModal({ cart, total, method, onCancel
                       <strong>{fmtPeso(change)}</strong>
                     </div>
                   </>
-                ) : (
-                  <>
-                    <label className="payment-field-label" htmlFor="gcash-reference">
-                      GCash reference number
-                    </label>
-                    <input
-                      id="gcash-reference"
-                      type="text"
-                      className="payment-reference-input"
-                      placeholder="Enter the completed payment reference"
-                      value={referenceNumber}
-                      onChange={(event) => setReferenceNumber(event.target.value)}
-                      autoFocus
-                    />
-                    <p className="payment-method-note">Verify the customer payment before confirming the sale.</p>
-                  </>
                 )}
               </div>}
+
+              {finalConfirmationOpen && isEwallet && (
+                <div className="payment-verify-panel">
+                  <div className="payment-verify-heading">
+                    <i className="bi bi-shield-check"></i>
+                    <div>
+                      <strong>Verify the reference number</strong>
+                      <span>
+                        Look at the customer GCash receipt and type the last {VERIFY_DIGITS} digits of the reference
+                        number.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="payment-verify-reference">
+                    <span>Recorded reference</span>
+                    <strong>{maskedReference}</strong>
+                  </div>
+
+                  <label className="payment-field-label" htmlFor="gcash-verify">
+                    Last {VERIFY_DIGITS} digits on the customer receipt
+                  </label>
+                  <input
+                    id="gcash-verify"
+                    type="text"
+                    className={`payment-verify-input ${verifyMismatch ? "is-invalid-reference" : ""} ${
+                      verifyMatches ? "is-valid-reference" : ""
+                    }`}
+                    placeholder={"0".repeat(VERIFY_DIGITS)}
+                    inputMode="numeric"
+                    autoComplete="off"
+                    maxLength={VERIFY_DIGITS}
+                    value={verifyDigits}
+                    onChange={handleVerifyChange}
+                    aria-invalid={verifyMismatch}
+                    autoFocus
+                  />
+
+                  {verifyMismatch && (
+                    <p className="payment-field-error" role="alert">
+                      These digits do not match the reference you recorded. Check the receipt, or go back and correct
+                      the reference number.
+                    </p>
+                  )}
+                  {verifyMatches && (
+                    <p className="payment-verify-success" role="status">
+                      <i className="bi bi-check-circle-fill"></i> Reference verified. You can approve this payment.
+                    </p>
+                  )}
+                  {!verifyIsComplete && (
+                    <p className="payment-method-note">
+                      Approval stays locked until the digits match the recorded reference.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {finalConfirmationOpen && (
                 <div className="payment-final-confirmation" role="alert">
@@ -125,12 +272,12 @@ export default function PaymentConfirmationModal({ cart, total, method, onCancel
             <div className="modal-footer">
               {finalConfirmationOpen ? (
                 <>
-                  <button type="button" className="btn btn-secondary" onClick={() => setFinalConfirmationOpen(false)}>
+                  <button type="button" className="btn btn-secondary" onClick={backToDetails}>
                     No, Go Back
                   </button>
-                  <button type="button" className="btn btn-success" onClick={confirm}>
+                  <button type="button" className="btn btn-success" onClick={confirm} disabled={!canComplete}>
                     <i className="bi bi-check-circle"></i>
-                    Yes, Complete Payment
+                    {isEwallet ? "Approve Payment" : "Yes, Complete Payment"}
                   </button>
                 </>
               ) : (
@@ -138,7 +285,7 @@ export default function PaymentConfirmationModal({ cart, total, method, onCancel
                   <button type="button" className="btn btn-secondary" onClick={onCancel}>
                     Cancel
                   </button>
-                  <button type="button" className="btn btn-success" onClick={requestFinalConfirmation} disabled={!canConfirm}>
+                  <button type="button" className="btn btn-success" onClick={requestFinalConfirmation} disabled={!canContinue}>
                     Continue
                   </button>
                 </>

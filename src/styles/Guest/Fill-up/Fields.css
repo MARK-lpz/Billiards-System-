@@ -202,4 +202,222 @@
   letter-spacing: 0.04em;
 }
 
+/* Quiet helper text for fields that are not required */
+.field-hint {
+  margin: 8px 0 0;
+  color: #94a3b8;
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
 
+
+
+/* Booked times for the chosen date */
+.reservation-booked-times {
+  margin: 14px 0 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.3);
+}
+
+.reservation-booked-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #e2e8f0;
+  font-size: 13px;
+}
+
+.reservation-booked-head > i { color: #60a5fa; }
+
+.reservation-booked-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reservation-booked-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 11px;
+  border-left: 3px solid rgba(148, 163, 184, 0.5);
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.1);
+  font-size: 12px;
+}
+
+.reservation-booked-row.reservation { border-left-color: #60a5fa; }
+.reservation-booked-row.tournament { border-left-color: #fbbf24; }
+
+.reservation-booked-table {
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.reservation-booked-time {
+  color: #cbd5e1;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.reservation-booked-row.tournament .reservation-booked-time { color: #fcd34d; }
+
+.reservation-booked-empty {
+  margin: 0;
+  color: #6ee7b7;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reservation-booked-note {
+  margin: 10px 0 0;
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 520px) {
+  .reservation-booked-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+}
+
+/* GCash payment step */
+.gcash-panel {
+  margin: 18px 0 0;
+  padding: 16px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.gcash-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #93c5fd;
+  font-size: 14px;
+}
+
+.gcash-panel-head strong { color: #e2e8f0; }
+
+.gcash-breakdown {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.gcash-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.gcash-line.gcash-total {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.3);
+  font-size: 14px;
+}
+
+.gcash-line.gcash-total strong { color: #6ee7b7; font-size: 16px; }
+
+.gcash-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.gcash-qr {
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px;
+}
+
+.gcash-step-list {
+  flex: 1 1 220px;
+  margin: 0;
+  padding-left: 18px;
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.gcash-reference-label { margin-bottom: 6px; }
+
+.gcash-reference-input.is-invalid { border-color: #f87171; }
+
+.gcash-reference-meter {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.gcash-reference-ok { color: #34d399; }
+
+.gcash-reference-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 6px 0 0;
+  color: #fbbf24;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.gcash-reference-hint.subtle { color: #94a3b8; }
+
+/* Confirmation text shown to the customer */
+.customer-message-card {
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.08);
+  text-align: left;
+}
+
+.customer-message-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: #6ee7b7;
+  font-size: 13px;
+}
+
+.customer-message-body {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.customer-message-note {
+  margin: 8px 0 0;
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.5;
+}

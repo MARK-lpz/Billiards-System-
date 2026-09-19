@@ -8,11 +8,13 @@ import { useNotifications } from "../../Elements/Global/useNotifications";
 export default function Events({ events, setEvents, tables }) {
   const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
+  const [cancelTarget, setCancelTarget] = useState(null);
   const [form, setForm] = useState({ 
     name: "", 
     date: "", 
     time: "", 
     prize: 0, 
+    entryFee: 0,
     status: "upcoming",
     gameType: "8-ball",
     tables: []
@@ -57,6 +59,19 @@ export default function Events({ events, setEvents, tables }) {
     setModal(null);
   };
 
+  // A completed tournament is final: it can never be cancelled afterwards.
+  const cancelEvent = (eventId) => {
+    const event = events.find((item) => item.id === eventId);
+    if (!event || event.status === "completed" || event.status === "cancelled") {
+      setCancelTarget(null);
+      return;
+    }
+
+    setEvents((prev) => prev.map((ev) => (ev.id === eventId ? { ...ev, status: "cancelled" } : ev)));
+    addNotification({ message: `${event.name || "Event"} cancelled.` });
+    setCancelTarget(null);
+  };
+
   const markComplete = (eventId) => {
     const event = events.find((item) => item.id === eventId);
     setEvents(prev => prev.map(ev => 
@@ -72,6 +87,7 @@ export default function Events({ events, setEvents, tables }) {
       date: event.date || "",
       time: event.time || "",
       prize: event.prize || 0,
+      entryFee: event.entryFee || 0,
       status: event.status || "upcoming",
       gameType: event.gameType || "8-ball",
       tables: event.tables || [],
@@ -96,7 +112,7 @@ export default function Events({ events, setEvents, tables }) {
         <button 
           className="btn btn-success events-add-btn" 
           onClick={() => { 
-            setForm({ name: "", date: "", time: "", prize: 0, status: "upcoming", gameType: "8-ball", tables: [] }); 
+            setForm({ name: "", date: "", time: "", prize: 0, entryFee: 0, status: "upcoming", gameType: "8-ball", tables: [] }); 
             setModal("form"); 
           }}
         >
@@ -115,9 +131,40 @@ export default function Events({ events, setEvents, tables }) {
             tables={tables}
             onEdit={() => editEvent(e)}
             onMarkComplete={() => markComplete(e.id)}
+            onCancel={() => setCancelTarget(e)}
           />
         ))}
       </div>
+
+      {cancelTarget && (
+        <>
+          <div className="modal-backdrop show" onClick={() => setCancelTarget(null)} />
+          <div className="modal show" style={{ display: "flex" }} onClick={() => setCancelTarget(null)}>
+            <div className="modal-dialog modal-dialog-centered" onClick={(event) => event.stopPropagation()}>
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Cancel this tournament?</h5>
+                  <button type="button" className="btn-close btn-close-white" onClick={() => setCancelTarget(null)}></button>
+                </div>
+                <div className="modal-body">
+                  <p className="events-cancel-copy">
+                    <strong>{cancelTarget.name}</strong> will be marked cancelled and will stop accepting
+                    registrations. Players already registered stay on record.
+                  </p>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setCancelTarget(null)}>
+                    Keep Event
+                  </button>
+                  <button type="button" className="btn btn-danger" onClick={() => cancelEvent(cancelTarget.id)}>
+                    Yes, Cancel Event
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {modal === "form" && (
         <EventsModal

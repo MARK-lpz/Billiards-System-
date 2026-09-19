@@ -9,13 +9,13 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
                 <i className="bi bi-box-seam me-2"></i>
                 {editId ? "Edit Product" : "Add Product"}
               </h5>
-              <button 
-                type="button" 
-                className="btn-close btn-close-white" 
+              <button
+                type="button"
+                className="btn-close btn-close-white"
                 onClick={onClose}
               ></button>
             </div>
-            
+
             <div className="modal-body">
               <div className="inventory-product-number-note">
                 <i className="bi bi-hash"></i>
@@ -24,92 +24,56 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
 
               <div className="mb-3">
                 <label className="form-label">Product Name</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  value={form.name} 
-                  onChange={e => setForm({ ...form, name: e.target.value })} 
+                <input
+                  type="text"
+                  className="form-control"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Coca Cola"
                 />
               </div>
 
-              <div className="row g-3 mb-3">
-                <div className="col-6">
-                  <label className="form-label">Category</label>
-                  <select 
-                    className="form-select" 
-                    value={form.category} 
-                    onChange={e => setForm({ ...form, category: e.target.value })}
-                  >
-                    {["Food", "Drinks/Liquor", "Equipment", "Other"].map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-6">
-                  <label className="form-label">Unit</label>
-                  <select 
-                    className="form-select" 
-                    value={form.unit} 
-                    onChange={e => setForm({ ...form, unit: e.target.value })}
-                  >
-                    {["pcs", "box", "bottle", "can", "pack"].map(u => (
-                      <option key={u} value={u}>{u}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="row g-3 mb-3">
-                <div className="col-6">
-                  <label className="form-label">Supplier</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={form.supplier || ""}
-                    onChange={e => setForm({ ...form, supplier: e.target.value })}
-                    placeholder="Supplier name"
-                  />
-                </div>
-                <div className="col-6">
-                  <label className="form-label">Storage Location</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={form.location || ""}
-                    onChange={e => setForm({ ...form, location: e.target.value })}
-                    placeholder="e.g. Chiller A"
-                  />
-                </div>
+              <div className="mb-3">
+                <label className="form-label">Category</label>
+                <select
+                  className="form-select"
+                  value={form.category}
+                  onChange={e => setForm({ ...form, category: e.target.value })}
+                >
+                  {["Food", "Drinks/Liquor", "Equipment", "Other"].map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="row g-3 mb-3">
                 <div className="col-4">
-                  <label className="form-label">Price (₱)</label>
-                  <input 
-                    type="number" 
-                    className="form-control" 
-                    value={form.price} 
+                  <label className="form-label">Price per piece (₱)</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={form.price}
                     onChange={e => setForm({ ...form, price: Number(e.target.value) })}
                     min="0"
                   />
+                  <small className="form-text text-muted">Selling price for one piece.</small>
                 </div>
                 <div className="col-4">
-                  <label className="form-label">Stock</label>
-                  <input 
-                    type="number" 
-                    className="form-control" 
-                    value={form.stock} 
+                  <label className="form-label">Stock (pcs)</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={form.stock}
                     onChange={e => setForm({ ...form, stock: Number(e.target.value) })}
                     min="0"
                   />
                 </div>
                 <div className="col-4">
-                  <label className="form-label">Min Stock</label>
-                  <input 
-                    type="number" 
-                    className="form-control" 
-                    value={form.minStock} 
+                  <label className="form-label">Min Stock (pcs)</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={form.minStock}
                     onChange={e => setForm({ ...form, minStock: Number(e.target.value) })}
                     min="0"
                   />
@@ -126,7 +90,7 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
                 />
               </div>
             </div>
-            
+
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={onClose}>
                 Cancel

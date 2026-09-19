@@ -479,3 +479,105 @@
     margin-left: 0;
   }
 }
+
+/* Report period picker and Excel export */
+.reports-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.reports-toolbar-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.reports-toolbar-label {
+  display: block;
+  margin-bottom: 5px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.reports-toolbar-select {
+  min-width: 150px;
+  padding: 9px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reports-toolbar-select:focus {
+  outline: 0;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+.reports-export-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reports-export-btn:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.22);
+  color: #a7f3d0;
+  transform: translateY(-1px);
+}
+
+.reports-export-btn:disabled {
+  border-color: rgba(148, 163, 184, 0.3);
+  background: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.reports-empty-note {
+  margin: 0;
+  padding: 24px 0;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
+}
+
+.light .reports-toolbar-label { color: #64748b; }
+
+.light .reports-toolbar-select {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.light .reports-export-btn {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #047857;
+}
+
+.light .reports-empty-note { color: #64748b; }
+
+.yearly-sales-toolbar-actions {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}

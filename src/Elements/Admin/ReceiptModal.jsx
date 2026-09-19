@@ -67,10 +67,18 @@
                   </>
                 )}
                 {receipt.paymentDetails?.referenceNumber && (
-                  <div className="receipt-item receipt-payment-detail">
-                    <span>GCash reference</span>
-                    <span>{receipt.paymentDetails.referenceNumber}</span>
-                  </div>
+                  <>
+                    <div className="receipt-item receipt-payment-detail">
+                      <span>GCash reference</span>
+                      <span>{receipt.paymentDetails.referenceNumber}</span>
+                    </div>
+                    {receipt.paymentDetails?.referenceVerified && (
+                      <div className="receipt-item receipt-payment-detail">
+                        <span>Reference check</span>
+                        <span>Verified by {receipt.cashier}</span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

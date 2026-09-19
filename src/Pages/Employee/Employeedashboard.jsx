@@ -2,7 +2,7 @@
 import "../../styles/Employee/Employeedashboard.css";
 import Sidebar from "../../Elements/Employee/SidebarEmp";
 import PoolTableStats from "../../Elements/Admin/PoolTableStats";
-import TableCard from "../../Elements/Global/TableCard";
+import PoolTableCard from "../../Elements/Admin/PoolTableCards";
 import Notification from "../../Elements/Global/Notification";
 import LoadingBar from "../../Elements/Global/Loading";
 import Menu from "../../Elements/Global/Menu";
@@ -13,6 +13,7 @@ import ReservationDesk from "./ReservationDesk";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 
+const getCurrentTimestamp = () => Date.now();
 
 export default function EmployeeDashboard({
   onLogout,
@@ -23,12 +24,12 @@ export default function EmployeeDashboard({
   products,
   setProducts,
   equipment,
-  setEquipment,
   transactions,
   setTransactions,
   reservations,
   setReservations,
   events,
+  setEvents,
   theme,
   setTheme,
 }) {
@@ -36,7 +37,6 @@ export default function EmployeeDashboard({
   const [activeNav, setActiveNav] = useState("dashboard");
   const [search, setSearch] = useState("");
   const [timers, setTimers] = useState({});
-  const [sessionInfo, setSessionInfo] = useState({});
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -57,25 +57,17 @@ export default function EmployeeDashboard({
   useEffect(() => {
     const interval = setInterval(() => {
       const newTimers = {};
-      const nextSessionInfo = {};
       tables.forEach((t) => {
         if (t.status === "occupied" && t.startTime) {
           const durationMs = Number(t.durationMinutes || 60) * 60000;
-          const rawElapsed = Math.max(0, Date.now() - t.startTime);
+          const rawElapsed = Math.max(0, getCurrentTimestamp() - t.startTime);
           const elapsed = Math.min(rawElapsed, durationMs);
-          const remainingMs = Math.max(0, durationMs - elapsed);
           const h = Math.floor(elapsed / 3600000);
           const m = Math.floor((elapsed % 3600000) / 60000);
           newTimers[t.id] = h > 0 ? `${h}h ${m}min` : `${m} min`;
-          nextSessionInfo[t.id] = {
-            ended: rawElapsed >= durationMs,
-            endingSoon: remainingMs > 0 && remainingMs <= 10 * 60000,
-            remaining: formatSessionDuration(remainingMs),
-          };
         }
       });
       setTimers(newTimers);
-      setSessionInfo(nextSessionInfo);
     }, 1000);
     return () => clearInterval(interval);
   }, [tables]);
@@ -87,14 +79,14 @@ export default function EmployeeDashboard({
     total: tables.length,
   };
 
-  const filtered = tables.filter((table) => {
+  const filtered = [...tables].filter((table) => {
     const matchesSearch = `table ${table.id} ${table.status}`
       .toLowerCase()
       .includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || table.status === statusFilter;
 
     return matchesSearch && matchesStatus;
-  });
+  }).sort((left, right) => Number(left.id) - Number(right.id));
 
   const getTableLabel = (table) => table?.name || `T${table?.id}`;
 
@@ -114,7 +106,7 @@ export default function EmployeeDashboard({
     const table = tables.find((t) => t.id === id);
     updateTable(id, {
       status: "occupied",
-      startTime: Date.now(),
+      startTime: getCurrentTimestamp(),
       customer: "Walk-in Customer",
       durationMinutes: Number(table?.durationMinutes || 60),
       addedMinutes: 0,
@@ -142,7 +134,7 @@ export default function EmployeeDashboard({
     const table = tables.find((t) => t.id === id);
     if (table?.startTime) {
       const elapsed = Math.min(
-        Date.now() - table.startTime,
+        getCurrentTimestamp() - table.startTime,
         Number(table.durationMinutes || 60) * 60000
       );
       const hours = Math.ceil(elapsed / 3600000);
@@ -249,7 +241,7 @@ export default function EmployeeDashboard({
         );
 
       case "tournaments":
-        return <TournamentSchedule events={events} tables={tables} />;
+        return <TournamentSchedule events={events} setEvents={setEvents} tables={tables} />;
 
       case "reservations":
         return (
@@ -269,7 +261,6 @@ export default function EmployeeDashboard({
             setTables={setTables}
             setLogs={setLogs}
             equipment={equipment}
-            setEquipment={setEquipment}
           />
         );
 
@@ -283,18 +274,17 @@ export default function EmployeeDashboard({
               onFilterChange={setStatusFilter}
             />
             <h2 className="section-title">Pool Tables</h2>
-            <div className="tables-grid employee-table-grid">
+            <div className="pool-tables-grid employee-table-grid">
               {filtered.map((table) => (
-                <TableCard
+                <PoolTableCard
                   key={table.id}
                   table={table}
-                  timer={timers[table.id]}
-                  sessionInfo={sessionInfo[table.id]}
-                  onWalkIn={handleWalkIn}
-                  onEndSession={handleEndSession}
-                  onAddTime={handleAddTime}
-                  onUndoTime={handleUndoTime}
-                  onCancel={handleCancel}
+                  onWalkIn={() => handleWalkIn(table.id)}
+                  onEndSession={() => handleEndSession(table.id)}
+                  onCheckIn={() => handleWalkIn(table.id)}
+                  onCancelReserve={() => handleCancel(table.id)}
+                  onAddTime={(minutes) => handleAddTime(table.id, minutes)}
+                  onUndoTime={(minutes) => handleUndoTime(table.id, minutes)}
                 />
               ))}
             </div>
@@ -307,8 +297,7 @@ export default function EmployeeDashboard({
 
   const pageMeta = {
     dashboard: {
-      title: "Employee Dashboard",
-      subtitle: "Welcome back! Manage tables and assist customers",
+      title: "Pool Table Dashboard",
     },
     tournaments: {
       title: "Tournament Schedule",
@@ -372,12 +361,4 @@ export default function EmployeeDashboard({
       </div>
     </>
   );
-}
-
-function formatSessionDuration(durationMs) {
-  const totalSeconds = Math.floor(durationMs / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
