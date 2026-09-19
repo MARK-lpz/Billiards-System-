@@ -40,6 +40,22 @@ function ensureReservationsTable($pdo) {
         $pdo->exec('ALTER TABLE reservations MODIFY table_id BIGINT NOT NULL');
     }
 
+    // Payment details for online GCash reservations.
+    foreach ([
+        'payment_method' => "ALTER TABLE reservations ADD COLUMN payment_method VARCHAR(20) NULL",
+        'payment_reference' => "ALTER TABLE reservations ADD COLUMN payment_reference VARCHAR(40) NULL",
+        'payment_amount' => "ALTER TABLE reservations ADD COLUMN payment_amount DECIMAL(10,2) NOT NULL DEFAULT 0",
+    ] as $column => $sql) {
+        $paymentColumnStmt = $pdo->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'reservations' AND COLUMN_NAME = ?"
+        );
+        $paymentColumnStmt->execute([$column]);
+        if (!(int) $paymentColumnStmt->fetchColumn()) {
+            $pdo->exec($sql);
+        }
+    }
+
     $durationColumnStmt = $pdo->prepare(
         "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'reservations' AND COLUMN_NAME = 'duration_minutes'"
@@ -118,6 +134,10 @@ function normalizeReservation($reservation) {
         'notes' => trim($reservation['notes'] ?? ''),
         'status' => $reservation['status'] ?? 'pending',
         'source' => $reservation['source'] ?? 'online',
+        'paymentMethod' => trim($reservation['paymentMethod'] ?? $reservation['payment_method'] ?? ''),
+        // Digits only: a GCash reference is never arithmetic, so it stays a string.
+        'paymentReference' => preg_replace('/\D/', '', (string) ($reservation['paymentReference'] ?? $reservation['payment_reference'] ?? '')),
+        'paymentAmount' => max(0, (float) ($reservation['paymentAmount'] ?? $reservation['payment_amount'] ?? 0)),
         'requestedAt' => $reservation['requestedAt'] ?? $reservation['requested_at'] ?? null,
     ];
 }
@@ -222,6 +242,8 @@ if ($method === 'GET') {
                 TIME_FORMAT(reservation_time, "%H:%i") AS time, party_size AS partySize,
                 duration_minutes AS durationMinutes,
                 table_id AS tableId, table_name AS tableName, notes, status, source,
+                payment_method AS paymentMethod, payment_reference AS paymentReference,
+                payment_amount AS paymentAmount,
                 requested_at AS requestedAt
          FROM reservations ORDER BY requested_at DESC'
     );
@@ -269,19 +291,22 @@ if (hasScheduleConflict($pdo, $data)) {
 if ($method === 'POST') {
     $stmt = $pdo->prepare(
         'INSERT INTO reservations
-          (id, customer_name, phone, email, reservation_date, reservation_time, party_size, duration_minutes, table_id, table_name, notes, status, source)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (id, customer_name, phone, email, reservation_date, reservation_time, party_size, duration_minutes, table_id, table_name, notes, status, source, payment_method, payment_reference, payment_amount)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
            customer_name = VALUES(customer_name), phone = VALUES(phone), email = VALUES(email),
            reservation_date = VALUES(reservation_date), reservation_time = VALUES(reservation_time),
            party_size = VALUES(party_size), duration_minutes = VALUES(duration_minutes), table_id = VALUES(table_id), table_name = VALUES(table_name),
-           notes = VALUES(notes), status = VALUES(status), source = VALUES(source)'
+           notes = VALUES(notes), status = VALUES(status), source = VALUES(source),
+           payment_method = VALUES(payment_method), payment_reference = VALUES(payment_reference),
+           payment_amount = VALUES(payment_amount)'
     );
     try {
         $stmt->execute([
             $data['id'], $data['customerName'], $data['phone'], $data['email'],
             $data['date'], $data['time'], $data['partySize'], $data['durationMinutes'], $data['tableId'],
             $data['tableName'], $data['notes'], $data['status'], $data['source'],
+            $data['paymentMethod'], $data['paymentReference'], $data['paymentAmount'],
         ]);
     } catch (PDOException $error) {
         error_log('Reservation save failed: ' . $error->getMessage());

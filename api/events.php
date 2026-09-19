@@ -29,7 +29,7 @@ function normalizeEvent($event) {
     }
 
     $status = strtolower(trim((string) ($event['status'] ?? 'upcoming')));
-    if (!in_array($status, ['upcoming', 'active', 'completed'], true)) {
+    if (!in_array($status, ['upcoming', 'active', 'completed', 'cancelled'], true)) {
         $status = 'upcoming';
     }
 
@@ -44,6 +44,7 @@ function normalizeEvent($event) {
         'date' => trim((string) ($event['date'] ?? '')),
         'time' => trim((string) ($event['time'] ?? '')),
         'prize' => max(0, (float) ($event['prize'] ?? 0)),
+        'entryFee' => max(0, (float) ($event['entryFee'] ?? 0)),
         'status' => $status,
         'gameType' => trim((string) ($event['gameType'] ?? '8-ball')),
         'tables' => array_values(is_array($event['tables'] ?? null) ? $event['tables'] : []),
