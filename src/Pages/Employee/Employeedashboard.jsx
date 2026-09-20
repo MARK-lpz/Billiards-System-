@@ -24,17 +24,19 @@ export default function EmployeeDashboard({
   products,
   setProducts,
   equipment,
+  setEquipment,
   transactions,
   setTransactions,
   reservations,
   setReservations,
   events,
-  setEvents,
   theme,
   setTheme,
 }) {
   const { addNotification, queueAdminNotification } = useNotifications();
-  const [activeNav, setActiveNav] = useState("dashboard");
+  // Must match a sidebar nav id, otherwise nothing is highlighted on load and
+  // the page header has no entry to read its title from.
+  const [activeNav, setActiveNav] = useState("Pool Tables");
   const [search, setSearch] = useState("");
   const [timers, setTimers] = useState({});
   const [loading, setLoading] = useState(false);
@@ -241,7 +243,7 @@ export default function EmployeeDashboard({
         );
 
       case "tournaments":
-        return <TournamentSchedule events={events} setEvents={setEvents} tables={tables} />;
+        return <TournamentSchedule events={events} tables={tables} />;
 
       case "reservations":
         return (
@@ -261,6 +263,7 @@ export default function EmployeeDashboard({
             setTables={setTables}
             setLogs={setLogs}
             equipment={equipment}
+            setEquipment={setEquipment}
           />
         );
 
@@ -296,8 +299,9 @@ export default function EmployeeDashboard({
   const selfHeaded = ["sales", "quick-actions", "reservations"];
 
   const pageMeta = {
-    dashboard: {
+    "Pool Tables": {
       title: "Pool Table Dashboard",
+      subtitle: "",
     },
     tournaments: {
       title: "Tournament Schedule",
@@ -305,7 +309,9 @@ export default function EmployeeDashboard({
     },
   };
 
-  const currentPage = pageMeta[activeNav] || pageMeta.dashboard;
+  // A nav id with no entry here, such as the profile view opened from the menu,
+  // still has to render a header. Falling back to nothing crashed the dashboard.
+  const currentPage = pageMeta[activeNav] || pageMeta["Pool Tables"];
 
   return (
     <>

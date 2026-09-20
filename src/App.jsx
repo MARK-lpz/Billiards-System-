@@ -103,7 +103,11 @@ function App() {
   })
 
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'dark'
+    try {
+      return localStorage.getItem('theme') || 'dark'
+    } catch {
+      return 'dark'
+    }
   })
 
   const [logs, setLogs] = useState(() => {

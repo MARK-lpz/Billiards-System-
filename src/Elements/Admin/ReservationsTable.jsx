@@ -15,8 +15,11 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
   // Cancelling cannot be undone, so the click only arms the confirmation.
   const [cancelTarget, setCancelTarget] = useState(null);
 
-  const confirmCancel = () => {
-    onUpdate(cancelTarget.id, { status: "rejected" });
+  // Takes the reservation as an argument rather than reading `cancelTarget` from
+  // the closure: the React Compiler narrows a closed-over `cancelTarget.id` into
+  // a render-time memo check, which throws while the target is still null.
+  const confirmCancel = (reservation) => {
+    onUpdate(reservation.id, { status: "rejected" });
     setCancelTarget(null);
   };
 
@@ -142,7 +145,7 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
           detail="This cannot be undone. The booking moves to history and has to be created again if the customer still wants it."
           confirmLabel="Yes, Cancel Reservation"
           cancelLabel="Keep Reservation"
-          onConfirm={confirmCancel}
+          onConfirm={() => confirmCancel(cancelTarget)}
           onClose={() => setCancelTarget(null)}
         />
       )}
