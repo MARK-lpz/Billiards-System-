@@ -1,41 +1,40 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "../../styles/Guest/Fill-up/FormBase.css";
 import "../../styles/Guest/Fill-up/TournaHeader.css";
 import "../../styles/Guest/Fill-up/Fields.css";
 import "../../styles/Guest/Fill-up/SuccessMess.css";
 import {
-  DEFAULT_RESERVATION_DURATION_MINUTES,
+  MIN_RESERVATION_HOURS,
+  RESERVATION_CLOSED_HOURS_MESSAGE,
   RESERVATION_CUTOFF_TIME,
-  getAvailableTimeSlots,
+  RESERVATION_OPEN_TIME,
+  addMinutesToTime,
+  checkReservationStart,
+  describeReservationTime,
+  formatHoursLabel,
   getBookedSlotsForDate,
-  getReservationValidationMessage,
+  getOpenTimeWindows,
   getTableReservationAvailability,
   hasReservationConflict,
+  isOutsideReservationHours,
 } from "../../utils/reservations";
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import { createRemoteReservation } from "../../utils/reservationApi";
 import GcashPayment from "../../Elements/Guest/GcashPayment";
 import { validateReference } from "../../utils/paymentReference";
-import { queueCustomerMessage } from "../../utils/customerMessageApi";
-import { buildReservationMessage } from "../../utils/customerMessages";
+import { sendCustomerConfirmation } from "../../utils/customerMessageApi";
 
 const getToday = () => new Date().toLocaleDateString("en-CA");
 const PUBLIC_RESERVATION_CUTOFF_LABEL = "10:00 PM";
 
-const getPublicScheduleMessage = (date, time) => {
-  const validationMessage = getReservationValidationMessage(date, time);
-  return time >= RESERVATION_CUTOFF_TIME
-    ? `Break & Chill closes at ${PUBLIC_RESERVATION_CUTOFF_LABEL}. Please select a reservation time before closing.`
-    : validationMessage;
-};
-
 const initialForm = {
   customerName: "",
   phone: "",
-  email: "",
   date: getToday(),
   time: "",
+  // Whole hours, kept as the select's string value.
+  hours: String(MIN_RESERVATION_HOURS),
   tableId: "",
   notes: "",
   paymentReference: "",
@@ -66,9 +65,18 @@ export default function OnlineReservationForm({
   const { queueStaffNotification } = useNotifications();
   const [form, setForm] = useState(initialForm);
   const [submittedReservation, setSubmittedReservation] = useState(null);
-  const [customerMessage, setCustomerMessage] = useState("");
+  // { text, status } from the server; status says whether it was really texted.
+  const [customerMessage, setCustomerMessage] = useState(null);
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // A guest who is still on this page when closing comes is stopped too, not only
+  // the landing page button.
+  const [afterHours, setAfterHours] = useState(isOutsideReservationHours);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setAfterHours(isOutsideReservationHours()), 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   // The table is picked before the time, so the list is judged on the date alone:
   // maintenance and all-day tournament holds. Clashing hours are dropped from the
@@ -89,9 +97,6 @@ export default function OnlineReservationForm({
     [tables, reservations, events, form.date]
   );
   const phoneWarning = getSmsWarning(form.phone);
-  const scheduleWarning = form.date && form.time ? getPublicScheduleMessage(form.date, form.time) : "";
-  // One hour of table time is charged up front, so the guest pays a real total.
-  const reservationHours = DEFAULT_RESERVATION_DURATION_MINUTES / 60;
 
   // What is already taken on the chosen date, so guests can see when a table frees up.
   const bookedSlots = useMemo(
@@ -100,23 +105,34 @@ export default function OnlineReservationForm({
   );
 
   const selectedTable = tables.find((table) => String(table.id) === form.tableId);
-  const reservationTotal = selectedTable ? Number(selectedTable.rate || 0) * reservationHours : 0;
+  const tableLabel = selectedTable ? selectedTable.name || `Table ${selectedTable.id}` : "";
   const paymentCheck = validateReference(form.paymentReference || "");
 
-  // Only the times this one table can still take, so the guest cannot pick a clash.
-  const availableTimeSlots = useMemo(
-    () => getAvailableTimeSlots({ table: selectedTable, reservations, events, date: form.date }),
+  // When this one table is still free, so the guest knows how long they can stay
+  // before typing a start time.
+  const openWindows = useMemo(
+    () => getOpenTimeWindows({ table: selectedTable, reservations, events, date: form.date }),
     [selectedTable, reservations, events, form.date]
   );
 
-  const selectedTableAvailability = selectedTable
-    ? getTableReservationAvailability({
-        table: selectedTable,
-        reservations,
-        events,
-        candidate: { tableId: selectedTable.id, date: form.date, time: form.time },
-      })
-    : null;
+  // How many hours fit from the start time the guest typed.
+  const startCheck = selectedTable
+    ? checkReservationStart({ windows: openWindows, date: form.date, time: form.time })
+    : { maxHours: 0, reason: "" };
+  const reservationHours = Number(form.hours) || 0;
+  const reservationMinutes = reservationHours * 60;
+  const startIsOpen = Boolean(form.time) && startCheck.maxHours >= MIN_RESERVATION_HOURS;
+  // Someone else can book part of the stretch while this form is open, so the
+  // chosen hours are checked again rather than trusted.
+  const hoursFit = startIsOpen && reservationHours >= MIN_RESERVATION_HOURS && reservationHours <= startCheck.maxHours;
+  const hoursWarning =
+    startIsOpen && !hoursFit
+      ? `Only ${formatHoursLabel(startCheck.maxHours * 60)} ${startCheck.maxHours === 1 ? "is" : "are"} open from ${formatTime(form.time)} now. Please choose fewer hours.`
+      : "";
+  const endTime = hoursFit ? addMinutesToTime(form.time, reservationMinutes) : "";
+  const reservationTotal = selectedTable && hoursFit ? Number(selectedTable.rate || 0) * reservationHours : 0;
+  const hourOptions = Array.from({ length: startCheck.maxHours }, (_, index) => index + 1);
+
   const unavailableTables = [...tableDayAvailability.entries()]
     .filter(([, availability]) => !availability.available)
     .map(([id, availability]) => ({ table: tables.find((table) => String(table.id) === id), ...availability }));
@@ -126,10 +142,22 @@ export default function OnlineReservationForm({
     setForm((current) => ({
       ...current,
       [field]: field === "phone" ? sanitizePhoneInput(value) : value,
-      // A new date invalidates the table, and a new table invalidates the hour,
-      // because free hours are worked out per table.
-      ...(field === "date" ? { tableId: "", time: "" } : {}),
-      ...(field === "tableId" ? { time: "" } : {}),
+      // A new date invalidates the table, and a new table invalidates the start
+      // time and hours, because free time is worked out per table.
+      ...(field === "date" ? { tableId: "", time: "", hours: String(MIN_RESERVATION_HOURS) } : {}),
+      ...(field === "tableId" ? { time: "", hours: String(MIN_RESERVATION_HOURS) } : {}),
+    }));
+  };
+
+  // A later start can leave less room, so hours that no longer fit are trimmed to
+  // what does instead of leaving the guest on a choice the list no longer offers.
+  const changeStartTime = (time) => {
+    const { maxHours } = checkReservationStart({ windows: openWindows, date: form.date, time });
+    setSubmitError("");
+    setForm((current) => ({
+      ...current,
+      time,
+      hours: maxHours >= MIN_RESERVATION_HOURS && Number(current.hours) > maxHours ? String(maxHours) : current.hours,
     }));
   };
 
@@ -138,6 +166,11 @@ export default function OnlineReservationForm({
 
     if (!onlineReservationsOpen) {
       setSubmitError("Online reservations are temporarily closed by the owner. Please check back later.");
+      return;
+    }
+
+    if (isOutsideReservationHours()) {
+      setAfterHours(true);
       return;
     }
 
@@ -152,18 +185,17 @@ export default function OnlineReservationForm({
     }
 
     if (!form.time) {
-      setSubmitError("Please select an available time for this table.");
+      setSubmitError("Please enter the time you want to start.");
       return;
     }
 
-    const validationMessage = getPublicScheduleMessage(form.date, form.time);
-    if (validationMessage) {
-      setSubmitError(validationMessage);
+    if (startCheck.reason) {
+      setSubmitError(startCheck.reason);
       return;
     }
 
-    if (!selectedTableAvailability?.available) {
-      setSubmitError(selectedTableAvailability?.reason || "This table is not available for the selected time.");
+    if (!hoursFit) {
+      setSubmitError(hoursWarning || "Please choose how many hours you want to reserve.");
       return;
     }
 
@@ -174,12 +206,18 @@ export default function OnlineReservationForm({
       return;
     }
 
+    // The whole stay is checked, not just its first hour.
     const candidate = {
       tableId: selectedTable.id,
       date: form.date,
       time: form.time,
-      durationMinutes: DEFAULT_RESERVATION_DURATION_MINUTES,
+      durationMinutes: reservationMinutes,
     };
+    const availability = getTableReservationAvailability({ table: selectedTable, reservations, events, candidate });
+    if (!availability.available) {
+      setSubmitError(availability.reason || "This table is not available for the selected time.");
+      return;
+    }
     if (hasReservationConflict(reservations, candidate)) {
       setSubmitError("This table was just reserved for that time. Please choose another table.");
       return;
@@ -189,7 +227,6 @@ export default function OnlineReservationForm({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       customerName: form.customerName.trim(),
       phone: form.phone,
-      email: form.email.trim(),
       date: form.date,
       time: form.time,
       // The guest no longer states a head count, so the record keeps the minimum.
@@ -199,7 +236,7 @@ export default function OnlineReservationForm({
       notes: form.notes.trim(),
       status: "pending",
       source: "online",
-      durationMinutes: DEFAULT_RESERVATION_DURATION_MINUTES,
+      durationMinutes: reservationMinutes,
       paymentMethod: "gcash",
       paymentReference: paymentCheck.digits,
       paymentAmount: reservationTotal,
@@ -212,32 +249,18 @@ export default function OnlineReservationForm({
       setReservations((current) => [...current, savedReservation]);
       queueStaffNotification({
         type: "online-reservation",
-        message: `New online reservation: ${savedReservation.customerName} requested ${savedReservation.tableName} on ${formatDate(savedReservation.date)} at ${formatTime(savedReservation.time)}.`,
+        message: `New online reservation: ${savedReservation.customerName} requested ${savedReservation.tableName} on ${formatDate(savedReservation.date)}, ${describeReservationTime(savedReservation)}.`,
         data: { reservationId: savedReservation.id, tableId: savedReservation.tableId },
       });
-      const message = buildReservationMessage({
-        customerName: savedReservation.customerName,
-        tableName: savedReservation.tableName,
-        date: formatDate(savedReservation.date),
-        time: formatTime(savedReservation.time),
-        total: reservationTotal,
-        reference: paymentCheck.digits,
-      });
-
       // A failed text must never lose a paid reservation, so this is best effort.
       try {
-        await queueCustomerMessage({
-          phone: savedReservation.phone,
-          customerName: savedReservation.customerName,
-          context: "reservation",
-          referenceId: savedReservation.id,
-          message,
-        });
+        setCustomerMessage(
+          await sendCustomerConfirmation({ context: "reservation", referenceId: savedReservation.id })
+        );
       } catch (messageError) {
-        console.warn("Unable to queue the customer confirmation", messageError);
+        console.warn("Unable to send the customer confirmation", messageError);
       }
 
-      setCustomerMessage(message);
       setSubmittedReservation(savedReservation);
     } catch (error) {
       setSubmitError(error.message || "Unable to send your reservation request. Please try again.");
@@ -249,7 +272,7 @@ export default function OnlineReservationForm({
   const resetForm = () => {
     setForm(initialForm);
     setSubmittedReservation(null);
-    setCustomerMessage("");
+    setCustomerMessage(null);
     setSubmitError("");
   };
 
@@ -296,7 +319,7 @@ export default function OnlineReservationForm({
                 {[
                   ["Table", submittedReservation.tableName, "bi-grid-3x3-gap"],
                   ["Date", formatDate(submittedReservation.date), "bi-calendar-event"],
-                  ["Time", formatTime(submittedReservation.time), "bi-clock"],
+                  ["Time", describeReservationTime(submittedReservation), "bi-clock"],
                   ["Contact", submittedReservation.phone, "bi-telephone"],
                   ["GCash reference", submittedReservation.paymentReference || form.paymentReference, "bi-receipt"],
                   ["Amount paid", `PHP ${Number(submittedReservation.paymentAmount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, "bi-cash-coin"],
@@ -311,12 +334,12 @@ export default function OnlineReservationForm({
                 <div className="customer-message-card">
                   <div className="customer-message-head">
                     <i className="bi bi-chat-left-text-fill" aria-hidden="true"></i>
-                    <strong>Sent to {submittedReservation.phone}</strong>
+                    <strong>
+                      {customerMessage.status === "sent" ? `Texted to ${submittedReservation.phone}` : "Your confirmation"}
+                    </strong>
                   </div>
-                  <p className="customer-message-body">{customerMessage}</p>
-                  <p className="customer-message-note">
-                    Keep this for your records. We will message the same number once staff confirm your booking.
-                  </p>
+                  <p className="customer-message-body">{customerMessage.text}</p>
+                  <p className="customer-message-note">Keep this for your records.</p>
                 </div>
               )}
 
@@ -325,6 +348,14 @@ export default function OnlineReservationForm({
                 Reserve Another Table
               </button>
             </div>
+          ) : afterHours ? (
+            <div className="success-container success-bounce" role="status">
+              <div className="success-icon">
+                <i className="bi bi-calendar-x-fill"></i>
+              </div>
+              <h2 className="success-title">Reservations Closed</h2>
+              <p className="success-message">{RESERVATION_CLOSED_HOURS_MESSAGE}</p>
+            </div>
           ) : (
             <form className="fade-in" onSubmit={handleSubmit}>
               <p className="section-title">Contact Information</p>
@@ -332,23 +363,16 @@ export default function OnlineReservationForm({
                 <label className="label" htmlFor="reservation-name">Full Name</label>
                 <input id="reservation-name" className="field-input" value={form.customerName} onChange={(event) => updateForm("customerName", event.target.value)} placeholder="Juan dela Cruz" required />
               </div>
-              <div className="form-grid-2">
-                <div>
-                  <label className="label" htmlFor="reservation-phone">Contact No.</label>
-                  <input id="reservation-phone" className="field-input" value={form.phone} onChange={(event) => updateForm("phone", event.target.value)} placeholder="09XX XXX XXXX" inputMode="numeric" maxLength="11" required />
-                  {phoneWarning && <p className="field-warning">{phoneWarning}</p>}
-                </div>
-                <div>
-                  <label className="label" htmlFor="reservation-email">Email Address (Optional)</label>
-                  <input id="reservation-email" className="field-input" type="email" value={form.email} onChange={(event) => updateForm("email", event.target.value)} placeholder="juan@email.com" />
-                  <p className="field-hint">We confirm by text. Add an email only if you want a copy there too.</p>
-                </div>
+              <div className="form-field-full">
+                <label className="label" htmlFor="reservation-phone">Contact No.</label>
+                <input id="reservation-phone" className="field-input" value={form.phone} onChange={(event) => updateForm("phone", event.target.value)} placeholder="09XX XXX XXXX" inputMode="numeric" maxLength="11" required />
+                {phoneWarning && <p className="field-warning">{phoneWarning}</p>}
               </div>
 
               <p className="section-title">Reservation Details</p>
               <p className="reservation-closing-notice">
                 <i className="bi bi-clock" aria-hidden="true"></i>
-                Each booking runs {DEFAULT_RESERVATION_DURATION_MINUTES} minutes and must finish by {PUBLIC_RESERVATION_CUTOFF_LABEL}, when Break &amp; Chill closes.
+                Break &amp; Chill closes at {PUBLIC_RESERVATION_CUTOFF_LABEL}. Each booking is {MIN_RESERVATION_HOURS} hour or more and must finish by closing.
               </p>
               <div className="form-grid-2">
                 <div>
@@ -373,7 +397,6 @@ export default function OnlineReservationForm({
                   </select>
                 </div>
               </div>
-              {scheduleWarning && <p className="field-warning reservation-schedule-warning">{scheduleWarning}</p>}
 
               {form.date && (
                 <div className="reservation-booked-times">
@@ -400,48 +423,99 @@ export default function OnlineReservationForm({
                   )}
 
                   <p className="reservation-booked-note">
-                    Each booking runs {DEFAULT_RESERVATION_DURATION_MINUTES} minutes. Once you choose a table, the time list shows only the hours it can still take.
+                    Once you choose a table, its open times appear below so you can see how many hours you can book.
                   </p>
                 </div>
               )}
-              <div className="form-field-full">
-                <label className="label" htmlFor="reservation-time">Available Time</label>
-                <select
-                  id="reservation-time"
-                  className="field-input"
-                  value={form.time}
-                  onChange={(event) => updateForm("time", event.target.value)}
-                  disabled={!selectedTable || availableTimeSlots.length === 0}
-                  required
-                >
-                  <option value="">
-                    {!selectedTable
-                      ? "Select a table first"
-                      : availableTimeSlots.length === 0
-                        ? "No open time left for this table"
-                        : "Select an available time"}
-                  </option>
-                  {availableTimeSlots.map((slot) => (
-                    <option key={slot.value} value={slot.value}>{slot.label}</option>
-                  ))}
-                </select>
-                {selectedTable && availableTimeSlots.length === 0 && (
-                  <p className="field-warning">
-                    {selectedTable.name || `Table ${selectedTable.id}`} has no open hours left on this date. Please pick another table or date.
-                  </p>
-                )}
+              {selectedTable && (
+                <div className="reservation-booked-times reservation-open-times">
+                  <div className="reservation-booked-head">
+                    <i className="bi bi-clock-history" aria-hidden="true"></i>
+                    <strong>Open times for {tableLabel} on {formatDate(form.date)}</strong>
+                  </div>
+
+                  {openWindows.length ? (
+                    <ul className="reservation-booked-list">
+                      {openWindows.map((openWindow) => (
+                        <li key={openWindow.start} className="reservation-booked-row open">
+                          <span className="reservation-booked-table">{openWindow.label}</span>
+                          <span className="reservation-booked-time">
+                            Up to {formatHoursLabel(openWindow.maxHours * 60)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="reservation-booked-closed">
+                      {tableLabel} has no open time left on this date. Please pick another table or date.
+                    </p>
+                  )}
+
+                  {openWindows.length > 0 && (
+                    <p className="reservation-booked-note">
+                      Type the time you want to start inside one of these open times, then choose how many hours to stay.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="form-grid-2">
+                <div>
+                  <label className="label" htmlFor="reservation-time">Start Time</label>
+                  <input
+                    id="reservation-time"
+                    className="field-input"
+                    type="time"
+                    min={RESERVATION_OPEN_TIME}
+                    max={addMinutesToTime(RESERVATION_CUTOFF_TIME, -MIN_RESERVATION_HOURS * 60)}
+                    value={form.time}
+                    onChange={(event) => changeStartTime(event.target.value)}
+                    disabled={!selectedTable || openWindows.length === 0}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor="reservation-hours">Number of Hours</label>
+                  <select
+                    id="reservation-hours"
+                    className="field-input"
+                    value={hoursFit ? form.hours : ""}
+                    onChange={(event) => updateForm("hours", event.target.value)}
+                    disabled={!startIsOpen}
+                    required
+                  >
+                    {!hoursFit && (
+                      <option value="">
+                        {!selectedTable
+                          ? "Select a table first"
+                          : !form.time
+                            ? "Enter a start time first"
+                            : startIsOpen
+                              ? "Choose hours"
+                              : "Not available"}
+                      </option>
+                    )}
+                    {hourOptions.map((hours) => (
+                      <option key={hours} value={hours}>
+                        {formatHoursLabel(hours * 60)} (until {formatTime(addMinutesToTime(form.time, hours * 60))})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              {selectedTable && form.time && selectedTableAvailability?.available && (
+              {!selectedTable && <p className="field-helper reservation-time-helper">Choose a table first to see when it is open.</p>}
+              {startCheck.reason && <p className="field-warning reservation-schedule-warning">{startCheck.reason}</p>}
+              {hoursWarning && <p className="field-warning reservation-schedule-warning">{hoursWarning}</p>}
+
+              {selectedTable && hoursFit && (
                 <GcashPayment
                   title="Pay with GCash to hold your table"
                   total={reservationTotal}
                   lines={[
-                    { label: "Table", value: selectedTable.name || `Table ${selectedTable.id}` },
+                    { label: "Table", value: tableLabel },
                     { label: "Rate", value: `PHP ${Number(selectedTable.rate || 0).toLocaleString("en-PH")} per hour` },
-                    {
-                      label: "Reserved time",
-                      value: `${formatTime(form.time)} (${DEFAULT_RESERVATION_DURATION_MINUTES} minutes)`,
-                    },
+                    { label: "Reserved time", value: `${formatTime(form.time)} - ${formatTime(endTime)}` },
+                    { label: "Hours", value: formatHoursLabel(reservationMinutes) },
                   ]}
                   reference={form.paymentReference}
                   onReferenceChange={(value) => updateForm("paymentReference", value)}
@@ -466,7 +540,7 @@ export default function OnlineReservationForm({
               </div>
 
               {submitError && <p className="field-warning reservation-submit-error">{submitError}</p>}
-              <button type="submit" className="submit-btn" disabled={isSubmitting || !form.customerName.trim() || !isValidSmsNumber(form.phone) || !form.date || !form.time || !form.tableId || !paymentCheck.isValid || Boolean(scheduleWarning)}>
+              <button type="submit" className="submit-btn" disabled={isSubmitting || !form.customerName.trim() || !isValidSmsNumber(form.phone) || !form.date || !form.time || !form.tableId || !paymentCheck.isValid || Boolean(startCheck.reason) || !hoursFit}>
                 <i className="bi bi-calendar2-check" aria-hidden="true"></i>
                 {isSubmitting ? "Sending Request..." : "Send Reservation Request"}
               </button>

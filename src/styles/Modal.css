@@ -79,18 +79,36 @@
   margin-right: 8px;
 }
 
+/* Close (X) button. Bootstrap's own CSS, which draws this X as a background
+   image, is not loaded in this app, so the button used to render empty. The
+   icon now comes from the Bootstrap Icons font that index.html already loads
+   (the same glyph as bi-x-lg), so every modal using .btn-close shows it. */
 .btn-close {
-  opacity: 0.7;
-  filter: invert(1);
-  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #cbd5e1;
   cursor: pointer;
-  width: 24px;
-  height: 24px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.btn-close::before {
+  content: "\f659";
+  font-family: "bootstrap-icons";
+  font-size: 14px;
+  line-height: 1;
 }
 
 .btn-close:hover {
-  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
 }
 
 .modal-body {
@@ -516,4 +534,14 @@
   color: #fecaca;
   font-size: 13px;
   line-height: 1.5;
+}
+
+/* A disabled modal button has to look disabled, or a locked "Approve" reads as
+   ready to press. */
+.modal-footer .btn:disabled,
+.modal-body .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }

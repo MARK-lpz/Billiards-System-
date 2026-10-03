@@ -16,7 +16,9 @@ export default function ReservationModal({
   onReservationSubmit,
 }) {
   const phoneWarning = getSmsWarning(reservationForm.phone);
-  const phoneIsValid = !reservationForm.phone.trim() || isValidSmsNumber(reservationForm.phone);
+  // Required: every booking must have a number to reach the customer, and the
+  // server refuses bookings without one.
+  const phoneIsValid = isValidSmsNumber(reservationForm.phone);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -115,7 +117,7 @@ export default function ReservationModal({
 
                   <input
                     className="rd-input"
-                    placeholder="Phone number"
+                    placeholder="Mobile number (09XXXXXXXXX)"
                     value={reservationForm.phone}
                     onChange={(e) =>
                       setReservationForm((prev) => ({
@@ -125,6 +127,7 @@ export default function ReservationModal({
                     }
                     inputMode="numeric"
                     maxLength="11"
+                    required
                   />
                   {phoneWarning && <p className="rd-field-warning">{phoneWarning}</p>}
 

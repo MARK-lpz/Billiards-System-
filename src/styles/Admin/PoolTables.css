@@ -524,19 +524,15 @@
   opacity: 0.5;
 }
 
+/* Centered pop-up, laid out by the shared .modal / .modal-dialog shell. */
 .pool-time-modal {
-  position: absolute;
-  top: 52px;
-  right: 16px;
-  left: 16px;
-  z-index: 5;
-  width: auto;
+  width: 100%;
   overflow: visible;
   border: 1px solid rgba(251, 191, 36, 0.45);
-  border-radius: 8px;
+  border-radius: 12px;
   background: #111827;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
-  padding: 1rem;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+  padding: 1.25rem;
 }
 
 .pool-time-modal-header {
@@ -553,7 +549,8 @@
   font-size: 1rem;
 }
 
-.pool-time-close {
+.pool-time-close,
+.pool-modal-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -563,9 +560,11 @@
   border-radius: 4px;
   background: transparent;
   color: #cbd5e1;
+  cursor: pointer;
 }
 
-.pool-time-close:hover {
+.pool-time-close:hover,
+.pool-modal-close:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #f8fafc;
 }

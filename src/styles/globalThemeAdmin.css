@@ -348,6 +348,10 @@
   color: var(--text-muted) !important;
 }
 
+.light .account-message.account-message--warning {
+  color: #b45309 !important;
+}
+
 .light .account-form input,
 .light .account-form select {
   background: var(--bg-muted) !important;
@@ -775,7 +779,8 @@
 }
 .light .form-label,
 .light .modal-content .form-label { color: var(--text-muted) !important; }
-.light .btn-close    { filter: invert(0) !important; opacity: 0.6; }
+.light .btn-close       { color: var(--text-muted); }
+.light .btn-close:hover { background: var(--bg-muted); color: var(--text-primary); }
 
 .light .modal-content .form-control,
 .light .modal-content .form-select,
@@ -818,6 +823,14 @@
 .light .modal-body h5,
 .light .modal-body h6,
 .light .modal-body label { color: var(--text-primary) !important; }
+
+/* The rule above turns every modal paragraph black, which also hid whether a
+   GCash check passed or failed. These keep their meaning colors. */
+.light .modal-body .payment-verify-success { color: #047857 !important; }
+.light .modal-body .payment-field-error { color: #b91c1c !important; }
+.light .modal-body .payment-field-warning,
+.light .modal-body .payment-field-warning span { color: #b45309 !important; }
+.light .modal-body .payment-method-note { color: #64748b !important; }
 
 .light .modal-footer .btn-secondary,
 .light .modal-body .btn-secondary {
@@ -956,3 +969,29 @@
 
 
 
+/* Admin Profile */
+.light .profile-card,
+.light .profile-form-card {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+
+.light .profile-card h2 { color: var(--text-primary); }
+
+.light .profile-card p,
+.light .profile-card span,
+.light .profile-form-grid label {
+  color: var(--text-muted);
+}
+
+.light .profile-form-grid input {
+  background: var(--bg-subtle);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.light .profile-form-grid input:focus {
+  border-color: var(--accent);
+}
+
+.light .profile-saved { color: #047857; }

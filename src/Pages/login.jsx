@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ForgotPassModal from "../Elements/Global/ForgotPassModal";
+import { MIN_PASSWORD_LENGTH } from "../utils/passwordRules";
 import "../styles/Login.css";
 
 export default function Login({ onLogin, onGoToRegister }) {
@@ -18,7 +19,7 @@ export default function Login({ onLogin, onGoToRegister }) {
     else if (username.value.trim().length < 3) newErrors.username = "Min 3 characters";
 
     if (!password.value) newErrors.password = "Password is required";
-    else if (password.value.length < 6) newErrors.password = "Min 6 characters";
+    else if (password.value.length < MIN_PASSWORD_LENGTH) newErrors.password = `Min ${MIN_PASSWORD_LENGTH} characters`;
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;

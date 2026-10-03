@@ -1,18 +1,9 @@
 import { useEffect, useState } from "react";
 import "../../styles/Guest/GuestLanding.css";
+import { RESERVATION_CLOSED_HOURS_MESSAGE, isOutsideReservationHours } from "../../utils/reservations";
 
-const ONLINE_RESERVATION_CLOSE_HOUR = 22;
-
-const isOnlineReservationClosed = () => {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Manila",
-    hour: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(new Date());
-  const hour = Number(parts.find((part) => part.type === "hour")?.value || 0);
-
-  return hour >= ONLINE_RESERVATION_CLOSE_HOUR;
-};
+// Closed from 10 PM until opening, not only until midnight.
+const isOnlineReservationClosed = () => isOutsideReservationHours();
 
 const slides = [
   {
@@ -36,7 +27,7 @@ export default function GuestLanding({ onOpenReservation, onOpenTournamentForm, 
   const reservationsClosed = automaticReservationsClosed || !onlineReservationsOpen;
   const reservationClosedMessage = !onlineReservationsOpen
     ? "Online reservations are temporarily closed by the owner. Please check back later."
-    : "Break & Chill closes at 10:00 PM. Please reserve again tomorrow.";
+    : RESERVATION_CLOSED_HOURS_MESSAGE;
 
   useEffect(() => {
     const refreshReservationAvailability = () => setAutomaticReservationsClosed(isOnlineReservationClosed());

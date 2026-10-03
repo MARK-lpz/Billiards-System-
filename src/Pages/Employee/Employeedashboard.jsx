@@ -6,6 +6,7 @@ import PoolTableCard from "../../Elements/Admin/PoolTableCards";
 import Notification from "../../Elements/Global/Notification";
 import LoadingBar from "../../Elements/Global/Loading";
 import Menu from "../../Elements/Global/Menu";
+import Settings from "../Settings";
 import TournamentSchedule from "./TournamentSchedule";
 import QuickActions from "./QuickAction";
 import SalesPOS from "./SalesPos";
@@ -37,7 +38,6 @@ export default function EmployeeDashboard({
   // Must match a sidebar nav id, otherwise nothing is highlighted on load and
   // the page header has no entry to read its title from.
   const [activeNav, setActiveNav] = useState("Pool Tables");
-  const [search, setSearch] = useState("");
   const [timers, setTimers] = useState({});
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -81,14 +81,9 @@ export default function EmployeeDashboard({
     total: tables.length,
   };
 
-  const filtered = [...tables].filter((table) => {
-    const matchesSearch = `table ${table.id} ${table.status}`
-      .toLowerCase()
-      .includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || table.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  }).sort((left, right) => Number(left.id) - Number(right.id));
+  const filtered = [...tables].filter(
+    (table) => statusFilter === "all" || table.status === statusFilter
+  ).sort((left, right) => Number(left.id) - Number(right.id));
 
   const getTableLabel = (table) => table?.name || `T${table?.id}`;
 
@@ -245,6 +240,9 @@ export default function EmployeeDashboard({
       case "tournaments":
         return <TournamentSchedule events={events} tables={tables} />;
 
+      case "settings":
+        return <Settings theme={theme} setTheme={setTheme} showHeader={false} />;
+
       case "reservations":
         return (
           <ReservationDesk
@@ -307,6 +305,10 @@ export default function EmployeeDashboard({
       title: "Tournament Schedule",
       subtitle: "View tournaments and events created from the admin side",
     },
+    settings: {
+      title: "Settings",
+      subtitle: "Choose how the system looks on this device",
+    },
   };
 
   // A nav id with no entry here, such as the profile view opened from the menu,
@@ -333,29 +335,12 @@ export default function EmployeeDashboard({
               </div>
 
               <div className="header-right">
-                <div className="search-wrapper">
-                  <i className="bi bi-search search-icon"></i>
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="Search tables or status..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-
                 <div className="header-icons">
-                  <button
-                    type="button"
-                    className="theme-toggle-btn"
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  >
-                    {theme === "dark" ? "Light Mode" : "Dark Mode"}
-                  </button>
                   <Notification />
                   <Menu
                     onLogout={onLogout}
                     onProfile={() => handleNavChange("profile")}
+                    onSettings={() => handleNavChange("settings")}
                   />
                 </div>
               </div>

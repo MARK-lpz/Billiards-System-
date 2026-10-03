@@ -490,3 +490,7 @@
   background: rgba(59, 130, 246, 0.1) !important;
   color: #2563eb !important;
 }
+
+.light .payment-check-confirm {
+  color: #0f172a;
+}

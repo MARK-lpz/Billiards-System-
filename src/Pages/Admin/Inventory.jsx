@@ -4,6 +4,7 @@ import InventoryModal from "../../Elements/Admin/InventoryModal.jsx";
 import InventoryStats from "../../Elements/Admin/InventoryStats";
 import InventoryTable from "../../Elements/Admin/InventoryTable";
 import { useNotifications } from "../../Elements/Global/useNotifications";
+import { numberFieldValue } from "../../utils/numberField";
 
 export default function Inventory({ products, setProducts }) {
   const { addNotification } = useNotifications();
@@ -168,9 +169,10 @@ export default function Inventory({ products, setProducts }) {
                   <input
                     type="number"
                     className="form-control"
-                    value={form.restockAmount || 0}
+                    value={numberFieldValue(form.restockAmount)}
                     onChange={e => setForm({ ...form, restockAmount: e.target.value })}
                     min="1"
+                    placeholder="0"
                   />
                 </div>
               </div>

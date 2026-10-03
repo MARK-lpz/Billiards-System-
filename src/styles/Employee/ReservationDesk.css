@@ -490,3 +490,31 @@
     white-space: nowrap;
   }
 }
+
+/* GCash payment check before an online reservation is approved */
+.payment-check-step {
+  margin-top: 16px;
+}
+
+.payment-check-ended {
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.payment-check-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #e2e8f0;
+  font-size: 13px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.payment-check-confirm input {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: #10b981;
+}

@@ -351,3 +351,69 @@
 }
 
 .forgot-privacy-note > i { flex-shrink: 0; margin-top: 2px; color: #34d399; }
+
+/* SMS reset */
+.forgot-info {
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 12px;
+  color: #6ee7b7;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.forgot-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 12px;
+  color: #fde68a;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.forgot-notice > i {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #fbbf24;
+}
+
+.forgot-field-warning {
+  margin: 6px 0 0;
+  color: #fbbf24;
+  font-size: 12px;
+}
+
+.forgot-modal .form-input.forgot-code-input {
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.5em;
+  font-variant-numeric: tabular-nums;
+}
+
+.forgot-link-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #34d399;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.forgot-link-btn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.forgot-link-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

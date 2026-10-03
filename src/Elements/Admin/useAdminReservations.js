@@ -213,8 +213,8 @@ export default function useAdminReservations({
   };
 
   const saveReservation = () => {
-    if (form.phone.trim() && !isValidSmsNumber(form.phone)) {
-      window.alert("Please enter a valid SMS number in 09XXXXXXXXX format.");
+    if (!isValidSmsNumber(form.phone)) {
+      window.alert("Please enter the customer's mobile number in 09XXXXXXXXX format.");
       return;
     }
 
@@ -250,10 +250,12 @@ export default function useAdminReservations({
   };
 
   const hasScheduleConflict = (payload, excludedId) => {
+    // An edit keeps the booked length, so a multi-hour stay is checked in full.
     const candidate = {
       tableId: payload.tableId,
       date: payload.date,
       time: payload.time,
+      durationMinutes: reservations.find((reservation) => reservation.id === excludedId)?.durationMinutes,
     };
 
     if (!payload.date || !payload.time || !hasReservationConflict(reservations, candidate, excludedId)) {

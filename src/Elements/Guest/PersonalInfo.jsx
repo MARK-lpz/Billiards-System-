@@ -56,18 +56,6 @@ export default function PersonalInfoForm({ form, onChange, contactWarning = "" }
           />
         </div>
       </div>
-      <div className="form-field-full">
-        <label className="label">Email Address (Optional)</label>
-        <input
-          className="field-input"
-          type="email"
-          name="email"
-          value={form.email}
-          onChange={onChange}
-          placeholder="juandelacruz@email.com"
-        />
-        <p className="field-hint">We confirm by text. Add an email only if you want a copy there too.</p>
-      </div>
     </>
   );
 }

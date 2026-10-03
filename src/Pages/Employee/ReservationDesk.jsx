@@ -4,7 +4,9 @@ import "../../styles/Employee/ReservationDesk.css";
 import ReservationStats from "../../Elements/Employee/ReservationStats";
 import ReservationQueue from "../../Elements/Employee/ReservationQueue";
 import ReservationModal from "../../Elements/Employee/ReservationModal.jsx";
+import PaymentCheckModal from "../../Elements/Employee/PaymentCheckModal.jsx";
 import {
+  describeReservationTime,
   getAvailableReservationTables,
   getReservationValidationMessage,
   hasReservationConflict,
@@ -48,6 +50,9 @@ export default function ReservationDesk({
   const { addNotification, queueAdminNotification } = useNotifications();
   const [reservationFilter, setReservationFilter] = useState("all");
   const [activeModal, setActiveModal] = useState(null);
+  // The online booking whose GCash payment is being checked.
+  const [paymentCheckTarget, setPaymentCheckTarget] = useState(null);
+  const [paymentCheckBusy, setPaymentCheckBusy] = useState(false);
   const [walkInForm, setWalkInForm] = useState({ customerName: "", tableId: "" });
   const [reservationForm, setReservationForm] = useState({
     customerName: "",
@@ -185,8 +190,8 @@ export default function ReservationDesk({
     const tableId = Number(reservationForm.tableId);
     if (!reservationForm.customerName.trim() || !tableId) return;
 
-    if (reservationForm.phone.trim() && !isValidSmsNumber(reservationForm.phone)) {
-      window.alert("Please enter a valid SMS number in 09XXXXXXXXX format.");
+    if (!isValidSmsNumber(reservationForm.phone)) {
+      window.alert("Please enter the customer's mobile number in 09XXXXXXXXX format.");
       return;
     }
 
@@ -221,7 +226,9 @@ export default function ReservationDesk({
       time: reservationForm.time,
       tableId,
       tableName: table?.name || `Table ${tableId}`,
-      status: "pending",
+      // Booked in person at the front desk, so staff confirm it on the spot: no
+      // admin approval, which would leave a lone employee unable to serve anyone.
+      status: "approved",
       source: "new",
     };
 
@@ -231,7 +238,7 @@ export default function ReservationDesk({
 
       addLog({
         action: "Created reservation",
-        detail: `${savedBooking.customerName} submitted a reservation request for ${savedBooking.tableName} on ${savedBooking.date} ${savedBooking.time || ""}`.trim(),
+        detail: `${savedBooking.customerName} was booked at the front desk for ${savedBooking.tableName} on ${savedBooking.date} ${savedBooking.time || ""}`.trim(),
         customer: {
           previous: null,
           current: {
@@ -243,14 +250,14 @@ export default function ReservationDesk({
         reservation: {
           id: savedBooking.id,
           previousStatus: null,
-          currentStatus: "pending",
+          currentStatus: "approved",
           date: savedBooking.date,
           time: savedBooking.time,
         },
         table: { id: savedBooking.tableId, name: savedBooking.tableName, previousStatus: table?.status, currentStatus: table?.status },
       });
       addNotification({
-        message: `${savedBooking.customerName} reservation request saved for ${savedBooking.tableName} on ${savedBooking.date} at ${savedBooking.time}.`,
+        message: `${savedBooking.customerName} is booked for ${savedBooking.tableName} on ${savedBooking.date} at ${savedBooking.time}.`,
       });
 
       setReservationForm({
@@ -268,24 +275,105 @@ export default function ReservationDesk({
     }
   };
 
-  const handleBookingStatus = async (bookingId, nextStatus) => {
-    const booking = reservations.find((entry) => entry.id === bookingId);
-    if (!booking) return;
-
+  // The server is asked first, so the desk never shows a change it refused.
+  const saveBookingStatus = async (booking, nextStatus) => {
     const nextBooking = { ...booking, status: nextStatus };
 
     try {
       await updateRemoteReservation(nextBooking);
     } catch (error) {
       window.alert(error.message || "Unable to update this reservation.");
-      return;
+      return false;
     }
 
     setReservations((prev) =>
       prev.map((entry) =>
-        entry.id === bookingId ? nextBooking : entry
+        entry.id === booking.id ? nextBooking : entry
       )
     );
+    return true;
+  };
+
+  const bookingAudit = (booking, nextStatus) => ({
+    customer: {
+      previous: { name: booking.customerName, phone: booking.phone },
+      current: nextStatus === "rejected" ? null : { name: booking.customerName, phone: booking.phone },
+    },
+    reservation: { id: booking.id, previousStatus: booking.status, currentStatus: nextStatus, date: booking.date, time: booking.time },
+  });
+
+  // Uses the latest copy of the booking, so a reservation the admin already
+  // decided on while this window was open is not overwritten.
+  const getPendingBooking = (booking) => {
+    const current = reservations.find((entry) => entry.id === booking.id);
+    if (current?.status === "pending") return current;
+
+    window.alert("This reservation was already handled, so nothing was changed.");
+    setPaymentCheckTarget(null);
+    return null;
+  };
+
+  const approveOnlineBooking = async (checkedBooking, closingDigits) => {
+    const booking = getPendingBooking(checkedBooking);
+    if (!booking) return;
+
+    setPaymentCheckBusy(true);
+    const saved = await saveBookingStatus(booking, "approved");
+    setPaymentCheckBusy(false);
+    if (!saved) return;
+
+    const table = tables.find((entry) => isBookingTable(entry, booking));
+    const paymentNote = closingDigits
+      ? `GCash payment found (reference ending ${closingDigits})`
+      : "Payment confirmed without a GCash reference";
+
+    addLog({
+      action: "Approved online reservation",
+      detail: `${booking.customerName}'s booking for ${booking.tableName} on ${booking.date}, ${describeReservationTime(booking)}, was approved. ${paymentNote}.`,
+      ...bookingAudit(booking, "approved"),
+      table: { id: booking.tableId, name: booking.tableName, previousStatus: table?.status, currentStatus: "reserved" },
+    });
+    addNotification({ message: `${booking.customerName}'s payment was verified. ${booking.tableName} is reserved.` });
+    // The admin used to be the only one approving, so they are told it happened.
+    queueAdminNotification({
+      type: "reservation-approved",
+      message: `Front desk approved ${booking.customerName}'s online reservation for ${booking.tableName} on ${booking.date} after finding the GCash payment.`,
+      data: { reservationId: booking.id, tableId: booking.tableId },
+    });
+    setPaymentCheckTarget(null);
+  };
+
+  const rejectOnlineBooking = async (checkedBooking) => {
+    const booking = getPendingBooking(checkedBooking);
+    if (!booking) return;
+
+    setPaymentCheckBusy(true);
+    const saved = await saveBookingStatus(booking, "rejected");
+    setPaymentCheckBusy(false);
+    if (!saved) return;
+
+    const table = tables.find((entry) => isBookingTable(entry, booking));
+    addLog({
+      action: "Rejected online reservation",
+      detail: `${booking.customerName}'s booking for ${booking.tableName} on ${booking.date}, ${describeReservationTime(booking)}, was rejected because the GCash payment could not be found.`,
+      severity: "reject",
+      ...bookingAudit(booking, "rejected"),
+      table: { id: booking.tableId, name: booking.tableName, previousStatus: table?.status, currentStatus: table?.status },
+    });
+    addNotification({ message: `${booking.customerName}'s reservation was rejected. ${booking.tableName} is free for that time again.` });
+    queueAdminNotification({
+      type: "reservation-rejected",
+      message: `Front desk rejected ${booking.customerName}'s online reservation for ${booking.tableName} on ${booking.date}: the GCash payment could not be found.`,
+      data: { reservationId: booking.id, tableId: booking.tableId },
+    });
+    setPaymentCheckTarget(null);
+  };
+
+  const handleBookingStatus = async (bookingId, nextStatus) => {
+    const booking = reservations.find((entry) => entry.id === bookingId);
+    if (!booking) return;
+
+    if (!(await saveBookingStatus(booking, nextStatus))) return;
 
     if (nextStatus === "arrived") {
       addLog({
@@ -304,6 +392,11 @@ export default function ReservationDesk({
         status: "occupied",
         customer: booking.customerName,
         startTime: Date.now(),
+        // An online guest paid for the hours they picked, so the timer runs that
+        // long instead of the table's default session.
+        ...(booking.source === "online" && Number(booking.durationMinutes) > 0
+          ? { durationMinutes: Number(booking.durationMinutes), addedMinutes: 0 }
+          : {}),
       });
       addLog({
         action: "Assigned reserved table",
@@ -377,7 +470,19 @@ export default function ReservationDesk({
         reservationFilter={reservationFilter}
         setReservationFilter={setReservationFilter}
         onBookingStatus={handleBookingStatus}
+        onCheckPayment={setPaymentCheckTarget}
       />
+
+      {paymentCheckTarget && (
+        <PaymentCheckModal
+          key={paymentCheckTarget.id}
+          booking={paymentCheckTarget}
+          busy={paymentCheckBusy}
+          onApprove={approveOnlineBooking}
+          onReject={rejectOnlineBooking}
+          onClose={() => setPaymentCheckTarget(null)}
+        />
+      )}
 
       {activeModal && (
         <ReservationModal

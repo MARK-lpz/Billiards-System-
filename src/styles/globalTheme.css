@@ -653,6 +653,7 @@
 }
 
 .light .pool-time-close,
+.light .pool-modal-close,
 .light .pool-time-modal-note,
 .light .pool-time-preset-toggle,
 .light .table-time-close,
@@ -662,6 +663,7 @@
 }
 
 .light .pool-time-close:hover,
+.light .pool-modal-close:hover,
 .light .table-time-close:hover {
   background: var(--bg-muted);
   color: var(--text-primary);

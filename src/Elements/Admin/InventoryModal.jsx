@@ -1,3 +1,5 @@
+import { numberFieldValue, readNumberField } from "../../utils/numberField";
+
 export default function InventoryModal({ form, setForm, editId, onClose, onSave }) {
   return (
     <>
@@ -52,9 +54,10 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
                   <input
                     type="number"
                     className="form-control"
-                    value={form.price}
-                    onChange={e => setForm({ ...form, price: Number(e.target.value) })}
+                    value={numberFieldValue(form.price)}
+                    onChange={e => setForm({ ...form, price: readNumberField(e) })}
                     min="0"
+                    placeholder="0"
                   />
                   <small className="form-text text-muted">Selling price for one piece.</small>
                 </div>
@@ -63,9 +66,10 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
                   <input
                     type="number"
                     className="form-control"
-                    value={form.stock}
-                    onChange={e => setForm({ ...form, stock: Number(e.target.value) })}
+                    value={numberFieldValue(form.stock)}
+                    onChange={e => setForm({ ...form, stock: readNumberField(e) })}
                     min="0"
+                    placeholder="0"
                   />
                 </div>
                 <div className="col-4">
@@ -73,9 +77,10 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
                   <input
                     type="number"
                     className="form-control"
-                    value={form.minStock}
-                    onChange={e => setForm({ ...form, minStock: Number(e.target.value) })}
+                    value={numberFieldValue(form.minStock)}
+                    onChange={e => setForm({ ...form, minStock: readNumberField(e) })}
                     min="0"
+                    placeholder="0"
                   />
                 </div>
               </div>

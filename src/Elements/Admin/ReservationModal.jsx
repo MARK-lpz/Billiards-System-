@@ -1,8 +1,11 @@
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
+import { numberFieldValue, readNumberField } from "../../utils/numberField";
 
 export default function ReservationModal({ form, setForm, editId, tables, onClose, onSave }) {
   const phoneWarning = getSmsWarning(form.phone);
-  const phoneIsValid = !form.phone.trim() || isValidSmsNumber(form.phone);
+  // Required: every booking must have a number to reach the customer, and the
+  // server refuses bookings without one.
+  const phoneIsValid = isValidSmsNumber(form.phone);
 
   return (
     <>
@@ -44,6 +47,7 @@ export default function ReservationModal({ form, setForm, editId, tables, onClos
                   placeholder="09XXXXXXXXX"
                   inputMode="numeric"
                   maxLength="11"
+                  required
                 />
                 {phoneWarning && (
                   <div className="reservations-field-warning">{phoneWarning}</div>
@@ -92,9 +96,10 @@ export default function ReservationModal({ form, setForm, editId, tables, onClos
                   <input 
                     type="number" 
                     className="form-control" 
-                    value={form.partySize}
-                    onChange={e => setForm({ ...form, partySize: Number(e.target.value) })}
+                    value={numberFieldValue(form.partySize)}
+                    onChange={e => setForm({ ...form, partySize: readNumberField(e) })}
                     min="1"
+                    placeholder="1"
                   />
                 </div>
               </div>

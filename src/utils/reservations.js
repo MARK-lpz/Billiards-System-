@@ -3,6 +3,8 @@ export const RESERVATION_OPEN_TIME = "10:00";
 export const RESERVATION_CUTOFF_TIME = "22:00";
 export const DEFAULT_RESERVATION_DURATION_MINUTES = 60;
 export const RESERVATION_SLOT_MINUTES = 30;
+// Guests book whole hours, at least this many, starting at any time they choose.
+export const MIN_RESERVATION_HOURS = 1;
 
 const ACTIVE_STATUSES = new Set(["pending", "approved", "reserved", "arrived", "seated"]);
 
@@ -124,12 +126,75 @@ const toTimeValue = (minutesOfDay) => {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 };
 
+const formatClock = (time) => formatTime(toDateTime("2000-01-01", time));
+
+export const RESERVATION_CLOSED_HOURS_MESSAGE = `Break & Chill closes at ${formatClock(RESERVATION_CUTOFF_TIME)}. Online reservations open again at ${formatClock(RESERVATION_OPEN_TIME)}.`;
+
 /**
- * Every start time one table can still take on a date, so the guest picks from
- * what is actually free instead of typing a time and being turned away.
- * The table must be chosen first: a slot is only free for a specific table.
+ * True from closing until opening, Manila time. Checking only "10 PM or later"
+ * let reservations reopen at midnight, while the hall was still closed.
  */
-export const getAvailableTimeSlots = ({
+export const isOutsideReservationHours = (now = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Manila",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const read = (type) => Number(parts.find((part) => part.type === type)?.value || 0);
+  const minutes = read("hour") * 60 + read("minute");
+
+  return minutes >= toMinutesOfDay(RESERVATION_CUTOFF_TIME) || minutes < toMinutesOfDay(RESERVATION_OPEN_TIME);
+};
+
+/** "2 hours", "1 hour 30 min": a booking length in words. */
+export const formatHoursLabel = (minutes) => {
+  const total = Math.max(0, Math.round(Number(minutes) || 0));
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
+  const hourText = hours ? `${hours} ${hours === 1 ? "hour" : "hours"}` : "";
+  const minuteText = rest ? `${rest} min` : "";
+  return [hourText, minuteText].filter(Boolean).join(" ") || "0 min";
+};
+
+/** "1:00 PM - 3:00 PM (2 hours)", from a reservation's start time and length. */
+export const describeReservationTime = (reservation) => {
+  const range = reservation ? getCandidateRange(reservation) : null;
+  if (!range) return reservation?.time || "";
+
+  return `${formatTime(range.start)} - ${formatTime(range.end)} (${formatHoursLabel(getDurationMinutes(reservation))})`;
+};
+
+/** True once a booking's last minute is over, so it can no longer be approved. */
+export const hasReservationEnded = (reservation, now = new Date()) => {
+  const range = reservation ? getCandidateRange(reservation) : null;
+  return Boolean(range) && range.end <= now;
+};
+
+/** The clock time a booking ends, e.g. ("13:00", 120) gives "15:00". */
+export const addMinutesToTime = (time, minutes) => toTimeValue(toMinutesOfDay(time) + Number(minutes || 0));
+
+// The earliest minute of the day a booking can start: opening time, or for today
+// the next half hour from now, so nothing is sold that has already begun.
+// Null when the date is already over.
+const getEarliestStartMinutes = (date, now) => {
+  const today = now.toLocaleDateString("en-CA");
+  if (date < today) return null;
+
+  const opening = toMinutesOfDay(RESERVATION_OPEN_TIME);
+  if (date > today) return opening;
+
+  const nextMinute = now.getHours() * 60 + now.getMinutes() + 1;
+  return Math.max(opening, Math.ceil(nextMinute / RESERVATION_SLOT_MINUTES) * RESERVATION_SLOT_MINUTES);
+};
+
+/**
+ * The stretches of a date one table is still free, from opening (or now, for
+ * today) to closing, so a guest can see how long they could stay before typing a
+ * start time and choosing how many hours. Gaps shorter than the minimum booking
+ * are left out, since nobody could reserve them.
+ */
+export const getOpenTimeWindows = ({
   table,
   reservations = [],
   events = [],
@@ -139,36 +204,128 @@ export const getAvailableTimeSlots = ({
 }) => {
   if (!table || !date) return [];
 
-  const slots = [];
-  const closingMinutes = toMinutesOfDay(RESERVATION_CUTOFF_TIME);
+  // Maintenance and all-day tournament holds close the whole date.
+  const dayAvailability = getTableReservationAvailability({
+    table,
+    reservations,
+    events,
+    candidate: { tableId: table.id, date, time: "" },
+  });
+  if (!dayAvailability.available) return [];
 
-  // The last offered slot has to finish by closing, so nothing is sold that runs
-  // past the hour the hall shuts.
-  for (
-    let minutes = toMinutesOfDay(RESERVATION_OPEN_TIME);
-    minutes + DEFAULT_RESERVATION_DURATION_MINUTES <= closingMinutes;
-    minutes += RESERVATION_SLOT_MINUTES
-  ) {
-    const time = toTimeValue(minutes);
+  const earliest = getEarliestStartMinutes(date, now);
+  if (earliest === null) return [];
 
-    // Skips slots already gone today and anything past the closing cutoff.
-    if (getReservationValidationMessage(date, time, now)) continue;
+  const closing = toMinutesOfDay(RESERVATION_CUTOFF_TIME);
+  const dayStart = toDateTime(date, "00:00").getTime();
+  const toDayMinutes = (moment) => Math.round((moment.getTime() - dayStart) / 60000);
 
-    const availability = getTableReservationAvailability({
-      table,
-      reservations,
-      events,
-      candidate: { tableId: table.id, date, time },
-      excludeId,
+  const busyRanges = reservations
+    .filter(
+      (reservation) =>
+        reservation &&
+        reservation.id !== excludeId &&
+        ACTIVE_STATUSES.has(reservation.status) &&
+        Number(reservation.tableId ?? reservation.table) === Number(table.id)
+    )
+    .map(getCandidateRange)
+    .filter(Boolean);
+
+  const occupiedRange = getOccupiedTableRange(table);
+  if (occupiedRange) busyRanges.push(occupiedRange);
+
+  const taken = busyRanges
+    .map((range) => ({ start: toDayMinutes(range.start), end: toDayMinutes(range.end) }))
+    .filter((range) => range.end > earliest && range.start < closing)
+    .sort((first, second) => first.start - second.start);
+
+  const windows = [];
+  const addWindow = (start, end) => {
+    if (end - start < MIN_RESERVATION_HOURS * 60) return;
+
+    windows.push({
+      start: toTimeValue(start),
+      end: toTimeValue(end),
+      startMinutes: start,
+      endMinutes: end,
+      label: `${formatClock(toTimeValue(start))} - ${formatClock(toTimeValue(end))}`,
+      maxHours: Math.floor((end - start) / 60),
     });
-    if (!availability.available) continue;
+  };
 
-    const start = toDateTime(date, time);
-    const end = new Date(start.getTime() + DEFAULT_RESERVATION_DURATION_MINUTES * 60 * 1000);
-    slots.push({ value: time, label: `${formatTime(start)} - ${formatTime(end)}` });
+  let cursor = earliest;
+  taken.forEach((range) => {
+    if (range.start > cursor) addWindow(cursor, Math.min(range.start, closing));
+    cursor = Math.max(cursor, range.end);
+  });
+  if (cursor < closing) addWindow(cursor, closing);
+
+  return windows;
+};
+
+/**
+ * How many whole hours one table can be booked from the start time a guest
+ * typed, judged against its open windows. `reason` says why a start cannot be
+ * booked, in words the guest can act on.
+ */
+export const checkReservationStart = ({ windows = [], date, time, now = new Date() }) => {
+  if (!date || !time) return { maxHours: 0, reason: "" };
+
+  const start = toMinutesOfDay(time);
+  const opening = toMinutesOfDay(RESERVATION_OPEN_TIME);
+  const closing = toMinutesOfDay(RESERVATION_CUTOFF_TIME);
+  const closingText = `Break & Chill closes at ${formatClock(RESERVATION_CUTOFF_TIME)}`;
+  const lastStart = formatClock(toTimeValue(closing - MIN_RESERVATION_HOURS * 60));
+  if (start >= closing) {
+    return { maxHours: 0, reason: `${closingText}. Please select a reservation time before closing.` };
+  }
+  if (start < opening) {
+    return {
+      maxHours: 0,
+      reason: `Reservations start at ${formatClock(RESERVATION_OPEN_TIME)}. Please choose a later time.`,
+    };
   }
 
-  return slots;
+  const earliest = getEarliestStartMinutes(date, now);
+  if (earliest === null) {
+    return { maxHours: 0, reason: "That date has already passed. Please choose another date." };
+  }
+  if (earliest + MIN_RESERVATION_HOURS * 60 > closing) {
+    return {
+      maxHours: 0,
+      reason: `${closingText}, so no more reservations can be made for today. Please choose another date.`,
+    };
+  }
+  if (start < earliest) {
+    const earliestText = `The earliest start time left today is ${formatClock(toTimeValue(earliest))}.`;
+    return {
+      maxHours: 0,
+      reason: toDateTime(date, time) <= now ? `That time has already passed. ${earliestText}` : earliestText,
+    };
+  }
+
+  const window = windows.find((entry) => start >= entry.startMinutes && start < entry.endMinutes);
+  if (!window) {
+    return {
+      maxHours: 0,
+      reason: `This table is not open for a booking at ${formatClock(time)}. Please start inside one of the open times shown.`,
+    };
+  }
+
+  const freeMinutes = window.endMinutes - start;
+  const maxHours = Math.floor(freeMinutes / 60);
+  if (maxHours < MIN_RESERVATION_HOURS) {
+    return {
+      maxHours: 0,
+      // Running into closing gets its own wording, so the 10 PM limit is named.
+      reason:
+        window.endMinutes === closing
+          ? `${closingText}, so only ${freeMinutes} minutes are left from ${formatClock(time)}. A booking needs at least 1 hour, so please start by ${lastStart}.`
+          : `Only ${freeMinutes} minutes are free from ${formatClock(time)} to ${formatClock(window.end)}. A booking needs at least 1 hour, so please start a little earlier.`,
+    };
+  }
+
+  return { maxHours, reason: "", window };
 };
 
 /**

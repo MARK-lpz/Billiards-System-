@@ -1,6 +1,12 @@
 ﻿import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 
-export default function PoolTableCard({ 
+// The pop-up is drawn at the app's theme wrapper, not inside the card: the card
+// lifts on hover with a CSS transform, which would drag a fixed pop-up along with
+// it, and the wrapper is what carries the light/dark theme rules.
+const getModalRoot = () => document.querySelector("#root > .dark, #root > .light") || document.body;
+
+export default function PoolTableCard({
   table, 
   onWalkIn, 
   onEndSession, 
@@ -45,6 +51,16 @@ export default function PoolTableCard({
     }, 1000);
     return () => clearInterval(interval);
   }, [table.startTime, table.durationMinutes, isOccupied]);
+
+  // Escape closes the pop-up, like every other modal in the system.
+  useEffect(() => {
+    if (!isTimeModalOpen) return;
+    const handleKey = (event) => {
+      if (event.key === "Escape") setIsTimeModalOpen(false);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [isTimeModalOpen]);
 
   const plannedSeconds = Math.max(0, Number(table.durationMinutes || 60) * 60);
   const adjustmentMinutes = Number(extensionMinutes);
@@ -197,87 +213,96 @@ export default function PoolTableCard({
         )}
       </div>
 
-      {isTimeModalOpen && (
-        <div
-          className="pool-time-modal"
-          role="dialog"
-          aria-labelledby={`time-modal-title-${table.id}`}
-        >
-            <div className="pool-time-modal-header">
-              <h3 id={`time-modal-title-${table.id}`}>Adjust {table.name} Time</h3>
-              <button
-                type="button"
-                className="pool-time-close"
-                aria-label="Close time adjustment"
-                onClick={() => setIsTimeModalOpen(false)}
+      {isTimeModalOpen && createPortal(
+        <>
+          <div className="modal-backdrop show" onClick={() => setIsTimeModalOpen(false)} />
+          <div className="modal show" onClick={() => setIsTimeModalOpen(false)}>
+            <div className="modal-dialog modal-dialog-centered modal-sm" onClick={(event) => event.stopPropagation()}>
+              <div
+                className="pool-time-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={`time-modal-title-${table.id}`}
               >
-                <i className="bi bi-x-lg"></i>
-              </button>
-            </div>
-            <label className="pool-time-input-label" htmlFor={`time-minutes-${table.id}`}>Time adjustment (minutes)</label>
-              <div className="pool-time-combobox">
-              <input
-                id={`time-minutes-${table.id}`}
-                className="pool-time-input"
-                type="text"
-                inputMode="numeric"
-                value={extensionMinutes}
-                onChange={(event) => setExtensionMinutes(event.target.value)}
-              />
-              <button
-                type="button"
-                className="pool-time-preset-toggle"
-                aria-label="Show time presets"
-                aria-expanded={showTimePresets}
-                onClick={() => setShowTimePresets((isOpen) => !isOpen)}
-              >
-                <i className={`bi bi-chevron-${showTimePresets ? "up" : "down"}`}></i>
-              </button>
-              {showTimePresets && (
-                <div className="pool-time-presets" role="listbox">
-                  {[
-                    ["20", "20 min"],
-                    ["30", "30 min"],
-                    ["60", "1 hour"],
-                  ].map(([value, label]) => (
-                    <button key={value} type="button" role="option" onClick={() => {
-                      setExtensionMinutes(value);
-                      setShowTimePresets(false);
-                    }}>
-                      {label}
-                    </button>
-                  ))}
+                <div className="pool-time-modal-header">
+                  <h3 id={`time-modal-title-${table.id}`}>Adjust {table.name} Time</h3>
+                  <button
+                    type="button"
+                    className="pool-time-close"
+                    aria-label="Close time adjustment"
+                    onClick={() => setIsTimeModalOpen(false)}
+                  >
+                    <i className="bi bi-x-lg"></i>
+                  </button>
                 </div>
-              )}
+                <label className="pool-time-input-label" htmlFor={`time-minutes-${table.id}`}>Time adjustment (minutes)</label>
+                <div className="pool-time-combobox">
+                  <input
+                    id={`time-minutes-${table.id}`}
+                    className="pool-time-input"
+                    type="text"
+                    inputMode="numeric"
+                    value={extensionMinutes}
+                    onChange={(event) => setExtensionMinutes(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="pool-time-preset-toggle"
+                    aria-label="Show time presets"
+                    aria-expanded={showTimePresets}
+                    onClick={() => setShowTimePresets((isOpen) => !isOpen)}
+                  >
+                    <i className={`bi bi-chevron-${showTimePresets ? "up" : "down"}`}></i>
+                  </button>
+                  {showTimePresets && (
+                    <div className="pool-time-presets" role="listbox">
+                      {[
+                        ["20", "20 min"],
+                        ["30", "30 min"],
+                        ["60", "1 hour"],
+                      ].map(([value, label]) => (
+                        <button key={value} type="button" role="option" onClick={() => {
+                          setExtensionMinutes(value);
+                          setShowTimePresets(false);
+                        }}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="pool-time-modal-note">Choose a preset or enter the number of minutes to add or undo.</p>
+                <div className="pool-time-modal-actions">
+                  <button
+                    type="button"
+                    className="btn pool-time-add-button"
+                    disabled={!isValidAdjustment}
+                    onClick={() => {
+                      onAddTime(adjustmentMinutes);
+                      setIsTimeModalOpen(false);
+                    }}
+                  >
+                    <i className="bi bi-plus-circle me-1"></i>
+                    Add Time
+                  </button>
+                  <button
+                    type="button"
+                    className="btn pool-time-undo-button"
+                    disabled={!isValidAdjustment || !Number(table.addedMinutes || 0)}
+                    onClick={() => {
+                      onUndoTime(adjustmentMinutes);
+                      setIsTimeModalOpen(false);
+                    }}
+                  >
+                    <i className="bi bi-arrow-counterclockwise me-1"></i>
+                    Undo Time
+                  </button>
+                </div>
+              </div>
             </div>
-            <p className="pool-time-modal-note">Choose a preset or enter the number of minutes to add or undo.</p>
-            <div className="pool-time-modal-actions">
-              <button
-                type="button"
-                className="btn pool-time-add-button"
-                disabled={!isValidAdjustment}
-                onClick={() => {
-                  onAddTime(adjustmentMinutes);
-                  setIsTimeModalOpen(false);
-                }}
-              >
-                <i className="bi bi-plus-circle me-1"></i>
-                Add Time
-              </button>
-              <button
-                type="button"
-                className="btn pool-time-undo-button"
-                disabled={!isValidAdjustment || !Number(table.addedMinutes || 0)}
-                onClick={() => {
-                  onUndoTime(adjustmentMinutes);
-                  setIsTimeModalOpen(false);
-                }}
-              >
-                <i className="bi bi-arrow-counterclockwise me-1"></i>
-                Undo Time
-              </button>
-            </div>
-        </div>
+          </div>
+        </>,
+        getModalRoot()
       )}
     </div>
   );

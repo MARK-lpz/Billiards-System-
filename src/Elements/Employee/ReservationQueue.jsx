@@ -1,6 +1,7 @@
 // ReservationQueue.jsx
 import { useState } from "react";
 import ConfirmDialog from "../Global/ConfirmDialog";
+import { describeReservationTime } from "../../utils/reservations";
 
 const HISTORY_STATUSES = new Set(["completed", "cancelled", "rejected", "expired"]);
 
@@ -10,6 +11,7 @@ export default function ReservationQueue({
   reservationFilter,
   setReservationFilter,
   onBookingStatus,
+  onCheckPayment,
 }) {
   // Cancelling cannot be undone, so the click only arms the confirmation.
   const [cancelTarget, setCancelTarget] = useState(null);
@@ -102,7 +104,7 @@ export default function ReservationQueue({
                     </td>
                     <td>
                       <div className="rd-table-datetime">{booking.date}</div>
-                      <span className="rd-table-sub">{booking.time || "No time set"}</span>
+                      <span className="rd-table-sub">{describeReservationTime(booking) || "No time set"}</span>
                     </td>
                     <td className="rd-table-name">{booking.tableName}</td>
                     <td className="rd-table-pax">{booking.partySize}</td>
@@ -113,7 +115,9 @@ export default function ReservationQueue({
                     </td>
                     <td className="rd-table-notes">
                       {booking.notes || (booking.status === "pending"
-                        ? "Waiting for admin approval"
+                        ? booking.source === "online"
+                          ? "Paid online by GCash. Check the payment to approve."
+                          : "Waiting for admin approval"
                         : booking.source === "existing"
                           ? "Imported from table status"
                           : booking.source === "online"
@@ -122,7 +126,21 @@ export default function ReservationQueue({
                     </td>
                     <td>
                       <div className="rd-actions">
-                        {booking.status === "pending" && (
+                        {/* Online bookings are paid by GCash, so the desk can approve
+                            them once the payment is found; other pending ones stay
+                            with the admin. */}
+                        {booking.status === "pending" && booking.source === "online" && (
+                          <button
+                            type="button"
+                            className="rd-primary-btn"
+                            onClick={() => onCheckPayment(booking)}
+                          >
+                            <i className="bi bi-shield-check"></i>
+                            Check Payment
+                          </button>
+                        )}
+
+                        {booking.status === "pending" && booking.source !== "online" && (
                           <button
                             type="button"
                             className="rd-secondary-btn"

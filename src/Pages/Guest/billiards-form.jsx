@@ -10,15 +10,13 @@ import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils
 import { registerRemoteTournamentParticipant } from "../../utils/eventApi";
 import GcashPayment from "../../Elements/Guest/GcashPayment";
 import { validateReference } from "../../utils/paymentReference";
-import { queueCustomerMessage } from "../../utils/customerMessageApi";
-import { buildTournamentMessage } from "../../utils/customerMessages";
+import { sendCustomerConfirmation } from "../../utils/customerMessageApi";
 
 export default function TournamentForm({ events = [], setEvents, onGoBack }) {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
     contact: "",
-    email: "",
     age: "",
     eventId: "",
     gameType: "",
@@ -29,7 +27,8 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
   });
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [customerMessage, setCustomerMessage] = useState("");
+  // { text, status } from the server; status says whether it was really texted.
+  const [customerMessage, setCustomerMessage] = useState(null);
   const availableEvents = events.filter((event) =>
     ["upcoming", "active"].includes(String(event.status || "").toLowerCase())
   );
@@ -95,29 +94,21 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
       existingNotifications.unshift(notification);
       localStorage.setItem('adminNotifications', JSON.stringify(existingNotifications));
 
-      const playerMessage = buildTournamentMessage({
-        customerName: playerName,
-        eventName: selectedEvent.name,
-        date: selectedEvent.date,
-        time: selectedEvent.time,
-        total: entryFee,
-        reference: paymentRequired ? paymentCheck.digits : "no entry fee",
-      });
-
       // A failed text must never lose a paid registration, so this is best effort.
       try {
-        await queueCustomerMessage({
-          phone: form.contact,
-          customerName: playerName,
-          context: "tournament",
-          referenceId: String(selectedEvent.id),
-          message: playerMessage,
-        });
+        setCustomerMessage(
+          await sendCustomerConfirmation({
+            context: "tournament",
+            referenceId: String(selectedEvent.id),
+            phone: form.contact,
+            participant: playerLabel,
+            paymentReference: paymentRequired ? paymentCheck.digits : "",
+          })
+        );
       } catch (messageError) {
-        console.warn("Unable to queue the player confirmation", messageError);
+        console.warn("Unable to send the player confirmation", messageError);
       }
 
-      setCustomerMessage(playerMessage);
       setSubmitted(true);
     } catch (error) {
       console.error('Error sending notification:', error);
@@ -127,12 +118,12 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
 
   const handleReset = () => {
     setForm({
-      firstName: "", lastName: "", contact: "", email: "",
+      firstName: "", lastName: "", contact: "",
       age: "", eventId: "", gameType: "", format: "", skillLevel: "",
       teamName: "", paymentReference: "",
     });
     setSubmitted(false);
-    setCustomerMessage("");
+    setCustomerMessage(null);
     setSubmitError("");
   };
 
@@ -223,12 +214,12 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
                 <div className="customer-message-card">
                   <div className="customer-message-head">
                     <i className="bi bi-chat-left-text-fill" aria-hidden="true"></i>
-                    <strong>Sent to {form.contact}</strong>
+                    <strong>
+                      {customerMessage.status === "sent" ? `Texted to ${form.contact}` : "Your confirmation"}
+                    </strong>
                   </div>
-                  <p className="customer-message-body">{customerMessage}</p>
-                  <p className="customer-message-note">
-                    Keep this for your records. We will message the same number once your slot is confirmed.
-                  </p>
+                  <p className="customer-message-body">{customerMessage.text}</p>
+                  <p className="customer-message-note">Keep this for your records.</p>
                 </div>
               )}
             </>

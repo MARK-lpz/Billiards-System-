@@ -139,7 +139,7 @@ export default function PoolTables({ tables, setTables }) {
   const saveTable = () => {
     if (editId) {
       setTables(prev => prev.map(t => 
-        t.id === editId ? { ...t, ...form } : t
+        t.id === editId ? { ...t, ...form, durationMinutes: Number(form.durationMinutes || 60) } : t
       ));
     } else {
       setTables(prev => [...prev, { 
@@ -238,7 +238,14 @@ export default function PoolTables({ tables, setTables }) {
                   <i className="bi bi-exclamation-triangle me-2"></i>
                   End Session Warning
                 </h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setEndingTable(null)}></button>
+                <button
+                  type="button"
+                  className="pool-modal-close"
+                  aria-label="Close end session warning"
+                  onClick={() => setEndingTable(null)}
+                >
+                  <i className="bi bi-x-lg"></i>
+                </button>
               </div>
               <div className="modal-body">
                 <p className="pool-end-copy">

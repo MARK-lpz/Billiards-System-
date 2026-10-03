@@ -1,3 +1,5 @@
+import { numberFieldValue, readNumberField } from "../../utils/numberField";
+
 export default function PoolTableModal({ form, setForm, editId, onClose, onSave }) {
   return (
     <>
@@ -27,9 +29,10 @@ export default function PoolTableModal({ form, setForm, editId, onClose, onSave 
                 <input 
                   type="number" 
                   className="form-control" 
-                  value={form.rate} 
-                  onChange={e => setForm({ ...form, rate: Number(e.target.value) })}
+                  value={numberFieldValue(form.rate)} 
+                  onChange={e => setForm({ ...form, rate: readNumberField(e) })}
                   min="0"
+                  placeholder="0"
                 />
               </div>
               <div className="mb-3">
@@ -37,10 +40,11 @@ export default function PoolTableModal({ form, setForm, editId, onClose, onSave 
                 <input
                   type="number"
                   className="form-control"
-                  value={form.durationMinutes || 60}
-                  onChange={e => setForm({ ...form, durationMinutes: Number(e.target.value) })}
+                  value={numberFieldValue(form.durationMinutes)}
+                  onChange={e => setForm({ ...form, durationMinutes: readNumberField(e) })}
                   min="15"
                   step="15"
+                  placeholder="60"
                 />
               </div>
             </div>

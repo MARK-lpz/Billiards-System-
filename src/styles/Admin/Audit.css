@@ -134,8 +134,8 @@
   grid-template-columns: 1fr 1fr;
 }
 
-.account-form--credentials select,
-.account-form--credentials .btn-success {
+/* Only the account picker is wide, so mobile, password and the button share a row. */
+.account-form--credentials select {
   grid-column: span 2;
 }
 
@@ -152,6 +152,11 @@
   color: #94a3b8;
   font-size: 13px;
   margin: 4px 0 0;
+}
+
+.account-message--warning {
+  margin-top: 10px;
+  color: #fbbf24;
 }
 
 .account-management-header .btn-secondary {

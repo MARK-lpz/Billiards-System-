@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ConfirmDialog from "../Global/ConfirmDialog";
+import { describeReservationTime } from "../../utils/reservations";
 
 const HISTORY_STATUSES = new Set(["completed", "rejected", "cancelled", "expired"]);
 
@@ -59,7 +60,7 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
                       <td className="reservations-datetime">
                         {r.date}
                         <br />
-                        <span className="reservations-time">{r.time}</span>
+                        <span className="reservations-time">{describeReservationTime(r)}</span>
                       </td>
                       <td>{r.tableName || `Table ${r.tableId ?? r.table}`}</td>
                       <td>{r.partySize ?? r.pax} pax</td>

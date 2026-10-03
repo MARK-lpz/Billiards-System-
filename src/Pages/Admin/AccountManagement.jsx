@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import "../../styles/Admin/Audit.css";
 import AdminCredentialsManager from "../../Elements/Admin/AdminCredentialsManager";
+import { MIN_PASSWORD_LENGTH, isPasswordTooShort } from "../../utils/passwordRules";
+import { isValidSmsNumber, normalizeMobileNumber } from "../../utils/phone";
 import AuditAccountManager from "../../Elements/Admin/AuditAccountManager";
 import PasswordResetHistory from "../../Elements/Admin/PasswordResetHistory";
 import { fetchPasswordResets } from "../../utils/passwordResetApi";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 
-const emptyCredentialForm = { id: null, username: "", email: "", password: "" };
+const emptyCredentialForm = { id: null, username: "", phone: "", password: "" };
 
 export default function AccountManagement({ setLogs }) {
   const { addNotification } = useNotifications();
@@ -97,15 +99,21 @@ export default function AccountManagement({ setLogs }) {
       setMessage("Admin accounts cannot be created from this page.");
       return false;
     }
+    if (form.phone && !isValidSmsNumber(form.phone)) {
+      setMessage("Enter the mobile number in 09XXXXXXXXX format, or leave it blank.");
+      return false;
+    }
 
     const payload = {
       id: form.id,
       username,
       password: form.password,
       role,
-      email: (form.email ?? existingAccount?.email ?? "").trim(),
+      // The form no longer edits email, so the stored one is sent back unchanged
+      // rather than blanked.
+      email: existingAccount?.email || "",
       fullName: existingAccount?.fullName || existingAccount?.full_name || "",
-      phone: existingAccount?.phone || "",
+      phone: form.phone || "",
     };
     let savedAccount = { ...payload, id: form.id || Date.now() };
 
@@ -140,7 +148,7 @@ export default function AccountManagement({ setLogs }) {
     const account = adminAccounts.find((item) => String(item.id) === String(id));
     setAdminForm(
       account
-        ? { id: account.id, username: account.username || "", email: account.email || "", password: "" }
+        ? { id: account.id, username: account.username || "", phone: normalizeMobileNumber(account.phone), password: "" }
         : emptyCredentialForm
     );
     setAdminMessage("");
@@ -148,6 +156,11 @@ export default function AccountManagement({ setLogs }) {
 
   const saveAdmin = async (event) => {
     event.preventDefault();
+    // Stops here, before saving: a refused save would still be logged as updated.
+    if (isPasswordTooShort(adminForm.password)) {
+      setAdminMessage(`New password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
     const saved = await persistAccount({
       form: adminForm,
       role: "admin",
@@ -159,6 +172,11 @@ export default function AccountManagement({ setLogs }) {
 
   const saveEmployee = async (event) => {
     event.preventDefault();
+    // Same reason as saveAdmin: stop before a refused save gets logged as done.
+    if (isPasswordTooShort(employeeForm.password)) {
+      setEmployeeMessage(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
     const saved = await persistAccount({
       form: employeeForm,
       role: "employee",
@@ -172,7 +190,7 @@ export default function AccountManagement({ setLogs }) {
     setEmployeeForm({
       id: account.id,
       username: account.username || "",
-      email: account.email || "",
+      phone: normalizeMobileNumber(account.phone),
       password: "",
     });
     setEmployeeMessage("");

@@ -75,6 +75,17 @@
   color: #f0f0f0;
 }
 
+/* Light picker icons and a dark picker popup on the dark form. */
+.field-input[type="date"],
+.field-input[type="time"] {
+  color-scheme: dark;
+}
+
+.field-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .reservation-notes {
   min-height: 6.75rem;
   resize: vertical;
@@ -202,16 +213,6 @@
   letter-spacing: 0.04em;
 }
 
-/* Quiet helper text for fields that are not required */
-.field-hint {
-  margin: 8px 0 0;
-  color: #94a3b8;
-  font-family: 'Josefin Sans', sans-serif;
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  line-height: 1.5;
-}
-
 
 
 /* Booked times for the chosen date */
@@ -269,6 +270,33 @@
 }
 
 .reservation-booked-row.tournament .reservation-booked-time { color: #fcd34d; }
+
+/* Free stretches of the chosen table */
+.reservation-open-times {
+  margin-bottom: 16px;
+  border-color: rgba(0, 201, 122, 0.3);
+}
+
+.reservation-open-times .reservation-booked-head > i { color: #00c97a; }
+
+.reservation-booked-row.open {
+  border-left-color: #00c97a;
+  background: rgba(0, 201, 122, 0.08);
+}
+
+.reservation-booked-row.open .reservation-booked-time { color: #6ee7b7; }
+
+.reservation-booked-closed {
+  margin: 0;
+  color: #ff8f8f;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.reservation-time-helper {
+  margin: -8px 0 16px;
+}
 
 .reservation-booked-empty {
   margin: 0;

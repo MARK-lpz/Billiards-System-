@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const DEFAULT_PROFILE = {
   fullName: "System Administrator",
-  gmail: "",
   phone: "",
   branch: "Break & Chill Main Branch",
   position: "Admin",
@@ -16,7 +15,6 @@ export default function AdminProfile() {
       return {
         ...DEFAULT_PROFILE,
         fullName: saved?.fullName || user?.full_name || user?.username || DEFAULT_PROFILE.fullName,
-        gmail: saved?.gmail || user?.email || "",
         phone: saved?.phone || user?.phone || "",
         branch: saved?.branch || DEFAULT_PROFILE.branch,
         position: saved?.position || user?.role || DEFAULT_PROFILE.position,
@@ -26,17 +24,6 @@ export default function AdminProfile() {
     }
   });
   const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    if (!profile.gmail) return;
-    try {
-      const gmails = JSON.parse(localStorage.getItem("registeredAdminGmails") || "[]");
-      const next = Array.from(new Set([...gmails, profile.gmail].filter(Boolean)));
-      localStorage.setItem("registeredAdminGmails", JSON.stringify(next));
-    } catch (error) {
-      console.warn("Unable to sync admin Gmail", error);
-    }
-  }, [profile.gmail]);
 
   const updateField = (field, value) => {
     setSaved(false);
@@ -53,7 +40,7 @@ export default function AdminProfile() {
       <div className="profile-header">
         <div>
           <h1 className="page-title">Admin Profile</h1>
-          <p className="page-subtitle">Gmail and essential account details for admin recovery and identification.</p>
+          <p className="page-subtitle">Essential account details for identification.</p>
         </div>
       </div>
 
@@ -64,7 +51,7 @@ export default function AdminProfile() {
           </div>
           <h2>{profile.fullName || "Admin"}</h2>
           <p>{profile.position || "Admin"}</p>
-          <span>{profile.gmail || "No Gmail recorded"}</span>
+          <span>{profile.phone || "No phone recorded"}</span>
         </div>
 
         <div className="profile-form-card">
@@ -72,10 +59,6 @@ export default function AdminProfile() {
             <label>
               <span>Full Name</span>
               <input value={profile.fullName} onChange={(event) => updateField("fullName", event.target.value)} />
-            </label>
-            <label>
-              <span>Gmail</span>
-              <input type="email" value={profile.gmail} onChange={(event) => updateField("gmail", event.target.value)} />
             </label>
             <label>
               <span>Phone</span>

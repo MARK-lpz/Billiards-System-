@@ -1,42 +1,38 @@
 import { useState, useEffect, useCallback } from "react";
 import "../../styles/ForgotModal.css";
-import { resetEmployeePassword } from "../../utils/passwordResetApi";
+import { fetchResetMode, resetPassword, sendResetCode } from "../../utils/passwordResetApi";
+import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
+import { MIN_PASSWORD_LENGTH } from "../../utils/passwordRules";
 
-const DEFAULT_ADMIN_GMAILS = ["admin@gmail.com"];
-
-const getRegisteredAdminGmails = () => {
-  try {
-    const stored = JSON.parse(localStorage.getItem("adminRegisteredGmails") || "null");
-    return Array.isArray(stored) && stored.length ? stored : DEFAULT_ADMIN_GMAILS;
-  } catch {
-    return DEFAULT_ADMIN_GMAILS;
-  }
-};
+// Shows only the last four digits once the code is on its way.
+const maskMobile = (phone) => `${phone.slice(0, 2)}•• ••• ${phone.slice(-4)}`;
 
 export default function ForgotPassModal({ visible, onClose }) {
   const [accountType, setAccountType] = useState("employee");
-  const [resetEmail, setResetEmail] = useState("");
-  const [employeeUsername, setEmployeeUsername] = useState("");
-  const [employeeEmail, setEmployeeEmail] = useState("");
-  const [verifiedReset, setVerifiedReset] = useState(null);
+  // "sms-code" when texting is set up on the server, otherwise "disabled".
+  const [mode, setMode] = useState(null);
+  const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleClose = useCallback(() => {
     setAccountType("employee");
-    setResetEmail("");
-    setEmployeeUsername("");
-    setEmployeeEmail("");
-    setVerifiedReset(null);
+    setUsername("");
+    setPhone("");
+    setCode("");
+    setCodeSent(false);
     setNewPassword("");
     setConfirmPassword("");
     setError("");
+    setInfo("");
     setResetSuccess(false);
-    setSuccessMessage("");
     setLoading(false);
     onClose();
   }, [onClose]);
@@ -45,19 +41,44 @@ export default function ForgotPassModal({ visible, onClose }) {
     if (!visible) return;
 
     const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        handleClose();
-      }
+      if (event.key === "Escape") handleClose();
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [visible, handleClose]);
 
+  // Asked each time the modal opens, so adding the SMS key takes effect
+  // without anyone reloading the page.
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+
+    fetchResetMode()
+      .then((nextMode) => {
+        if (!cancelled) setMode(nextMode);
+      })
+      .catch(() => {
+        // Unreachable server: let "Send Code" show the real error rather than
+        // claiming reset is switched off.
+        if (!cancelled) setMode("sms-code");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [visible]);
+
   if (!visible) return null;
 
+  // Without texting, knowing a username and number proves nothing, so the
+  // whole reset is off instead of offering a way around the code.
+  const resetOff = mode === "disabled";
+  const showPasswordFields = !resetOff && codeSent;
+  const phoneWarning = getSmsWarning(phone);
+
   // Tells the admin that a reset happened. Carries no password, by design.
-  const notifyAdminOfReset = (username) => {
+  const notifyAdminOfReset = (resetUsername) => {
     try {
       const existing = JSON.parse(localStorage.getItem("adminNotifications") || "[]");
       localStorage.setItem(
@@ -68,15 +89,27 @@ export default function ForgotPassModal({ visible, onClose }) {
             time: "Just now",
             unread: true,
             type: "password-reset",
-            message: `${username} reset their own password.`,
-            username,
+            message: `${resetUsername} reset their own password.`,
+            username: resetUsername,
           },
           ...existing,
         ])
       );
     } catch {
-      // A missing notification must never block the employee from signing in.
+      // A missing notification must never block the user from signing in.
     }
+  };
+
+  const validateIdentity = () => {
+    if (!username.trim()) {
+      setError(`Please enter your ${accountType} username.`);
+      return false;
+    }
+    if (!isValidSmsNumber(phone)) {
+      setError("Please enter your registered mobile number in 09XXXXXXXXX format.");
+      return false;
+    }
+    return true;
   };
 
   const validateNewPassword = () => {
@@ -84,115 +117,69 @@ export default function ForgotPassModal({ visible, onClose }) {
       setError("Please enter and confirm the new password.");
       return false;
     }
-
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
       return false;
     }
-
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match.");
       return false;
     }
-
     return true;
   };
 
-  // Employees reset their own password. No admin approval, no waiting.
-  const handleEmployeeReset = async () => {
-    const username = employeeUsername.trim();
-    const email = employeeEmail.trim();
+  const requestCode = async () => {
+    if (!validateIdentity()) return;
 
-    if (!username) {
-      setError("Please enter your employee username.");
-      return false;
-    }
-
-    if (!email) {
-      setError("Please enter the email registered to your account.");
-      return false;
-    }
-
-    if (!validateNewPassword()) return false;
-
-    try {
-      await resetEmployeePassword({ username, email, newPassword });
-    } catch (requestError) {
-      setError(requestError?.message || "Unable to reset the password right now.");
-      return false;
-    }
-
-    notifyAdminOfReset(username);
-    setSuccessMessage("Your password has been changed. You can sign in with it now.");
-    return true;
+    await sendResetCode({ username: username.trim(), role: accountType, phone });
+    setCodeSent(true);
+    setCode("");
+    setInfo(`A 6-digit code was sent to ${maskMobile(phone)}. It expires in 10 minutes.`);
   };
 
-  const handleAdminRequest = () => {
-    const email = resetEmail.trim().toLowerCase();
-    if (!email) {
-      setError("Please enter your registered Gmail address.");
-      return false;
+  const submitReset = async () => {
+    if (!validateIdentity()) return;
+    if (!/^\d{6}$/.test(code)) {
+      setError("Enter the 6-digit code from the text message.");
+      return;
     }
+    if (!validateNewPassword()) return;
 
-    const emailPattern = /^[^\s@]+@gmail\.com$/i;
-    if (!emailPattern.test(email)) {
-      setError("Admin password reset requires a registered Gmail address.");
-      return false;
-    }
+    await resetPassword({ username: username.trim(), role: accountType, phone, code, newPassword });
 
-    const registeredGmails = getRegisteredAdminGmails().map((entry) => String(entry).toLowerCase());
-    if (!registeredGmails.includes(email)) {
-      setError("This Gmail is not registered for the admin account.");
-      return false;
-    }
-
-    setVerifiedReset({ role: "admin", identifier: email });
-    return true;
+    notifyAdminOfReset(username.trim());
+    setResetSuccess(true);
   };
 
-  const handleAdminPasswordReset = () => {
-    if (!validateNewPassword()) return false;
-
-    const resetRecord = {
-      id: Date.now(),
-      role: "admin",
-      identifier: verifiedReset.identifier,
-      status: "password-reset",
-      resetAt: new Date().toISOString(),
-    };
-
-    try {
-      const existing = JSON.parse(localStorage.getItem("adminPasswordResetRequests") || "[]");
-      localStorage.setItem("adminPasswordResetRequests", JSON.stringify([resetRecord, ...existing]));
-    } catch {
-      // Recording is best effort; it must not swallow the reset itself.
-    }
-
-    setSuccessMessage("Admin password reset has been recorded.");
-    return true;
-  };
-
-  const handleForgotPassword = async (event) => {
-    event.preventDefault();
+  const runStep = async (step) => {
     setError("");
     setLoading(true);
-
     try {
-      const ok = verifiedReset
-        ? handleAdminPasswordReset()
-        : accountType === "employee"
-          ? await handleEmployeeReset()
-          : handleAdminRequest();
-
-      if (ok) {
-        setResetSuccess(Boolean(verifiedReset) || accountType === "employee");
-      }
+      await step();
+    } catch (requestError) {
+      setError(requestError?.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const showPasswordFields = Boolean(verifiedReset) || accountType === "employee";
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (resetOff || !mode) return;
+    runStep(codeSent ? submitReset : requestCode);
+  };
+
+  const switchAccountType = (nextType) => {
+    setAccountType(nextType);
+    setError("");
+    setInfo("");
+  };
+
+  const description = resetOff
+    ? ""
+    : codeSent
+      ? "Enter the code from the text message, then choose a new password."
+      : "Enter your username and registered mobile number. We will text you a 6-digit code.";
 
   return (
     <div className="forgot-modal">
@@ -209,23 +196,20 @@ export default function ForgotPassModal({ visible, onClose }) {
           {resetSuccess ? (
             <div className="forgot-success">
               <i className="bi bi-check-circle-fill success-icon"></i>
-              <h3>{accountType === "employee" && !verifiedReset ? "Password changed" : "Password reset recorded"}</h3>
-              <p>{successMessage}</p>
+              <h3>Password changed</h3>
+              <p>Your password has been changed. You can sign in with it now.</p>
               <button type="button" className="btn btn-primary" onClick={handleClose}>
                 Close
               </button>
             </div>
           ) : (
-            <form onSubmit={handleForgotPassword}>
-              {!verifiedReset && (
+            <form onSubmit={handleSubmit}>
+              {!codeSent && (
                 <div className="forgot-role-tabs">
                   <button
                     type="button"
                     className={`forgot-role-tab ${accountType === "employee" ? "active" : ""}`}
-                    onClick={() => {
-                      setAccountType("employee");
-                      setError("");
-                    }}
+                    onClick={() => switchAccountType("employee")}
                   >
                     <i className="bi bi-person-badge"></i>
                     Employee
@@ -233,10 +217,7 @@ export default function ForgotPassModal({ visible, onClose }) {
                   <button
                     type="button"
                     className={`forgot-role-tab ${accountType === "admin" ? "active" : ""}`}
-                    onClick={() => {
-                      setAccountType("admin");
-                      setError("");
-                    }}
+                    onClick={() => switchAccountType("admin")}
                   >
                     <i className="bi bi-shield-lock"></i>
                     Admin
@@ -244,69 +225,89 @@ export default function ForgotPassModal({ visible, onClose }) {
                 </div>
               )}
 
-              <p className="forgot-description">
-                {verifiedReset
-                  ? `Set a new password for ${verifiedReset.identifier}.`
-                  : accountType === "employee"
-                    ? "Confirm your username and the email registered to your account, then choose a new password. Only you will know it."
-                    : "Enter the registered Gmail address linked to the admin account."}
-              </p>
+              {description && <p className="forgot-description">{description}</p>}
+
+              {resetOff && (
+                <div className="forgot-notice">
+                  <i className="bi bi-chat-dots"></i>
+                  <span>
+                    Password reset works by a code sent to your phone, which is not switched on yet.{" "}
+                    {accountType === "admin"
+                      ? "Until it is, the admin password can only be changed from Account Management by a signed-in admin."
+                      : "Until it is, please ask the admin for help signing in."}
+                  </span>
+                </div>
+              )}
 
               {error && <div className="forgot-error">{error}</div>}
+              {info && !error && <div className="forgot-info">{info}</div>}
 
-              {!verifiedReset && accountType === "employee" && (
+              {!resetOff && !codeSent && (
                 <>
-                  <label className="form-label">Employee Username</label>
+                  <label className="form-label">{accountType === "admin" ? "Admin" : "Employee"} Username</label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Enter employee username"
+                    placeholder={`Enter ${accountType} username`}
                     autoComplete="username"
-                    value={employeeUsername}
-                    onChange={(e) => setEmployeeUsername(e.target.value)}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     disabled={loading}
                     autoFocus
                   />
-                  <label className="form-label forgot-field-gap">Registered Email</label>
+                  <label className="form-label forgot-field-gap">Registered Mobile Number</label>
                   <input
-                    type="email"
+                    type="tel"
                     className="form-input"
-                    placeholder="The email on your account"
-                    autoComplete="email"
-                    value={employeeEmail}
-                    onChange={(e) => setEmployeeEmail(e.target.value)}
+                    placeholder="09XXXXXXXXX"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    maxLength={11}
+                    value={phone}
+                    onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
                     disabled={loading}
                   />
+                  {phoneWarning && <p className="forgot-field-warning">{phoneWarning}</p>}
                 </>
               )}
 
-              {!verifiedReset && accountType === "admin" && (
+              {!resetOff && codeSent && (
                 <>
-                  <label className="form-label">Registered Gmail Address</label>
+                  <label className="form-label">6-Digit Code</label>
                   <input
-                    type="email"
-                    className="form-input"
-                    placeholder="adminname@gmail.com"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
+                    type="text"
+                    className="form-input forgot-code-input"
+                    placeholder="••••••"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                     disabled={loading}
                     autoFocus
                   />
+                  <button
+                    type="button"
+                    className="forgot-link-btn"
+                    onClick={() => runStep(requestCode)}
+                    disabled={loading}
+                  >
+                    Didn&apos;t get it? Send a new code
+                  </button>
                 </>
               )}
 
               {showPasswordFields && (
                 <>
-                  <label className={`form-label ${verifiedReset ? "" : "forgot-field-gap"}`}>New Password</label>
+                  <label className="form-label forgot-field-gap">New Password</label>
                   <input
                     type="password"
                     className="form-input"
-                    placeholder="Enter new password"
+                    placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
                     autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     disabled={loading}
-                    autoFocus={Boolean(verifiedReset)}
                   />
                   <label className="form-label forgot-field-gap">Confirm Password</label>
                   <input
@@ -327,15 +328,19 @@ export default function ForgotPassModal({ visible, onClose }) {
 
               <div className="forgot-actions">
                 <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={loading}>
-                  Cancel
+                  {resetOff ? "Close" : "Cancel"}
                 </button>
-                <button type="submit" className="btn btn-success" disabled={loading}>
-                  {loading
-                    ? "Processing..."
-                    : showPasswordFields
-                      ? "Reset Password"
-                      : "Submit Gmail"}
-                </button>
+                {!resetOff && (
+                  <button type="submit" className="btn btn-success" disabled={loading || !mode}>
+                    {loading
+                      ? "Please wait..."
+                      : !mode
+                        ? "Loading..."
+                        : codeSent
+                          ? "Reset Password"
+                          : "Send Code"}
+                  </button>
+                )}
               </div>
             </form>
           )}

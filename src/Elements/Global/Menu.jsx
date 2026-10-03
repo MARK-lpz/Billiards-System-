@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "../../styles/Menu.css";
 
-export default function Menu({ onLogout, onProfile }) {
+export default function Menu({ onLogout, onProfile, onSettings }) {
   const [show, setShow] = useState(false);
 
   return (
@@ -22,6 +22,15 @@ export default function Menu({ onLogout, onProfile }) {
             <i className="bi bi-person"></i>
             <span>Profile</span>
           </button>
+          {onSettings && (
+            <button className="menu-item" onClick={() => {
+              onSettings();
+              setShow(false);
+            }}>
+              <i className="bi bi-gear"></i>
+              <span>Settings</span>
+            </button>
+          )}
           <div className="menu-divider"></div>
           <button className="menu-item logout-item" onClick={() => {
             onLogout();

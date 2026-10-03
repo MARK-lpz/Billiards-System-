@@ -851,8 +851,33 @@
   outline: none;
 }
 
-.profile-save-btn {
+/* Styled here in full: Bootstrap's .btn-success is not loaded in this app, so
+   without these rules the button renders as a plain white browser button. */
+.profile-form-card .profile-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-width: 160px;
+  min-height: 42px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #10b981;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.profile-form-card .profile-save-btn:hover {
+  background: #059669;
+}
+
+.profile-form-card .profile-save-btn i {
+  margin: 0;
 }
 
 .profile-saved {

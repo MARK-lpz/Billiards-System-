@@ -27,6 +27,7 @@ import Equipment from "./Equipment";
 import AccountManagement from "./AccountManagement";
 import AuditTrail from "./AuditTrail";
 import AdminProfile from "./AdminProfile";
+import Settings from "../Settings";
 
 const ISSUE_ACTION_KEYWORDS = ["reported issue", "reported damaged equipment", "customer complaint"];
 const isResolvedIssue = (entry) =>
@@ -71,7 +72,6 @@ export default function Dashboard({
   onOnlineReservationsChange,
 }) {
   const [activeNav, setActiveNav] = useState("dashboard");
-  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedEquipmentIssue, setSelectedEquipmentIssue] = useState(null);
 
@@ -169,6 +169,16 @@ export default function Dashboard({
 
       case 'profile':
         return <AdminProfile />;
+
+      case 'settings':
+        return (
+          <Settings
+            theme={theme}
+            setTheme={setTheme}
+            canManageBackups
+            onRestored={onReload}
+          />
+        );
       
       case 'dashboard':
       default:
@@ -181,29 +191,12 @@ export default function Dashboard({
               </div>
               
               <div className="header-right">
-                <div className="search-wrapper">
-                  <i className="bi bi-search search-icon"></i>
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="Search tasks or tables..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-
                 <div className="header-icons">
-                  <button
-                    type="button"
-                    className="theme-toggle-btn"
-                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  >
-                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-                  </button>
                   <Notification />
                   <Menu 
                     onLogout={onLogout}
                     onProfile={() => handleNavChange('profile')}
+                    onSettings={() => handleNavChange('settings')}
                   />
                 </div>
               </div>

@@ -1,3 +1,5 @@
+import { numberFieldValue, readNumberField } from "../../utils/numberField";
+
 export default function EventsModal({ form, setForm, tables = [], isEdit = false, onClose, onSave }) {
   return (
     <>
@@ -76,10 +78,10 @@ export default function EventsModal({ form, setForm, tables = [], isEdit = false
                 <input 
                   type="number" 
                   className="form-control" 
-                  value={form.prize} 
-                  onChange={e => setForm({ ...form, prize: Number(e.target.value) })}
+                  value={numberFieldValue(form.prize)} 
+                  onChange={e => setForm({ ...form, prize: readNumberField(e) })}
                   min="0"
-                  placeholder="10000"
+                  placeholder="0"
                 />
               </div>
 
@@ -88,8 +90,8 @@ export default function EventsModal({ form, setForm, tables = [], isEdit = false
                 <input
                   type="number"
                   className="form-control"
-                  value={form.entryFee ?? 0}
-                  onChange={e => setForm({ ...form, entryFee: Number(e.target.value) })}
+                  value={numberFieldValue(form.entryFee)}
+                  onChange={e => setForm({ ...form, entryFee: readNumberField(e) })}
                   min="0"
                   placeholder="0"
                 />
