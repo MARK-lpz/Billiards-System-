@@ -128,7 +128,8 @@ function normalizeReservation($reservation) {
         'date' => normalizeDateValue($reservation['date'] ?? $reservation['reservation_date'] ?? ''),
         'time' => normalizeTimeValue($reservation['time'] ?? $reservation['reservation_time'] ?? ''),
         'partySize' => max(1, (int) ($reservation['partySize'] ?? $reservation['party_size'] ?? 1)),
-        'durationMinutes' => max(1, min(600, (int) ($reservation['durationMinutes'] ?? $reservation['duration_minutes'] ?? 60))),
+        // Up to 12 hours: a guest may book from opening (10:00) to closing (22:00).
+        'durationMinutes' => max(1, min(720, (int) ($reservation['durationMinutes'] ?? $reservation['duration_minutes'] ?? 60))),
         'tableId' => (int) ($reservation['tableId'] ?? $reservation['table_id'] ?? 0),
         'tableName' => trim($reservation['tableName'] ?? $reservation['table_name'] ?? ''),
         'notes' => trim($reservation['notes'] ?? ''),

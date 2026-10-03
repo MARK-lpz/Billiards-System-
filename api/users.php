@@ -49,6 +49,12 @@ if ($method === 'POST') {
         exit();
     }
 
+    if (mb_strlen($password) < 6) {
+        http_response_code(400);
+        echo json_encode(["success" => false, "message" => "Password must be at least 6 characters"]);
+        exit();
+    }
+
     $stmt = $pdo->prepare("INSERT INTO users (username, password, role, email, full_name, phone) VALUES (?, MD5(?), ?, ?, ?, ?)");
     $stmt->execute([$username, $password, $role, $email, $fullName, $phone]);
     $id = $pdo->lastInsertId();
@@ -81,6 +87,14 @@ if ($method === 'PUT') {
     if (!$id || $username === '') {
         http_response_code(400);
         echo json_encode(["success" => false, "message" => "User id and username are required"]);
+        exit();
+    }
+
+    // Same minimum as the login screen, so no account can be given a password
+    // that the login form would then refuse.
+    if ($password !== '' && mb_strlen($password) < 6) {
+        http_response_code(400);
+        echo json_encode(["success" => false, "message" => "New password must be at least 6 characters"]);
         exit();
     }
 
