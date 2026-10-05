@@ -449,3 +449,36 @@
   font-size: 11px;
   line-height: 1.5;
 }
+
+/* Cancelled or rescheduled tournaments, told to players before they register */
+.tourna-notices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.tourna-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.1);
+  color: rgba(226, 232, 240, 0.9);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tourna-notice i { flex-shrink: 0; margin-top: 2px; color: #60a5fa; }
+.tourna-notice strong { color: #f8fafc; }
+
+.tourna-notice.is-cancelled {
+  border-color: rgba(255, 80, 80, 0.35);
+  background: rgba(255, 80, 80, 0.08);
+}
+
+.tourna-notice.is-cancelled i { color: #ff8f8f; }
+
+.field-helper-rescheduled { color: #93c5fd; }

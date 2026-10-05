@@ -1,5 +1,6 @@
 import ProductGrid from "./ProductGrid";
 import CartPanel from "./CartPanel";
+import TableBillsPanel from "./TableBillsPanel";
 
 export default function SalesBillingDesk({
   cats,
@@ -14,10 +15,13 @@ export default function SalesBillingDesk({
   servedCount,
   unsyncedCount,
   stockAlert,
+  unpaidTableCharges = [],
+  onAddTableCharge,
   onSearchChange,
   onSetCategory,
   onAddToCart,
   onUpdateQty,
+  getQueuedQty,
   onSetMethod,
   onProcessPayment,
 }) {
@@ -27,6 +31,8 @@ export default function SalesBillingDesk({
   return (
     <div className="sales-pos-layout">
       <div className="sales-pos-products">
+        <TableBillsPanel charges={unpaidTableCharges} cart={cart} onAddToBill={onAddTableCharge} />
+
         <div className="sales-pos-search">
           <i className="bi bi-search"></i>
           <input
@@ -72,6 +78,7 @@ export default function SalesBillingDesk({
         unsyncedCount={unsyncedCount}
         stockAlert={stockAlert}
         onUpdateQty={onUpdateQty}
+        getQueuedQty={getQueuedQty}
         onSetMethod={onSetMethod}
         onProcessPayment={onProcessPayment}
       />

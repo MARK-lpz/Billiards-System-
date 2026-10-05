@@ -1,6 +1,7 @@
 import { numberFieldValue, readNumberField } from "../../utils/numberField";
+import { MAX_EVENT_REASON_LENGTH, formatEventWhen } from "../../utils/eventUpdates";
 
-export default function EventsModal({ form, setForm, tables = [], isEdit = false, onClose, onSave }) {
+export default function EventsModal({ form, setForm, tables = [], isEdit = false, scheduleChange = null, onClose, onSave }) {
   return (
     <>
       <div className="modal show d-block" tabIndex="-1">
@@ -71,6 +72,34 @@ export default function EventsModal({ form, setForm, tables = [], isEdit = false
                   />
                 </div>
               </div>
+
+              {/* Moving an existing event: players see the old and new schedule on the website */}
+              {isEdit && scheduleChange && (
+                <div className="events-reschedule-note">
+                  <div className="events-reschedule-head">
+                    <i className="bi bi-calendar2-week"></i>
+                    <span>This reschedules the event</span>
+                  </div>
+                  <div className="events-reschedule-dates">
+                    <span className="events-reschedule-old">{formatEventWhen(scheduleChange.from.date, scheduleChange.from.time)}</span>
+                    <i className="bi bi-arrow-right"></i>
+                    <span className="events-reschedule-new">{formatEventWhen(scheduleChange.to.date, scheduleChange.to.time)}</span>
+                  </div>
+                  <span className="events-reschedule-hint">The website will mark it as Rescheduled and show both dates.</span>
+                  <label className="form-label" htmlFor="event-reschedule-reason">
+                    Reason for players (optional)
+                  </label>
+                  <input
+                    id="event-reschedule-reason"
+                    type="text"
+                    className="form-control"
+                    maxLength={MAX_EVENT_REASON_LENGTH}
+                    value={form.rescheduleReason || ""}
+                    onChange={e => setForm({ ...form, rescheduleReason: e.target.value })}
+                    placeholder="e.g. The hall is closed for maintenance that day"
+                  />
+                </div>
+              )}
 
               {/* Prize Pool */}
               <div className="mb-3">

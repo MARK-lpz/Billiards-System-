@@ -1,3 +1,5 @@
+import { formatEventWhen, wasRescheduled } from "../../utils/eventUpdates";
+
 const formatAssignedTables = (assignedTables = [], tables = []) => {
   const labels = (assignedTables || [])
     .map((assigned) => {
@@ -27,6 +29,13 @@ export default function EventCard({ event, tables = [], onEdit, onMarkComplete, 
               <i className="bi bi-calendar3 me-2"></i>
               {event.date} at {event.time}
             </p>
+            {wasRescheduled(event) && event.status !== "cancelled" && (
+              <p className="events-update-note">
+                <i className="bi bi-calendar2-week"></i>
+                Rescheduled from {formatEventWhen(event.rescheduledFrom.date, event.rescheduledFrom.time)}
+                {event.rescheduleReason ? ` · ${event.rescheduleReason}` : ""}
+              </p>
+            )}
           </div>
           <span className={`badge events-badge-${event.status}`}>
             {event.status}
@@ -97,6 +106,7 @@ export default function EventCard({ event, tables = [], onEdit, onMarkComplete, 
           <p className="events-locked-note">
             <i className="bi bi-x-circle me-2"></i>
             This tournament was cancelled. Registration is closed.
+            {event.cancelReason ? ` Reason: ${event.cancelReason}` : ""}
           </p>
         )}
       </div>

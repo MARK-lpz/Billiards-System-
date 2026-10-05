@@ -12,6 +12,10 @@ import {
   getAvailableReservationTables,
   hasReservationConflict,
 } from "../../utils/reservations";
+import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
+
+// Read only from handlers, never while rendering.
+const getCurrentTimestamp = () => Date.now();
 
 const emptyReservationForm = {
   customerName: "",
@@ -31,6 +35,8 @@ export default function useAdminReservations({
   setReservations,
   tables,
   setTables,
+  tableCharges = [],
+  setTableCharges,
   setLogs,
 }) {
   const { addNotification } = useNotifications();
@@ -122,7 +128,7 @@ export default function useAdminReservations({
     }
 
     if (previousStatus === "approved" && ["rejected", "completed", "pending", "expired"].includes(nextStatus)) {
-      releaseTable(tableId, reservation);
+      releaseTable(tableId, reservation, nextStatus);
     }
   };
 
@@ -153,8 +159,29 @@ export default function useAdminReservations({
     });
   };
 
-  const releaseTable = (tableId, reservation) => {
+  const releaseTable = (tableId, reservation, nextStatus) => {
     if (!setTables) return;
+
+    // A guest still playing when their booking is completed has finished their
+    // session, so its bill goes to Sales / POS like any other ended session.
+    const customerName = reservation.customerName || reservation.customer || "";
+    const playingTable =
+      nextStatus === "completed"
+        ? (tables || []).find(
+            (table) =>
+              isReservationTable(table, tableId, reservation) &&
+              table.status === "occupied" &&
+              table.startTime &&
+              (table.customer || "") === customerName
+          )
+        : null;
+    const charge = playingTable
+      ? createTableCharge({ table: playingTable, reservations, tableCharges, endedBy: "Admin", now: getCurrentTimestamp() })
+      : null;
+    if (charge) {
+      setTableCharges?.((prev) => [charge, ...prev]);
+      addNotification({ message: describeEndedCharge(charge) });
+    }
 
     setTables((prev) =>
       prev.map((table) => {
@@ -163,17 +190,7 @@ export default function useAdminReservations({
         const sameCustomer = (reservation.customerName || reservation.customer || "") === (table.customer || "");
         const canRelease = table.status === "reserved" || sameCustomer;
 
-        return canRelease
-          ? {
-              ...table,
-              status: "available",
-              startTime: null,
-              customer: "",
-              reservationId: null,
-              reservationDate: "",
-              reservationTime: "",
-            }
-          : table;
+        return canRelease ? { ...table, ...ENDED_SESSION_FIELDS } : table;
       })
     );
   };

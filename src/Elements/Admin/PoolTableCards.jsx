@@ -1,10 +1,15 @@
 ﻿import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { formatPeso, getSessionTotal } from "../../utils/tableSession";
 
 // The pop-up is drawn at the app's theme wrapper, not inside the card: the card
 // lifts on hover with a CSS transform, which would drag a fixed pop-up along with
 // it, and the wrapper is what carries the light/dark theme rules.
 const getModalRoot = () => document.querySelector("#root > .dark, #root > .light") || document.body;
+
+// The clock time a session ends, e.g. "5:30 PM".
+const formatClock = (ms) =>
+  new Date(ms).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
 
 export default function PoolTableCard({
   table, 
@@ -70,7 +75,8 @@ export default function PoolTableCard({
     : 0;
   const remainingSeconds = plannedSeconds ? Math.max(0, plannedSeconds - elapsedSeconds) : null;
   const isEndingSoon = isOccupied && remainingSeconds !== null && remainingSeconds > 0 && remainingSeconds <= 600;
-  const charge = elapsedSeconds > 0 ? ((elapsedSeconds / 3600) * table.rate).toFixed(2) : "0.00";
+  // Fixed for the booked hours; it moves only when time is added or undone.
+  const total = getSessionTotal(table);
 
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
@@ -103,7 +109,15 @@ export default function PoolTableCard({
                 {remainingSeconds === 0 ? "Timer stopped" : `${formatTime(remainingSeconds)} remaining`}
               </div>
             )}
-            <div className="pool-table-charge">₱{parseFloat(charge).toLocaleString()}</div>
+            {table.startTime && plannedSeconds > 0 && (
+              <div className="pool-table-ends" title="When the hours the customer chose run out">
+                <i className="bi bi-flag"></i>
+                Ends {formatClock(table.startTime + plannedSeconds * 1000)}
+              </div>
+            )}
+            <div className="pool-table-charge" title={`${formatPeso(table.rate)}/hr for the booked time`}>
+              {formatPeso(total)}
+            </div>
           </div>
 
           <div className="pool-table-occupied-info">

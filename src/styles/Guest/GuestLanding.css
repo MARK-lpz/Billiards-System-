@@ -318,3 +318,180 @@
   .guest-template-footer { align-items: flex-start; flex-direction: column; }
   .guest-reservation-closed { width: min(100% - 1.5rem, 470px); }
 }
+
+/* Tournament updates: a banner for cancelled or moved events, and the event list */
+.guest-event-updates {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: min(100% - 3rem, 970px);
+  margin: 1rem auto 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  border-radius: 4px;
+  background: rgba(127, 29, 29, 0.25);
+  color: #fee2e2;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.guest-event-updates > i {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  color: #f87171;
+  font-size: 1.1rem;
+}
+
+.guest-event-updates > div { flex: 1; }
+.guest-event-updates strong { color: #fff; }
+
+.guest-event-updates ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.guest-event-updates-link {
+  flex: 0 0 auto;
+  align-self: center;
+  color: #7dd3fc;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.guest-event-updates-link:hover { text-decoration: underline; }
+
+.guest-tournaments {
+  width: min(100% - 3rem, 970px);
+  margin: 0 auto clamp(3.25rem, 5vw, 4.75rem);
+  scroll-margin-top: 1.5rem;
+}
+
+.guest-tournaments h2 {
+  margin: 0 0 1.25rem;
+  color: #fff;
+  font-size: clamp(1.4rem, 3vw, 2.2rem);
+  line-height: 1.18;
+}
+
+.guest-tournament-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.guest-tournament-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  padding: 1.1rem;
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  border-radius: 4px;
+  background: #12233d;
+}
+
+.guest-tournament-card.is-rescheduled { border-color: rgba(251, 191, 36, 0.45); }
+.guest-tournament-card.is-cancelled { border-color: rgba(248, 113, 113, 0.45); background: #1f1a2b; }
+
+.guest-tournament-card h3 {
+  margin: 0.15rem 0 0;
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.guest-tournament-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.guest-tournament-badge.is-open { background: rgba(52, 211, 153, 0.16); color: #6ee7b7; }
+.guest-tournament-badge.is-rescheduled { background: rgba(251, 191, 36, 0.16); color: #fcd34d; }
+.guest-tournament-badge.is-cancelled { background: rgba(248, 113, 113, 0.18); color: #fca5a5; }
+
+.guest-tournament-game {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  text-transform: capitalize;
+}
+
+.guest-tournament-when {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  color: #e2e8f0;
+  font-size: 0.86rem;
+}
+
+.guest-tournament-when strong { color: #fcd34d; }
+.guest-tournament-old { color: #94a3b8; text-decoration: line-through; }
+
+.guest-tournament-reason {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.guest-tournament-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.guest-tournament-card .guest-template-secondary { margin-top: auto; }
+
+@media (max-width: 680px) {
+  .guest-event-updates { width: min(100% - 1.5rem, 470px); flex-wrap: wrap; }
+  .guest-tournaments { width: min(100% - 3rem, 470px); }
+}
+
+/* Header links, and the buttons that open the Tournaments page */
+.guest-template-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.guest-template-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #e0f2fe;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.guest-template-link:hover { background: rgba(255, 255, 255, 0.08); }
+
+.guest-event-updates-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.guest-template-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
+}
+
+.guest-tournaments-all { margin-top: 1.25rem; }
+
+@media (max-width: 680px) {
+  .guest-template-header { gap: 0.5rem; padding-right: 0.75rem; padding-left: 0.75rem; }
+  .guest-template-brand span { display: none; }
+  .guest-template-link { padding-right: 0.5rem; padding-left: 0.5rem; }
+}

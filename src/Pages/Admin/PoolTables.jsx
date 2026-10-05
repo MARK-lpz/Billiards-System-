@@ -5,53 +5,69 @@ import PoolTableCard from "../../Elements/Admin/PoolTableCards";
 import PoolTableModal from "../../Elements/Admin/PoolTableModal";
 import WalkInModal from "../../Elements/Admin/WalkInModal";
 import { useNotifications } from "../../Elements/Global/useNotifications";
+import { findTableReservation, formatHoursLabel } from "../../utils/reservations";
+import { formatPeso, getPlayedMinutes, getSessionTotal } from "../../utils/tableSession";
+import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
 
-export default function PoolTables({ tables, setTables }) {
+// Read only from click handlers, never while rendering.
+const getCurrentTimestamp = () => Date.now();
+
+export default function PoolTables({ tables, setTables, reservations = [], tableCharges = [], setTableCharges }) {
   const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ name: "", rate: 15, durationMinutes: 60 });
   const [editId, setEditId] = useState(null);
-  const [walkIn, setWalkIn] = useState({ tableId: null, customer: "" });
+  const [walkInTableId, setWalkInTableId] = useState(null);
   const [endingTable, setEndingTable] = useState(null);
+  // When End Session was pressed, so the total shown is the one charged.
+  const [endingAt, setEndingAt] = useState(null);
   const [endingExtensionMinutes, setEndingExtensionMinutes] = useState("30");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const startWalkIn = () => {
-    const customer = walkIn.customer || "Walk-in Customer";
-    const table = tables.find(t => t.id === walkIn.tableId);
+  // The session runs as long as the customer said they would stay.
+  const startWalkIn = ({ customer, minutes }) => {
+    const table = tables.find(t => t.id === walkInTableId);
     setTables(prev => prev.map(t =>
-      t.id === walkIn.tableId
-        ? { ...t, status: "occupied", startTime: Date.now(), customer, durationMinutes: Number(t.durationMinutes || 60), addedMinutes: 0 }
+      t.id === walkInTableId
+        ? { ...t, status: "occupied", startTime: Date.now(), customer, durationMinutes: minutes, addedMinutes: 0 }
         : t
     ));
     addNotification({
-      message: `${table?.name || 'Table'} started walk-in session for ${customer}`,
+      message: `${table?.name || 'Table'} started a ${formatHoursLabel(minutes)} walk-in session for ${customer}`,
     });
     setModal(null);
-    setWalkIn({ tableId: null, customer: "" });
+    setWalkInTableId(null);
   };
 
   const requestEndSession = (id) => {
     setEndingExtensionMinutes("30");
+    setEndingAt(getCurrentTimestamp());
     setEndingTable(tables.find(t => t.id === id) || null);
   };
 
+  // The session's bill goes to Sales / POS, where it is paid with any food and drinks.
   const endSession = () => {
     if (!endingTable) return;
-    const table = endingTable;
+    const table = tables.find(t => t.id === endingTable.id) || endingTable;
+    const charge = createTableCharge({ table, reservations, tableCharges, endedBy: "Admin", now: getCurrentTimestamp() });
     setTables(prev => prev.map(t =>
-      t.id === table.id ? { ...t, status: "available", startTime: null, customer: "", addedMinutes: 0 } : t
+      t.id === table.id ? { ...t, ...ENDED_SESSION_FIELDS } : t
     ));
-    addNotification({
-      message: `${table?.name || 'Table'} session ended`,
-    });
+    if (charge) {
+      setTableCharges?.(prev => [charge, ...prev]);
+      addNotification({ message: describeEndedCharge(charge) });
+    }
     setEndingTable(null);
   };
 
   const checkIn = (id) => {
     const table = tables.find(t => t.id === id);
+    // A reserved guest plays the hours they booked, not the table's default.
+    const bookedMinutes = Number(findTableReservation(table, reservations)?.durationMinutes);
     setTables(prev => prev.map(t => 
-      t.id === id ? { ...t, status: "occupied", startTime: Date.now(), durationMinutes: Number(t.durationMinutes || 60), addedMinutes: 0 } : t
+      t.id === id
+        ? { ...t, status: "occupied", startTime: Date.now(), durationMinutes: bookedMinutes > 0 ? bookedMinutes : Number(t.durationMinutes || 60), addedMinutes: 0 }
+        : t
     ));
     addNotification({
       message: `${table?.name || 'Table'} checked in`,
@@ -120,7 +136,7 @@ export default function PoolTables({ tables, setTables }) {
   };
 
   const openWalkInModal = (tableId) => {
-    setWalkIn({ tableId, customer: "" });
+    setWalkInTableId(tableId);
     setModal("walkin");
   };
 
@@ -211,8 +227,8 @@ export default function PoolTables({ tables, setTables }) {
       {/* Walk-in Modal */}
       {modal === "walkin" && (
         <WalkInModal
-          customer={walkIn.customer}
-          onCustomerChange={(value) => setWalkIn({ ...walkIn, customer: value })}
+          table={tables.find(t => t.id === walkInTableId)}
+          reservations={reservations}
           onClose={() => setModal(null)}
           onStart={startWalkIn}
         />
@@ -250,6 +266,16 @@ export default function PoolTables({ tables, setTables }) {
               <div className="modal-body">
                 <p className="pool-end-copy">
                   Ending {endingTable.name} will clear the active timer and mark the table as available.
+                </p>
+                <p className="pool-end-copy">
+                  Played {formatHoursLabel(getPlayedMinutes(endingTable, endingAt))} of{" "}
+                  {formatHoursLabel(Number(endingTable.durationMinutes || 60))}. Total:{" "}
+                  <strong>{formatPeso(getSessionTotal(endingTable))}</strong>
+                  {getPlayedMinutes(endingTable, endingAt) < Number(endingTable.durationMinutes || 60) &&
+                    ` for the full booked time`}
+                </p>
+                <p className="pool-end-copy">
+                  The bill goes to Sales / POS, where the customer pays it together with any food and drinks.
                 </p>
                 <div className="pool-end-actions">
                   <input

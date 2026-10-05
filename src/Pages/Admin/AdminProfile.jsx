@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getSignedInUser } from "../../utils/session";
 
 const DEFAULT_PROFILE = {
   fullName: "System Administrator",
@@ -11,7 +12,7 @@ export default function AdminProfile() {
   const [profile, setProfile] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("adminProfile") || "null");
-      const user = JSON.parse(localStorage.getItem("user") || "null");
+      const user = getSignedInUser();
       return {
         ...DEFAULT_PROFILE,
         fullName: saved?.fullName || user?.full_name || user?.username || DEFAULT_PROFILE.fullName,

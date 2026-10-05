@@ -1,8 +1,10 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState } from "react";
 import "../../styles/Employee/Employeedashboard.css";
 import Sidebar from "../../Elements/Employee/SidebarEmp";
 import PoolTableStats from "../../Elements/Admin/PoolTableStats";
 import PoolTableCard from "../../Elements/Admin/PoolTableCards";
+import WalkInModal from "../../Elements/Admin/WalkInModal";
+import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
 import Notification from "../../Elements/Global/Notification";
 import LoadingBar from "../../Elements/Global/Loading";
 import Menu from "../../Elements/Global/Menu";
@@ -13,6 +15,9 @@ import SalesPOS from "./SalesPos";
 import ReservationDesk from "./ReservationDesk";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../../Elements/Global/useNotifications";
+import { findTableReservation, formatHoursLabel } from "../../utils/reservations";
+import { formatPeso, getPlayedMinutes, getSessionTotal } from "../../utils/tableSession";
+import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
 
 const getCurrentTimestamp = () => Date.now();
 
@@ -28,6 +33,8 @@ export default function EmployeeDashboard({
   setEquipment,
   transactions,
   setTransactions,
+  tableCharges = [],
+  setTableCharges,
   reservations,
   setReservations,
   events,
@@ -38,9 +45,10 @@ export default function EmployeeDashboard({
   // Must match a sidebar nav id, otherwise nothing is highlighted on load and
   // the page header has no entry to read its title from.
   const [activeNav, setActiveNav] = useState("Pool Tables");
-  const [timers, setTimers] = useState({});
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
+  // The table a walk-in is being started on, while staff enter how long they stay.
+  const [walkInTableId, setWalkInTableId] = useState(null);
 
   const handleReload = () => {
     setLoading(true);
@@ -55,24 +63,6 @@ export default function EmployeeDashboard({
       setLoading(false);
     }, 300);
   };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newTimers = {};
-      tables.forEach((t) => {
-        if (t.status === "occupied" && t.startTime) {
-          const durationMs = Number(t.durationMinutes || 60) * 60000;
-          const rawElapsed = Math.max(0, getCurrentTimestamp() - t.startTime);
-          const elapsed = Math.min(rawElapsed, durationMs);
-          const h = Math.floor(elapsed / 3600000);
-          const m = Math.floor((elapsed % 3600000) / 60000);
-          newTimers[t.id] = h > 0 ? `${h}h ${m}min` : `${m} min`;
-        }
-      });
-      setTimers(newTimers);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [tables]);
 
   const stats = {
     available: tables.filter((t) => t.status === "available").length,
@@ -99,67 +89,122 @@ export default function EmployeeDashboard({
   const updateTable = (id, updates) =>
     setTables((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
 
-  const handleWalkIn = (id) => {
+  // The session runs as long as the customer said they would stay.
+  const startWalkIn = ({ customer, minutes }) => {
+    const table = tables.find((t) => t.id === walkInTableId);
+    setWalkInTableId(null);
+    if (!table) return;
+
+    updateTable(table.id, {
+      status: "occupied",
+      startTime: getCurrentTimestamp(),
+      customer,
+      durationMinutes: minutes,
+      addedMinutes: 0,
+    });
+    addLog({
+      action: "Started walk-in session",
+      detail: `Walk-in started for ${getTableLabel(table)}: ${customer} for ${formatHoursLabel(minutes)}`,
+      customer: {
+        previous: table.customer ? { name: table.customer } : null,
+        current: { name: customer },
+      },
+      table: {
+        id: table.id,
+        name: getTableLabel(table),
+        previousStatus: table.status,
+        currentStatus: "occupied",
+      },
+    });
+    addNotification({ message: `${formatHoursLabel(minutes)} walk-in session started for ${getTableLabel(table)}.` });
+  };
+
+  // A reserved guest keeps their name and plays the hours they booked.
+  const handleCheckIn = (id) => {
     const table = tables.find((t) => t.id === id);
+    if (!table) return;
+
+    const bookedMinutes = Number(findTableReservation(table, reservations)?.durationMinutes);
+    const customer = table.customer || "Reserved Customer";
     updateTable(id, {
       status: "occupied",
       startTime: getCurrentTimestamp(),
-      customer: "Walk-in Customer",
-      durationMinutes: Number(table?.durationMinutes || 60),
+      customer,
+      durationMinutes: bookedMinutes > 0 ? bookedMinutes : Number(table.durationMinutes || 60),
       addedMinutes: 0,
     });
-    if (table) {
-      addLog({
-        action: "Started walk-in session",
-        detail: `Walk-in started for ${getTableLabel(table)}`,
-        customer: {
-          previous: table.customer ? { name: table.customer } : null,
-          current: { name: "Walk-in Customer" },
-        },
-        table: {
-          id: table.id,
-          name: getTableLabel(table),
-          previousStatus: table.status,
-          currentStatus: "occupied",
-        },
-      });
-      addNotification({ message: `Walk-in session started for ${getTableLabel(table)}.` });
-    }
+    addLog({
+      action: "Checked in reservation",
+      detail: `${customer} checked in at ${getTableLabel(table)}`,
+      customer: {
+        previous: table.customer ? { name: table.customer } : null,
+        current: { name: customer },
+      },
+      table: {
+        id: table.id,
+        name: getTableLabel(table),
+        previousStatus: table.status,
+        currentStatus: "occupied",
+      },
+    });
+    addNotification({ message: `${customer} checked in at ${getTableLabel(table)}.` });
   };
 
+  // The booked time is paid in full, even when the customer leaves early.
+  // Played time is worked out on the click, so it is right in the first second.
+  const describeSessionEnd = (table) => {
+    const bookedMinutes = Number(table.durationMinutes || 60);
+    const playedMinutes = getPlayedMinutes(table, getCurrentTimestamp());
+    return {
+      cost: getSessionTotal(table),
+      booked: formatHoursLabel(bookedMinutes),
+      played: formatHoursLabel(playedMinutes),
+      endedEarly: playedMinutes < bookedMinutes,
+    };
+  };
+
+  // The session's bill goes to Sales / POS, where it is paid with any food and drinks.
+  const endSession = (id) => {
+    const table = tables.find((t) => t.id === id);
+    if (!table?.startTime) return;
+
+    const { cost, booked, played } = describeSessionEnd(table);
+    const charge = createTableCharge({ table, reservations, tableCharges, endedBy: "Employee", now: getCurrentTimestamp() });
+    updateTable(id, ENDED_SESSION_FIELDS);
+    if (charge) setTableCharges?.((prev) => [charge, ...prev]);
+    addLog({
+      action: "Ended session",
+      detail: `Ended session for ${getTableLabel(table)} (${formatPeso(cost)} for ${played} of ${booked})`,
+      customer: {
+        previous: table.customer ? { name: table.customer } : null,
+        current: null,
+      },
+      table: {
+        id: table.id,
+        name: getTableLabel(table),
+        previousStatus: table.status,
+        currentStatus: "available",
+      },
+      payment: {
+        total: cost,
+        amountDue: charge?.amountDue ?? cost,
+        source: "table-session",
+      },
+    });
+    addNotification({ message: charge ? describeEndedCharge(charge) : `${getTableLabel(table)} session ended.` });
+  };
+
+  // The card's End Session asks first; the time's up pop-up already shows the total.
   const handleEndSession = (id) => {
     const table = tables.find((t) => t.id === id);
-    if (table?.startTime) {
-      const elapsed = Math.min(
-        getCurrentTimestamp() - table.startTime,
-        Number(table.durationMinutes || 60) * 60000
-      );
-      const hours = Math.ceil(elapsed / 3600000);
-      const cost = hours * table.rate;
-      if (window.confirm(`Session: ${timers[id]}\nTotal: ₱${cost}\n\nEnd session?`)) {
-        updateTable(id, { status: "available", startTime: null, customer: "", addedMinutes: 0 });
-        if (table) {
-          addLog({
-            action: "Ended session",
-            detail: `Ended session for ${getTableLabel(table)} (₱${cost})`,
-            customer: {
-              previous: table.customer ? { name: table.customer } : null,
-              current: null,
-            },
-            table: {
-              id: table.id,
-              name: getTableLabel(table),
-              previousStatus: table.status,
-              currentStatus: "available",
-            },
-            payment: {
-              total: cost,
-              source: "table-session",
-            },
-          });
-          addNotification({ message: `${getTableLabel(table)} session ended.` });
-        }
-      }
+    if (!table?.startTime) return;
+
+    const { cost, booked, played, endedEarly } = describeSessionEnd(table);
+    const totalLine = endedEarly
+      ? `Total: ${formatPeso(cost)} for the full ${booked} booked`
+      : `Total: ${formatPeso(cost)}`;
+    if (window.confirm(`Played: ${played} of ${booked}\n${totalLine}\n\nThe bill goes to Sales / POS for payment.\nEnd session?`)) {
+      endSession(id);
     }
   };
 
@@ -233,6 +278,8 @@ export default function EmployeeDashboard({
             setProducts={setProducts}
             transactions={transactions}
             setTransactions={setTransactions}
+            tableCharges={tableCharges}
+            setTableCharges={setTableCharges}
             setLogs={setLogs}
           />
         );
@@ -250,6 +297,8 @@ export default function EmployeeDashboard({
             setTables={setTables}
             reservations={reservations}
             setReservations={setReservations}
+            tableCharges={tableCharges}
+            setTableCharges={setTableCharges}
             setLogs={setLogs}
           />
         );
@@ -280,15 +329,24 @@ export default function EmployeeDashboard({
                 <PoolTableCard
                   key={table.id}
                   table={table}
-                  onWalkIn={() => handleWalkIn(table.id)}
+                  onWalkIn={() => setWalkInTableId(table.id)}
                   onEndSession={() => handleEndSession(table.id)}
-                  onCheckIn={() => handleWalkIn(table.id)}
+                  onCheckIn={() => handleCheckIn(table.id)}
                   onCancelReserve={() => handleCancel(table.id)}
                   onAddTime={(minutes) => handleAddTime(table.id, minutes)}
                   onUndoTime={(minutes) => handleUndoTime(table.id, minutes)}
                 />
               ))}
             </div>
+
+            {walkInTableId !== null && (
+              <WalkInModal
+                table={tables.find((t) => t.id === walkInTableId)}
+                reservations={reservations}
+                onClose={() => setWalkInTableId(null)}
+                onStart={startWalkIn}
+              />
+            )}
           </>
         );
     }
@@ -318,6 +376,8 @@ export default function EmployeeDashboard({
   return (
     <>
       <LoadingBar loading={loading} />
+      {/* Shown on every page, so a finished table is noticed even from the POS. */}
+      <TimeUpAlert tables={tables} onAddTime={handleAddTime} onEndSession={endSession} />
       <div className="dashboard-layout">
         <Sidebar
           activeNav={activeNav}

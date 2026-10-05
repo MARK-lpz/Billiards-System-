@@ -376,3 +376,61 @@
 }
 
 .events-cancel-copy strong { color: #f8fafc; }
+
+/* A rescheduled event, and the reason given when it was moved or cancelled */
+.events-update-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  color: #60a5fa;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.events-reason-field { margin-top: 14px; }
+
+.events-reschedule-note {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.events-reschedule-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #93c5fd;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.events-reschedule-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.events-reschedule-old { color: #94a3b8; text-decoration: line-through; }
+.events-reschedule-new { color: #f8fafc; font-weight: 700; }
+.events-reschedule-dates i { color: #60a5fa; }
+
+.events-reschedule-hint { color: #94a3b8; font-size: 12px; }
+
+.events-reschedule-note .form-label { margin: 4px 0 0; }
+
+.light .events-update-note { color: #1d4ed8; }
+.light .modal-body .events-reschedule-note { background: #eff6ff; border-color: #bfdbfe; }
+.light .modal-body .events-reschedule-head,
+.light .modal-body .events-reschedule-head span,
+.light .modal-body .events-reschedule-dates i { color: #1d4ed8 !important; }
+.light .modal-body .events-reschedule-old { color: #64748b !important; }
+.light .modal-body .events-reschedule-new { color: #0f172a !important; }
+.light .modal-body .events-reschedule-hint { color: #475569 !important; }

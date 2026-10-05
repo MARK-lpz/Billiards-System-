@@ -18,7 +18,9 @@ import {
   createRemoteReservation,
   updateRemoteReservation,
 } from "../../utils/reservationApi";
+import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
 
+const getCurrentTimestamp = () => Date.now();
 const todayStr = () => new Date().toLocaleDateString("en-CA");
 const createId = () => Date.now() + Math.floor(Math.random() * 1000);
 const HISTORY_STATUSES = new Set(["completed", "cancelled", "rejected", "expired"]);
@@ -45,6 +47,8 @@ export default function ReservationDesk({
   setTables,
   reservations = [],
   setReservations,
+  tableCharges = [],
+  setTableCharges,
   setLogs,
 }) {
   const { addNotification, queueAdminNotification } = useNotifications();
@@ -412,11 +416,16 @@ export default function ReservationDesk({
     if (nextStatus === "cancelled" || nextStatus === "completed") {
       const currentTable = tables.find((table) => isBookingTable(table, booking));
       if (currentTable?.status === "occupied" && currentTable.customer === booking.customerName) {
-        updateBookingTable(booking, {
-          status: "available",
-          customer: "",
-          startTime: null,
-        });
+        // Completing a seated booking ends its table session, so its bill goes to Sales / POS.
+        const charge =
+          nextStatus === "completed"
+            ? createTableCharge({ table: currentTable, reservations, tableCharges, endedBy: "Employee", now: getCurrentTimestamp() })
+            : null;
+        updateBookingTable(booking, ENDED_SESSION_FIELDS);
+        if (charge) {
+          setTableCharges?.((prev) => [charge, ...prev]);
+          addNotification({ message: describeEndedCharge(charge) });
+        }
       }
       addLog({
         action: nextStatus === "cancelled" ? "Cancelled booking" : "Completed booking",

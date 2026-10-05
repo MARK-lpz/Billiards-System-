@@ -536,6 +536,13 @@
   line-height: 1.5;
 }
 
+/* A routine action (add, restock, mark served) is not a warning, so its note is green. */
+.confirm-dialog-detail.success {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.12);
+  color: #bbf7d0;
+}
+
 /* A disabled modal button has to look disabled, or a locked "Approve" reads as
    ready to press. */
 .modal-footer .btn:disabled,
@@ -544,4 +551,42 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+/* Time's up alert: drawn above any other open window, since a finished table
+   needs attention whatever the staff member is doing. */
+.modal.time-up-layer { z-index: 1070; }
+.modal-backdrop.time-up-layer { z-index: 1065; }
+
+.time-up-copy {
+  margin: 0 0 14px;
+  color: #e2e8f0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.time-up-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.08);
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.time-up-total strong {
+  color: #34d399;
+  font-size: 20px;
+}
+
+.time-up-hint {
+  margin: 12px 0 0;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.45;
 }

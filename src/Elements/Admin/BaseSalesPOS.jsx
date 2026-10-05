@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import ReceiptModal from "./ReceiptModal";
 import PaymentConfirmationModal from "./PaymentConfirmationModal";
@@ -14,14 +14,20 @@ export default function BaseSalesPOS({
   setProducts,
   transactions,
   setTransactions,
+  tableCharges = [],
+  setTableCharges,
   setLogs,
   cashierLabel = "Staff A",
   storageKeyPrefix = "shared-pos",
 }) {
+  // A past sale opened from Transaction History, to see or reprint its receipt.
+  const [viewedReceipt, setViewedReceipt] = useState(null);
   const salesPos = useSalesPOS({
     products,
     setProducts,
     setTransactions,
+    tableCharges,
+    setTableCharges,
     setLogs,
     cashierLabel,
     storageKeyPrefix,
@@ -72,10 +78,13 @@ export default function BaseSalesPOS({
           servedCount={salesPos.servedItemsCount}
           unsyncedCount={salesPos.unsyncedCount}
           stockAlert={salesPos.stockAlert}
+          unpaidTableCharges={salesPos.unpaidTableCharges}
+          onAddTableCharge={salesPos.addTableChargeToBill}
           onSearchChange={salesPos.setSearch}
           onSetCategory={salesPos.setCatFilter}
           onAddToCart={salesPos.addToCart}
           onUpdateQty={salesPos.updateQty}
+          getQueuedQty={salesPos.getQueuedQty}
           onSetMethod={salesPos.setMethod}
           onProcessPayment={salesPos.processPayment}
         />
@@ -92,7 +101,11 @@ export default function BaseSalesPOS({
       )}
 
       {salesPos.tab === "recent" && (
-        <SalesTransactionHistory transactions={transactions} servedOrderTickets={salesPos.servedOrderTickets} />
+        <SalesTransactionHistory
+          transactions={transactions}
+          servedOrderTickets={salesPos.servedOrderTickets}
+          onViewReceipt={setViewedReceipt}
+        />
       )}
       {salesPos.paymentReviewOpen && (
         <PaymentConfirmationModal
@@ -105,6 +118,9 @@ export default function BaseSalesPOS({
         />
       )}
       {salesPos.receipt && <ReceiptModal receipt={salesPos.receipt} onClose={() => salesPos.setReceipt(null)} />}
+      {viewedReceipt && !salesPos.receipt && (
+        <ReceiptModal receipt={viewedReceipt} justPaid={false} onClose={() => setViewedReceipt(null)} />
+      )}
     </div>
   );
 }

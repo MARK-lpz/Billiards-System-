@@ -10,6 +10,8 @@ export default function Reservations({
   setReservations,
   tables,
   setTables,
+  tableCharges,
+  setTableCharges,
   setLogs,
   onlineReservationsOpen,
   isUpdatingOnlineReservations,
@@ -20,6 +22,8 @@ export default function Reservations({
     setReservations,
     tables,
     setTables,
+    tableCharges,
+    setTableCharges,
     setLogs,
   });
 

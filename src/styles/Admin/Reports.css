@@ -581,3 +581,131 @@
   flex-wrap: wrap;
   gap: 12px;
 }
+
+/* ── Sales Report: one report for a day, a month or a year (SalesReport.jsx) ── */
+.sales-report-types {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.sales-report-type {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sales-report-type.active { background: #10b981; color: #fff; }
+.sales-report-type:hover:not(.active) { color: #f8fafc; }
+
+.sales-report-hint p { margin: 0; color: #cbd5e1; font-size: 13px; line-height: 1.6; }
+.sales-report-hint strong { color: #f8fafc; }
+
+.light .sales-report-types { background: #fff; border-color: #cbd5e1; }
+.light .sales-report-type { color: #64748b; }
+.light .sales-report-type.active { background: #10b981; color: #fff; }
+.light .sales-report-type:hover:not(.active) { color: #0f172a; }
+.light .sales-report-hint p { color: #475569; }
+.light .sales-report-hint strong { color: #0f172a; }
+
+/* The pop-up: wide enough for the table, scrolling inside itself */
+.sales-report-modal .sales-report-dialog { max-width: min(1120px, calc(100vw - 32px)); }
+.sales-report-modal .modal-body { max-height: calc(100vh - 170px); overflow-y: auto; }
+
+/* The report itself is a white sheet, the same on screen and on paper */
+.srp-paper {
+  padding: 22px 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  color: #111827;
+  font-size: 12.5px;
+}
+
+.srp-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #111827;
+}
+
+.srp-brand { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; color: #047857; }
+.srp-title { margin: 2px 0; font-size: 20px; font-weight: 800; color: #111827; }
+.srp-muted { color: #4b5563; }
+.srp-generated { font-size: 11.5px; }
+
+.srp-section {
+  margin: 20px 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #111827;
+}
+
+.srp-scroll { overflow-x: auto; }
+
+.srp-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #111827;
+}
+
+.srp-table th,
+.srp-table td {
+  padding: 7px 9px;
+  border: 1px solid #d1d5db;
+  text-align: left;
+  vertical-align: top;
+}
+
+.srp-table thead th,
+.srp-summary tr:first-child th {
+  background: #f3f4f6;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #374151;
+}
+
+.srp-summary { margin-top: 16px; }
+.srp-summary td { font-size: 14px; font-weight: 800; white-space: nowrap; }
+.srp-summary tr:first-child th { white-space: nowrap; }
+
+@media (max-width: 600px) {
+  .srp-paper { padding: 14px; }
+  .srp-title { font-size: 17px; }
+}
+
+.srp-table tfoot th,
+.srp-table tfoot td { background: #ecfdf5; font-weight: 800; }
+.srp-table tfoot th { text-align: right; }
+
+.srp-table .srp-num { text-align: right; white-space: nowrap; }
+.srp-nowrap { white-space: nowrap; }
+.srp-items { min-width: 220px; }
+.srp-empty-row td { color: #9ca3af; }
+.srp-none { margin: 0; padding: 12px 0; }
+
+/* The light theme forces modal text to one colour; the sheet keeps its own. */
+.light .modal-body .srp-paper :is(div, span, p, h2, h3, small) { color: inherit !important; }
+.light .modal-body .srp-paper .srp-muted { color: #4b5563 !important; }
+.light .modal-body .srp-paper .srp-brand { color: #047857 !important; }
+
+/* The copy sent to the printer (see printElement). */
+.srp-print-body { margin: 0; background: #fff; }
+.srp-print-body .srp-paper { padding: 0; border: 0; border-radius: 0; }
+.srp-print-body .srp-scroll { overflow: visible; }
+.srp-print-body .srp-table thead { display: table-header-group; }
+.srp-print-body .srp-table tr { break-inside: avoid; }

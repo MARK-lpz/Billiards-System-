@@ -4,11 +4,40 @@ import EventsModal from "../../Elements/Admin/EventsModal";
 import EventsStats from "../../Elements/Admin/EventStats";
 import EventCard from "../../Elements/Admin/EventCard";
 import { useNotifications } from "../../Elements/Global/useNotifications";
+import ConfirmDialog from "../../Elements/Global/ConfirmDialog";
+import { MAX_EVENT_REASON_LENGTH, formatEventWhen, getScheduleChange } from "../../utils/eventUpdates";
+
+// When staff cancelled or moved an event, as shown to players on the website.
+const getCurrentIsoTime = () => new Date().toISOString();
+const cleanReason = (reason) => String(reason || "").trim().slice(0, MAX_EVENT_REASON_LENGTH);
+
+// Kept outside the component: the React lint rules flag Date.now() inside it.
+const getCurrentTimestamp = () => Date.now();
+
+const getEventStart = (event) => {
+  const start = new Date(`${event.date}T${event.time || "00:00"}`);
+  return Number.isNaN(start.getTime()) ? null : start;
+};
+
+const formatEventStart = (event) => {
+  const start = getEventStart(event);
+  if (!start) return [event.date, event.time].filter(Boolean).join(" ");
+  return start.toLocaleString("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    ...(event.time ? { hour: "numeric", minute: "2-digit" } : {}),
+  });
+};
 
 export default function Events({ events, setEvents, tables }) {
   const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
+  // Optional, and shown on the website next to the cancelled event.
+  const [cancelReason, setCancelReason] = useState("");
+  // Completing locks the event for good, so the button only arms this confirmation.
+  const [completeTarget, setCompleteTarget] = useState(null);
   const [form, setForm] = useState({ 
     name: "", 
     date: "", 
@@ -28,8 +57,20 @@ export default function Events({ events, setEvents, tables }) {
       })
       .filter((value) => value !== null);
 
+  // The event as it was before this edit, to tell whether its date or time moved.
+  const editedEvent = form.id ? events.find((event) => event.id === form.id) || null : null;
+  const scheduleChange = getScheduleChange(editedEvent, form);
+
   const save = () => {
     const normalizedTables = resolveAssignedTables(form.tables);
+    // A new date or time is published as a reschedule, so players see both.
+    const rescheduleDetails = scheduleChange
+      ? {
+          rescheduledFrom: scheduleChange.from,
+          rescheduledAt: getCurrentIsoTime(),
+          rescheduleReason: cleanReason(form.rescheduleReason),
+        }
+      : null;
 
     setEvents((prev) => {
       if (form.id) {
@@ -40,6 +81,8 @@ export default function Events({ events, setEvents, tables }) {
                 ...form,
                 tables: normalizedTables,
                 participants: event.participants || [],
+                rescheduleReason: event.rescheduleReason || "",
+                ...rescheduleDetails,
               }
             : event
         );
@@ -55,7 +98,11 @@ export default function Events({ events, setEvents, tables }) {
         },
       ];
     });
-    addNotification({ message: `${form.name} event ${form.id ? "updated" : "created"}.` });
+    addNotification({
+      message: rescheduleDetails
+        ? `${form.name} rescheduled to ${formatEventWhen(form.date, form.time)}. The website now shows the new schedule.`
+        : `${form.name} event ${form.id ? "updated" : "created"}.`,
+    });
     setModal(null);
   };
 
@@ -67,18 +114,51 @@ export default function Events({ events, setEvents, tables }) {
       return;
     }
 
-    setEvents((prev) => prev.map((ev) => (ev.id === eventId ? { ...ev, status: "cancelled" } : ev)));
-    addNotification({ message: `${event.name || "Event"} cancelled.` });
+    const details = { status: "cancelled", cancelledAt: getCurrentIsoTime(), cancelReason: cleanReason(cancelReason) };
+    setEvents((prev) => prev.map((ev) => (ev.id === eventId ? { ...ev, ...details } : ev)));
+    addNotification({ message: `${event.name || "Event"} cancelled. The website now shows it as cancelled.` });
     setCancelTarget(null);
   };
 
   const markComplete = (eventId) => {
     const event = events.find((item) => item.id === eventId);
+    if (!event || event.status !== "upcoming") return;
+
     setEvents(prev => prev.map(ev => 
       ev.id === eventId ? { ...ev, status: "completed" } : ev
     ));
     addNotification({ message: `${event?.name || "Event"} marked completed.` });
   };
+
+  const requestComplete = (event) => {
+    const start = getEventStart(event);
+    setCompleteTarget({ event, notStartedYet: Boolean(start && start.getTime() > getCurrentTimestamp()) });
+  };
+
+  // Takes the target as an argument rather than reading `completeTarget` from the
+  // closure: the React Compiler narrows a closed-over `completeTarget.event` into a
+  // render-time check, which throws while the target is still null.
+  const confirmComplete = (target) => {
+    markComplete(target.event.id);
+    setCompleteTarget(null);
+  };
+
+  const describeComplete = (target) => {
+    const { event, notStartedYet } = target;
+    const players = event.participants?.length || 0;
+    return {
+      message: `Mark ${event.name || "this event"} (${formatEventStart(event)}) as completed?`,
+      detail: [
+        notStartedYet ? "Heads up: this event has not started yet." : "",
+        `${players} registered ${players === 1 ? "player stays" : "players stay"} on record.`,
+        "Once completed, the event is locked: it can no longer be edited or cancelled.",
+      ]
+        .filter(Boolean)
+        .join(" "),
+    };
+  };
+
+  const completeDialog = completeTarget ? describeComplete(completeTarget) : null;
 
   const editEvent = (event) => {
     setForm({
@@ -91,6 +171,7 @@ export default function Events({ events, setEvents, tables }) {
       status: event.status || "upcoming",
       gameType: event.gameType || "8-ball",
       tables: event.tables || [],
+      rescheduleReason: "",
     });
     setModal("form");
   };
@@ -130,8 +211,11 @@ export default function Events({ events, setEvents, tables }) {
             event={e}
             tables={tables}
             onEdit={() => editEvent(e)}
-            onMarkComplete={() => markComplete(e.id)}
-            onCancel={() => setCancelTarget(e)}
+            onMarkComplete={() => requestComplete(e)}
+            onCancel={() => {
+              setCancelReason("");
+              setCancelTarget(e);
+            }}
           />
         ))}
       </div>
@@ -151,6 +235,23 @@ export default function Events({ events, setEvents, tables }) {
                     <strong>{cancelTarget.name}</strong> will be marked cancelled and will stop accepting
                     registrations. Players already registered stay on record.
                   </p>
+                  <p className="events-cancel-copy">
+                    The website will show players that this tournament is cancelled.
+                  </p>
+                  <div className="mb-3 events-reason-field">
+                    <label className="form-label" htmlFor="event-cancel-reason">
+                      Reason for players (optional)
+                    </label>
+                    <input
+                      id="event-cancel-reason"
+                      type="text"
+                      className="form-control"
+                      maxLength={MAX_EVENT_REASON_LENGTH}
+                      value={cancelReason}
+                      onChange={(event) => setCancelReason(event.target.value)}
+                      placeholder="e.g. Not enough players signed up"
+                    />
+                  </div>
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={() => setCancelTarget(null)}>
@@ -166,12 +267,27 @@ export default function Events({ events, setEvents, tables }) {
         </>
       )}
 
+      {completeTarget && completeDialog && (
+        <ConfirmDialog
+          title="Mark Event as Completed?"
+          message={completeDialog.message}
+          detail={completeDialog.detail}
+          confirmLabel="Yes, Mark Completed"
+          cancelLabel="Not yet"
+          confirmClassName="btn-success"
+          icon="bi-trophy-fill"
+          onConfirm={() => confirmComplete(completeTarget)}
+          onClose={() => setCompleteTarget(null)}
+        />
+      )}
+
       {modal === "form" && (
         <EventsModal
           form={form}
           setForm={setForm}
           tables={tables || []}
           isEdit={Boolean(form.id)}
+          scheduleChange={scheduleChange}
           onClose={() => setModal(null)}
           onSave={save}
         />

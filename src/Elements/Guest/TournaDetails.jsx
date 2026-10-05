@@ -1,3 +1,5 @@
+import { formatEventWhen, wasRescheduled } from "../../utils/eventUpdates";
+
 const GAME_TYPES = ["8-Ball", "9-Ball", "Straight Pool", "Snooker", "Rotation"];
 const FORMATS = ["Single Elimination", "Double Elimination", "Round Robin", "Swiss System"];
 const SKILL_LEVELS = ["Beginner", "Intermediate", "Advanced", "Open (All Levels)"];
@@ -33,12 +35,19 @@ export default function TournamentDetailsForm({ form, onChange, events = [], sel
           {events.map((event) => (
             <option key={event.id} value={event.id}>
               {event.name}
+              {wasRescheduled(event) ? " (Rescheduled)" : ""}
             </option>
           ))}
         </select>
         {selectedEvent && (
           <div className="field-helper">
             {fmtDate(selectedEvent.date)} • {fmtTime(selectedEvent.time)}
+          </div>
+        )}
+        {selectedEvent && wasRescheduled(selectedEvent) && (
+          <div className="field-helper field-helper-rescheduled">
+            Rescheduled from {formatEventWhen(selectedEvent.rescheduledFrom.date, selectedEvent.rescheduledFrom.time)}
+            {selectedEvent.rescheduleReason ? `. Reason: ${selectedEvent.rescheduleReason}` : ""}
           </div>
         )}
       </div>

@@ -9,6 +9,7 @@ import {
   parseBackupFile,
 } from "../utils/backup";
 import { exportServerBackup, restoreServerBackup } from "../utils/backupApi";
+import { getSignedInUser } from "../utils/session";
 
 const THEME_OPTIONS = [
   {
@@ -25,13 +26,7 @@ const THEME_OPTIONS = [
   },
 ];
 
-const readSignedInUser = () => {
-  try {
-    return JSON.parse(localStorage.getItem("user") || "null");
-  } catch {
-    return null;
-  }
-};
+const readSignedInUser = getSignedInUser;
 
 const downloadJson = (data, fileName) => {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });

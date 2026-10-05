@@ -1,68 +1,23 @@
 import { useState } from "react";
 import "../../styles/Admin/Reports.css";
-import DailyReport from "../../Elements/Admin/DailyReport";
-import MonthlyReport from "../../Elements/Admin/MonthlyReport";
-import YearlySalesReport from "../../Elements/Admin/YearlySalesReport";
+import SalesReport from "../../Elements/Admin/SalesReport";
 import ReservationReport from "../../Elements/Admin/ReservatioReport";
 import InventoryReport from "../../Elements/Admin/InventoryReport";
 
 export default function Reports({ transactions, reservations, products }) {
-  const [tab, setTab] = useState("daily");
-  const currentDate = new Date();
-  const currentYear = String(currentDate.getFullYear());
-  const [selectedYear, setSelectedYear] = useState(currentYear);
-  const currentMonth = String(currentDate.getMonth() + 1).padStart(2, "0");
-  const [monthlyYear, setMonthlyYear] = useState(currentYear);
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-  const today = `${currentDate.getFullYear()}-${currentMonth}-${String(currentDate.getDate()).padStart(2, "0")}`;
+  const [tab, setTab] = useState("sales");
 
-  const dailyTx = transactions.filter(t => t.date === today);
-  const dailyTotal = dailyTx.reduce((s, t) => s + t.total, 0);
-  // One specific month at a time, e.g. January 2026.
-  const monthPrefix = `${monthlyYear}-${selectedMonth}`;
-  const monthlyTx = transactions.filter((t) => String(t.date || "").startsWith(monthPrefix));
-  const monthlyTotal = monthlyTx.reduce((s, t) => s + t.total, 0);
-  const availableYears = [...new Set([
-    currentYear,
-    ...transactions.map((transaction) => String(transaction.date || "").slice(0, 4)).filter(Boolean),
-  ])].sort((first, second) => Number(second) - Number(first));
-  const yearlyTransactions = transactions.filter(
-    (transaction) => String(transaction.date || "").slice(0, 4) === selectedYear
-  );
-
+  // Daily, monthly and yearly sales are one report; its period is picked inside it.
   const tabs = [
-    { key: "daily", label: "Daily Sales", icon: "bi-calendar-day" },
-    { key: "monthly", label: "Monthly Sales", icon: "bi-calendar-month" },
-    { key: "yearly", label: "Yearly Sales", icon: "bi-calendar-range" },
+    { key: "sales", label: "Sales Report", icon: "bi-graph-up" },
     { key: "reservation", label: "Reservations", icon: "bi-calendar-check" },
     { key: "inventory", label: "Stock Report", icon: "bi-box-seam" },
   ];
 
   const renderReport = () => {
     switch (tab) {
-      case "daily":
-        return <DailyReport transactions={dailyTx} total={dailyTotal} />;
-      case "monthly":
-        return (
-          <MonthlyReport
-            transactions={monthlyTx}
-            total={monthlyTotal}
-            month={selectedMonth}
-            year={monthlyYear}
-            years={availableYears}
-            onMonthChange={setSelectedMonth}
-            onYearChange={setMonthlyYear}
-          />
-        );
-      case "yearly":
-        return (
-          <YearlySalesReport
-            transactions={yearlyTransactions}
-            year={selectedYear}
-            years={availableYears}
-            onYearChange={setSelectedYear}
-          />
-        );
+      case "sales":
+        return <SalesReport transactions={transactions} />;
       case "reservation":
         return <ReservationReport reservations={reservations} />;
       case "inventory":

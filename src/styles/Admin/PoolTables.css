@@ -724,3 +724,69 @@
     margin-left: auto;
   }
 }
+
+/* When an occupied table's chosen hours run out */
+.pool-table-ends {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Walk-in: how long the customer stays */
+.walkin-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px 0 0;
+  color: #93c5fd;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.walkin-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.08);
+  color: #e2e8f0;
+  font-size: 13px;
+}
+
+.walkin-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.walkin-summary strong { color: #f8fafc; }
+
+.walkin-summary-total {
+  color: #34d399;
+  font-weight: 700;
+}
+
+.walkin-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  font-size: 13px;
+  line-height: 1.45;
+}

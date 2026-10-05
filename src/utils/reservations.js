@@ -165,6 +165,61 @@ export const describeReservationTime = (reservation) => {
   return `${formatTime(range.start)} - ${formatTime(range.end)} (${formatHoursLabel(getDurationMinutes(reservation))})`;
 };
 
+/** The booking a reserved table is held for, so checking in uses its hours. */
+export const findTableReservation = (table, reservations = []) => {
+  if (!table) return null;
+
+  const byId =
+    table.reservationId != null
+      ? reservations.find((reservation) => String(reservation?.id) === String(table.reservationId))
+      : null;
+  if (byId) return byId;
+
+  return (
+    reservations.find(
+      (reservation) =>
+        ["approved", "reserved", "arrived"].includes(reservation?.status) &&
+        Number(reservation.tableId ?? reservation.table) === Number(table.id) &&
+        (!table.reservationDate || reservation.date === table.reservationDate) &&
+        (!table.reservationTime || reservation.time === table.reservationTime)
+    ) || null
+  );
+};
+
+// A walk-in stays whole hours, up to this many.
+export const MAX_WALK_IN_HOURS = 12;
+
+/**
+ * How many whole hours a walk-in can stay on a table from now. It stops before
+ * the table's next booking, so a walk-in never runs into a reserved guest.
+ */
+export const getWalkInLimit = ({ table, reservations = [], now = new Date() }) => {
+  const next = reservations
+    .filter(
+      (reservation) =>
+        reservation &&
+        ACTIVE_STATUSES.has(reservation.status) &&
+        reservation.status !== "seated" &&
+        Number(reservation.tableId ?? reservation.table) === Number(table?.id)
+    )
+    .map((reservation) => ({ reservation, range: getCandidateRange(reservation) }))
+    .filter((entry) => entry.range && entry.range.end > now)
+    .sort((first, second) => first.range.start - second.range.start)[0];
+
+  if (!next) return { maxHours: MAX_WALK_IN_HOURS, nextBooking: null };
+
+  const startsIn = Math.floor((next.range.start.getTime() - now.getTime()) / 60000);
+  const sameDay = next.range.start.toDateString() === now.toDateString();
+
+  return {
+    maxHours: Math.max(0, Math.min(MAX_WALK_IN_HOURS, Math.floor(startsIn / 60))),
+    nextBooking: {
+      startsIn,
+      label: sameDay ? formatTime(next.range.start) : `${formatTime(next.range.start)} on ${next.reservation.date}`,
+    },
+  };
+};
+
 /** True once a booking's last minute is over, so it can no longer be approved. */
 export const hasReservationEnded = (reservation, now = new Date()) => {
   const range = reservation ? getCandidateRange(reservation) : null;

@@ -6,7 +6,9 @@ import TournamentQR from './Pages/Guest/tournament-qr'
 import TournamentForm from './Pages/Guest/billiards-form'
 import OnlineReservationForm from './Pages/Guest/OnlineReservationForm'
 import GuestLanding from './Pages/Guest/GuestLanding'
+import TournamentsPage from './Pages/Guest/TournamentsPage'
 import LoadingBar from './Elements/Global/Loading'
+import SplashScreen from './Elements/Global/SplashScreen'
 import './styles/Modal.css'
 import './styles/globalTheme.css'
 import './styles/globalThemeAdmin.css'
@@ -18,6 +20,9 @@ import { fetchRemoteReservations } from './utils/reservationApi'
 import { fetchReservationSettings, updateReservationSettings } from './utils/reservationSettingsApi'
 import { fetchRemoteTables, saveRemoteTables } from './utils/tableApi'
 import { createAuditEntry, normalizeAuditLogs } from './utils/audit'
+import { normalizeProductNumbers } from './utils/productNumbers'
+import { TABLE_CHARGES_STORAGE_KEY } from './utils/tableCharges'
+import { clearSignedInUser, getSignedInUser } from './utils/session'
 import { fetchRemoteIssues } from './utils/issueApi'
 import { fetchRemoteEvents, saveRemoteEvents } from './utils/eventApi'
 
@@ -76,6 +81,18 @@ const getPublicView = () => "guest"
 const sanitizeEvents = (events) =>
   Array.isArray(events) ? events.filter((event) => !legacyEventIds.has(event?.id)) : initialEvents
 
+// The account this tab logged in with stays until Logout or the tab is closed,
+// so reloading keeps the staff member signed in instead of sending them back to
+// the login form. Each tab has its own, so an admin tab stays admin.
+const readSavedRole = () => {
+  const role = String(getSignedInUser()?.role || '').toLowerCase()
+  return role === 'admin' || role === 'employee' ? role : null
+}
+
+// How long the logo shows on reload, then how long it takes to fade out.
+const SPLASH_MS = 1000
+const SPLASH_FADE_MS = 300
+
 const issueSyncKey = (issue) => [
   issue?.action || "",
   issue?.detail || "",
@@ -87,11 +104,17 @@ function App() {
   const [currentView, setCurrentView] = useState(() => (
     isStaffApp ? "login" : getPublicView(window.location.pathname)
   ))
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [userRole, setUserRole] = useState(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(() => isStaffApp && readSavedRole() !== null)
+  const [userRole, setUserRole] = useState(() => (isStaffApp ? readSavedRole() : null))
+  // "shown", then "leaving" while it fades, then null once the dashboard is in view.
+  const [splash, setSplash] = useState(() => (isStaffApp && readSavedRole() ? 'shown' : null))
   const [loading, setLoading] = useState(false)
   const [onlineReservationsOpen, setOnlineReservationsOpen] = useState(true)
   const [isUpdatingOnlineReservations, setIsUpdatingOnlineReservations] = useState(false)
+  // The tournament a player picked before opening the registration form, and
+  // the page the form's Back button returns to.
+  const [selectedTournamentId, setSelectedTournamentId] = useState(null)
+  const [formReturnView, setFormReturnView] = useState('guest')
 
   const [tables, setTables] = useState(() => {
     try {
@@ -126,7 +149,7 @@ function App() {
   const [products, setProducts] = useState(() => {
     try {
       const stored = localStorage.getItem('products')
-      return stored ? JSON.parse(stored) : initialProducts
+      return stored ? normalizeProductNumbers(JSON.parse(stored)) : initialProducts
     } catch {
       return initialProducts
     }
@@ -138,6 +161,16 @@ function App() {
       return stored ? JSON.parse(stored) : initialTransactions
     } catch {
       return initialTransactions
+    }
+  })
+
+  // Finished table sessions waiting to be paid in Sales / POS, and the ones already paid.
+  const [tableCharges, setTableCharges] = useState(() => {
+    try {
+      const stored = localStorage.getItem(TABLE_CHARGES_STORAGE_KEY)
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      return []
     }
   })
 
@@ -262,6 +295,11 @@ function App() {
     try { localStorage.setItem('transactions', JSON.stringify(transactions)) }
     catch (error) { console.warn('Unable to persist transactions', error) }
   }, [transactions])
+
+  useEffect(() => {
+    try { localStorage.setItem(TABLE_CHARGES_STORAGE_KEY, JSON.stringify(tableCharges)) }
+    catch (error) { console.warn('Unable to persist table charges', error) }
+  }, [tableCharges])
 
   useEffect(() => {
     try { localStorage.setItem('reservations', JSON.stringify(reservations)) }
@@ -468,6 +506,14 @@ function App() {
         }
       }
 
+      if (e.key === TABLE_CHARGES_STORAGE_KEY) {
+        try {
+          setTableCharges(e.newValue ? JSON.parse(e.newValue) : [])
+        } catch (error) {
+          console.warn('Failed to parse table charges from storage', error)
+        }
+      }
+
       if (e.key === 'reservations') {
         try {
           const nextReservations = e.newValue ? JSON.parse(e.newValue) : initialReservations
@@ -496,7 +542,7 @@ function App() {
 
     try {
       const stored = localStorage.getItem('products')
-      if (stored) setProducts(JSON.parse(stored))
+      if (stored) setProducts(normalizeProductNumbers(JSON.parse(stored)))
     } catch (error) { console.warn('Unable to reload products', error) }
 
     try {
@@ -515,6 +561,11 @@ function App() {
     } catch (error) { console.warn('Unable to reload reservations', error) }
 
     try {
+      const stored = localStorage.getItem(TABLE_CHARGES_STORAGE_KEY)
+      if (stored) setTableCharges(JSON.parse(stored))
+    } catch (error) { console.warn('Unable to reload table charges', error) }
+
+    try {
       const stored = localStorage.getItem('events')
       if (stored) setEvents(sanitizeEvents(JSON.parse(stored)))
     } catch (error) { console.warn('Unable to reload events', error) }
@@ -527,6 +578,15 @@ function App() {
 
     setTimeout(() => setLoading(false), 300)
   }
+
+  useEffect(() => {
+    if (!splash) return
+    const timer = setTimeout(
+      () => setSplash(splash === 'shown' ? 'leaving' : null),
+      splash === 'shown' ? SPLASH_MS : SPLASH_FADE_MS
+    )
+    return () => clearTimeout(timer)
+  }, [splash])
 
   const handleLogin = (role) => {
     if (!role) return
@@ -544,8 +604,7 @@ function App() {
       setIsLoggedIn(false)
       setUserRole(null)
       setCurrentView(isStaffApp ? "login" : "guest")
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('user')
+      clearSignedInUser()
       setLoading(false)
     }, 300)
   }
@@ -560,6 +619,12 @@ function App() {
       setCurrentView(view)
       setLoading(false)
     }, 300)
+  }
+
+  const openTournamentForm = (eventId = null, returnView = 'guest') => {
+    setSelectedTournamentId(eventId)
+    setFormReturnView(returnView)
+    navigateTo('form')
   }
 
   const handleOnlineReservationAvailability = async (nextAvailability) => {
@@ -584,6 +649,7 @@ function App() {
     >
       <div className={theme}>
         <LoadingBar loading={loading} />
+        {splash && <SplashScreen leaving={splash === 'leaving'} />}
 
         {isStaffApp && currentView === 'login' && !isLoggedIn && (
           <Login onLogin={handleLogin} />
@@ -592,8 +658,18 @@ function App() {
         {!isStaffApp && currentView === 'guest' && (
           <GuestLanding
             onOpenReservation={() => navigateTo('reservation')}
-            onOpenTournamentForm={() => navigateTo('form')}
+            onOpenTournamentForm={(eventId) => openTournamentForm(eventId, 'guest')}
+            onOpenTournaments={() => navigateTo('tournaments')}
             onlineReservationsOpen={onlineReservationsOpen}
+            events={events}
+          />
+        )}
+
+        {!isStaffApp && currentView === 'tournaments' && (
+          <TournamentsPage
+            events={events}
+            onGoBack={() => navigateTo('guest')}
+            onRegister={(eventId) => openTournamentForm(eventId, 'tournaments')}
           />
         )}
 
@@ -616,7 +692,12 @@ function App() {
         )}
 
         {!isStaffApp && currentView === 'form' && (
-          <TournamentForm onGoBack={() => navigateTo('guest')} events={events} setEvents={setEvents} />
+          <TournamentForm
+            onGoBack={() => navigateTo(formReturnView)}
+            events={events}
+            setEvents={setEvents}
+            initialEventId={selectedTournamentId}
+          />
         )}
 
         {isStaffApp && isLoggedIn && userRole === 'admin' && (
@@ -633,6 +714,8 @@ function App() {
             setEquipment={setEquipment}
             transactions={transactions}
             setTransactions={setTransactions}
+            tableCharges={tableCharges}
+            setTableCharges={setTableCharges}
             reservations={reservations}
             setReservations={setReservations}
             events={events}
@@ -658,6 +741,8 @@ function App() {
             setEquipment={setEquipment}
             transactions={transactions}
             setTransactions={setTransactions}
+            tableCharges={tableCharges}
+            setTableCharges={setTableCharges}
             reservations={reservations}
             setReservations={setReservations}
             events={events}

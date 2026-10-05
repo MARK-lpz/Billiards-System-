@@ -4,7 +4,7 @@ const fmtPeso = (value) =>
     maximumFractionDigits: 2,
   })}`;
 
-export default function SalesTransactionHistory({ transactions = [], servedOrderTickets = [] }) {
+export default function SalesTransactionHistory({ transactions = [], servedOrderTickets = [], onViewReceipt }) {
   const historyCount = transactions.length + servedOrderTickets.length;
 
   return (
@@ -57,7 +57,15 @@ export default function SalesTransactionHistory({ transactions = [], servedOrder
                   #{String(tx.id).slice(-5)}
                 </span>
 
-                <span className="order-history-total">{fmtPeso(tx.total)}</span>
+                <span className="order-history-header-side">
+                  <span className="order-history-total">{fmtPeso(tx.total)}</span>
+                  {onViewReceipt && (
+                    <button type="button" className="order-history-receipt-btn" onClick={() => onViewReceipt(tx)}>
+                      <i className="bi bi-receipt-cutoff"></i>
+                      Receipt
+                    </button>
+                  )}
+                </span>
               </div>
 
               <div className="order-history-meta">
@@ -76,8 +84,11 @@ export default function SalesTransactionHistory({ transactions = [], servedOrder
 
               <div className="order-history-items">
                 {tx.items?.map((item, index) => (
-                  <span key={`${tx.id}-${index}`} className="order-history-item-pill">
-                    {item.name} ×{item.qty}
+                  <span
+                    key={`${tx.id}-${index}`}
+                    className={`order-history-item-pill ${item.isTableCharge ? "is-table" : ""}`}
+                  >
+                    {item.isTableCharge ? item.name : `${item.name} ×${item.qty}`}
                   </span>
                 ))}
               </div>

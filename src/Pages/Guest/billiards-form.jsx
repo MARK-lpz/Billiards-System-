@@ -11,27 +11,37 @@ import { registerRemoteTournamentParticipant } from "../../utils/eventApi";
 import GcashPayment from "../../Elements/Guest/GcashPayment";
 import { validateReference } from "../../utils/paymentReference";
 import { sendCustomerConfirmation } from "../../utils/customerMessageApi";
+import { formatEventWhen, getEventNotices } from "../../utils/eventUpdates";
 
-export default function TournamentForm({ events = [], setEvents, onGoBack }) {
-  const [form, setForm] = useState({
+// Read when the form opens and on submit, never while rendering.
+const getCurrentTimestamp = () => Date.now();
+
+const isOpenForRegistration = (event) => ["upcoming", "active"].includes(String(event?.status || "").toLowerCase());
+
+export default function TournamentForm({ events = [], setEvents, onGoBack, initialEventId = null }) {
+  const [form, setForm] = useState(() => ({
     firstName: "",
     lastName: "",
     contact: "",
     age: "",
-    eventId: "",
+    // Already chosen when the player pressed Register on a tournament.
+    eventId: events.some((event) => String(event.id) === String(initialEventId) && isOpenForRegistration(event))
+      ? String(initialEventId)
+      : "",
     gameType: "",
     format: "",
     skillLevel: "",
     teamName: "",
     paymentReference: "",
-  });
+  }));
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
   // { text, status } from the server; status says whether it was really texted.
   const [customerMessage, setCustomerMessage] = useState(null);
-  const availableEvents = events.filter((event) =>
-    ["upcoming", "active"].includes(String(event.status || "").toLowerCase())
-  );
+  const [openedAt] = useState(getCurrentTimestamp);
+  // Players who come to register for a cancelled or moved tournament are told here.
+  const notices = getEventNotices(events, openedAt);
+  const availableEvents = events.filter(isOpenForRegistration);
   const selectedEvent = availableEvents.find((event) => String(event.id) === String(form.eventId)) || null;
   const contactIsValid = isValidSmsNumber(form.contact);
   const entryFee = Number(selectedEvent?.entryFee || 0);
@@ -81,7 +91,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
 
       // Create notification for admin
       const notification = {
-        id: Date.now(),
+        id: getCurrentTimestamp(),
         message: `New tournament registration: ${playerName} for ${selectedEvent.name}`,
         time: "Just now",
         unread: true,
@@ -159,6 +169,26 @@ export default function TournamentForm({ events = [], setEvents, onGoBack }) {
         {/* Card */}
         <div className="tournament-card">
           <div className="card-top-line" />
+
+          {notices.length > 0 && !submitted && (
+            <div className="tourna-notices" role="status">
+              {notices.map(({ event, type }) => (
+                <div key={event.id} className={`tourna-notice is-${type}`}>
+                  <i className={`bi ${type === "cancelled" ? "bi-x-octagon-fill" : "bi-calendar2-week-fill"}`} aria-hidden="true"></i>
+                  <span>
+                    <strong>
+                      {event.name} {type === "cancelled" ? "is cancelled." : "is rescheduled."}
+                    </strong>{" "}
+                    {type === "cancelled"
+                      ? `It was set for ${formatEventWhen(event.date, event.time)}.`
+                      : `New schedule: ${formatEventWhen(event.date, event.time)} (was ${formatEventWhen(event.rescheduledFrom.date, event.rescheduledFrom.time)}).`}
+                    {type === "cancelled" && event.cancelReason ? ` Reason: ${event.cancelReason}` : ""}
+                    {type === "rescheduled" && event.rescheduleReason ? ` Reason: ${event.rescheduleReason}` : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {availableEvents.length === 0 ? (
             <div className="no-active-events fade-in" role="status">

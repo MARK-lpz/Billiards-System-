@@ -111,7 +111,7 @@ export default function PaymentConfirmationModal({
               <div className="payment-review-summary">
                 {cart.map((item) => (
                   <div className="payment-review-row" key={item.id}>
-                    <span>{item.name} x {item.qty}</span>
+                    <span>{item.isTableCharge ? item.name : `${item.name} x ${item.qty}`}</span>
                     <strong>{fmtPeso(item.price * item.qty)}</strong>
                   </div>
                 ))}

@@ -7,6 +7,10 @@ import "../../styles/Admin/Dashboard.css";
 import LoadingBar from "../../Elements/Global/Loading";
 import Notification from "../../Elements/Global/Notification";
 import Menu from "../../Elements/Global/Menu";
+import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
+import { useNotifications } from "../../Elements/Global/useNotifications";
+import { formatHoursLabel } from "../../utils/reservations";
+import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
 
 // Admin Elements
 import Sidebar from "../../Elements/Admin/Sidebar";
@@ -28,6 +32,9 @@ import AccountManagement from "./AccountManagement";
 import AuditTrail from "./AuditTrail";
 import AdminProfile from "./AdminProfile";
 import Settings from "../Settings";
+
+// Read only from click handlers, never while rendering.
+const getCurrentTimestamp = () => Date.now();
 
 const ISSUE_ACTION_KEYWORDS = ["reported issue", "reported damaged equipment", "customer complaint"];
 const isResolvedIssue = (entry) =>
@@ -61,6 +68,8 @@ export default function Dashboard({
   setEquipment,
   transactions,
   setTransactions,
+  tableCharges = [],
+  setTableCharges,
   reservations,
   setReservations,
   events,
@@ -74,6 +83,37 @@ export default function Dashboard({
   const [activeNav, setActiveNav] = useState("dashboard");
   const [loading, setLoading] = useState(false);
   const [selectedEquipmentIssue, setSelectedEquipmentIssue] = useState(null);
+  const { addNotification } = useNotifications();
+
+  // Used by the time's up pop-up, which shows on every admin page, not only on
+  // Pool Tables, so it cannot rely on that page's own handlers.
+  const addTableTime = (id, minutes) => {
+    const table = tables.find((entry) => entry.id === id);
+    setTables((previous) =>
+      previous.map((entry) =>
+        entry.id === id
+          ? {
+              ...entry,
+              durationMinutes: Number(entry.durationMinutes || 60) + minutes,
+              addedMinutes: Number(entry.addedMinutes || 0) + minutes,
+            }
+          : entry
+      )
+    );
+    addNotification({ message: `${table?.name || "Table"} extended by ${formatHoursLabel(minutes)}.` });
+  };
+
+  // The session's bill goes to Sales / POS, where it is paid with any food and drinks.
+  const endTableSession = (id) => {
+    const table = tables.find((entry) => entry.id === id);
+    const charge = createTableCharge({ table, reservations, tableCharges, endedBy: "Admin", now: getCurrentTimestamp() });
+    setTables((previous) =>
+      previous.map((entry) => (entry.id === id ? { ...entry, ...ENDED_SESSION_FIELDS } : entry))
+    );
+    if (!charge) return;
+    setTableCharges?.((previous) => [charge, ...previous]);
+    addNotification({ message: describeEndedCharge(charge) });
+  };
 
   const reportedIssuesCount = logs.filter((entry) => isIssueEntry(entry) && !isResolvedIssue(entry)).length;
 
@@ -110,6 +150,8 @@ export default function Dashboard({
           setProducts={setProducts}
           transactions={transactions}
           setTransactions={setTransactions}
+          tableCharges={tableCharges}
+          setTableCharges={setTableCharges}
           setLogs={setLogs}
         />;
       
@@ -119,6 +161,8 @@ export default function Dashboard({
           setReservations={setReservations}
           tables={tables}
           setTables={setTables}
+          tableCharges={tableCharges}
+          setTableCharges={setTableCharges}
           setLogs={setLogs}
           onlineReservationsOpen={onlineReservationsOpen}
           isUpdatingOnlineReservations={isUpdatingOnlineReservations}
@@ -133,9 +177,12 @@ export default function Dashboard({
         />;
       
       case 'pool-tables':
-        return <PoolTables 
+        return <PoolTables
           tables={tables}
           setTables={setTables}
+          reservations={reservations}
+          tableCharges={tableCharges}
+          setTableCharges={setTableCharges}
         />;
       
       case 'inventory':
@@ -221,6 +268,7 @@ export default function Dashboard({
   return (
     <>
       <LoadingBar loading={loading} />
+      <TimeUpAlert tables={tables} onAddTime={addTableTime} onEndSession={endTableSession} />
       <div className="dashboard-layout">
         <Sidebar 
           activeNav={activeNav} 

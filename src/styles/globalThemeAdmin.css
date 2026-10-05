@@ -777,6 +777,11 @@
   border-color: rgba(239, 68, 68, 0.3) !important;
   color: #b91c1c !important;
 }
+.light .confirm-dialog-detail.success {
+  background: rgba(34, 197, 94, 0.1) !important;
+  border-color: rgba(34, 197, 94, 0.35) !important;
+  color: #15803d !important;
+}
 .light .form-label,
 .light .modal-content .form-label { color: var(--text-muted) !important; }
 .light .btn-close       { color: var(--text-muted); }
@@ -995,3 +1000,20 @@
 }
 
 .light .profile-saved { color: #047857; }
+
+/* Walk-in hours: the modal rule above turns all text black, so the meaning
+   colors are set again here. */
+.light .pool-table-ends { color: #047857; border-color: rgba(4, 120, 87, 0.3); background: #ecfdf5; }
+.light .modal-body .walkin-note { color: #1d4ed8 !important; }
+.light .modal-body .walkin-summary { background: #ecfdf5; border-color: #a7f3d0; }
+.light .modal-body .walkin-summary strong { color: #065f46 !important; }
+.light .modal-body .walkin-summary-total { color: #047857 !important; }
+.light .modal-body .walkin-warning { color: #b91c1c !important; background: #fef2f2; border-color: #fecaca; }
+
+/* Time's up alert in light mode */
+.light .modal-body .time-up-total { background: #ecfdf5; border-color: #a7f3d0; }
+.light .modal-body .time-up-total strong { color: #047857 !important; }
+.light .modal-body .time-up-hint { color: var(--text-muted) !important; }
+
+.light .order-ticket-total { color: var(--text-muted) !important; border-top-color: var(--border) !important; }
+.light .order-ticket-total strong { color: #047857 !important; }

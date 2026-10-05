@@ -4,7 +4,9 @@ import InventoryModal from "../../Elements/Admin/InventoryModal.jsx";
 import InventoryStats from "../../Elements/Admin/InventoryStats";
 import InventoryTable from "../../Elements/Admin/InventoryTable";
 import { useNotifications } from "../../Elements/Global/useNotifications";
+import ConfirmDialog from "../../Elements/Global/ConfirmDialog";
 import { numberFieldValue } from "../../utils/numberField";
+import { getNextProductNumber, normalizeProductNumbers } from "../../utils/productNumbers";
 
 export default function Inventory({ products, setProducts }) {
   const { addNotification } = useNotifications();
@@ -20,22 +22,26 @@ export default function Inventory({ products, setProducts }) {
   });
   const [editId, setEditId] = useState(null);
   const [filter, setFilter] = useState("all");
-
-  const getNextProductNumber = () => {
-    const highestProductNumber = products.reduce((highest, product) => {
-      const productNumber = Number.parseInt(product.productNumber, 10);
-      return Number.isFinite(productNumber) ? Math.max(highest, productNumber) : highest;
-    }, 0);
-
-    return String(highestProductNumber + 1).padStart(3, "0");
-  };
+  // Deleting cannot be undone, so the trash button only arms this confirmation.
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  // Adding a product or restocking asks once more before it changes the stock.
+  // The form is kept, so "Go back" returns to it with everything still typed in.
+  const [saveTarget, setSaveTarget] = useState(null);
+  // The table always shows one number per product, even for a list saved before
+  // the numbers were fixed (App also repairs the stored list when it loads).
+  const numberedProducts = normalizeProductNumbers(products);
 
   const save = () => {
     if (editId) {
       setProducts(prev => prev.map(p => p.id === editId ? { ...p, ...form } : p));
       addNotification({ message: `${form.name} inventory details updated.` });
     } else {
-      setProducts(prev => [...prev, { id: Date.now(), productNumber: getNextProductNumber(), ...form }]);
+      // The number comes from the latest list and is set after the form, so a
+      // leftover field can never hand a new product an existing number.
+      setProducts(prev => {
+        const numbered = normalizeProductNumbers(prev);
+        return [...numbered, { ...form, id: Date.now(), productNumber: getNextProductNumber(numbered) }];
+      });
       addNotification({ message: `${form.name} added to inventory.` });
     }
     setModal(null);
@@ -46,6 +52,16 @@ export default function Inventory({ products, setProducts }) {
     const product = products.find((item) => item.id === id);
     setProducts(prev => prev.filter(p => p.id !== id));
     addNotification({ message: `${product?.name || "Product"} removed from inventory.` });
+  };
+
+  const requestDelete = (id) => setDeleteTarget(numberedProducts.find((item) => item.id === id) || null);
+
+  // Takes the product as an argument rather than reading `deleteTarget` from the
+  // closure: the React Compiler narrows a closed-over `deleteTarget.id` into a
+  // render-time check, which throws while the target is still null.
+  const confirmDelete = (product) => {
+    deleteProduct(product.id);
+    setDeleteTarget(null);
   };
 
   const restockProduct = (id, amount) => {
@@ -82,7 +98,58 @@ export default function Inventory({ products, setProducts }) {
     setEditId(null);
   };
 
-  const filteredProducts = products.filter(p => {
+  // Editing an existing product saves straight away; a new product is checked first.
+  const requestSave = () => {
+    if (editId) {
+      save();
+      return;
+    }
+    setSaveTarget({ type: "add", product: form, productNumber: getNextProductNumber(numberedProducts) });
+  };
+
+  const requestRestock = () => {
+    const product = numberedProducts.find((item) => item.id === editId);
+    setSaveTarget({ type: "restock", product: product || form, amount: Number(form.restockAmount) });
+  };
+
+  // Takes the target as an argument for the same React Compiler reason as confirmDelete.
+  const confirmSave = (target) => {
+    if (target.type === "add") save();
+    else handleRestock();
+    setSaveTarget(null);
+  };
+
+  const describeSave = (target) => {
+    const { product } = target;
+    const name = product.name?.trim() || "this unnamed product";
+    const stock = Number(product.stock) || 0;
+
+    if (target.type === "restock") {
+      return {
+        title: "Restock Product?",
+        message: `Add ${target.amount} pcs to ${name}${product.productNumber ? ` (#${product.productNumber})` : ""}?`,
+        detail: `Stock goes from ${stock} to ${stock + target.amount} pcs.`,
+        confirmLabel: "Yes, Restock",
+        icon: "bi-box-seam",
+      };
+    }
+
+    const price = `₱${(Number(product.price) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const expiry = product.expiryDate
+      ? new Date(`${product.expiryDate}T00:00:00`).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
+      : "no expiry date";
+    return {
+      title: "Add Product?",
+      message: `Add ${name} to inventory as Product #${target.productNumber}?`,
+      detail: `${product.category} · ${price} per piece · ${stock} pcs in stock (low-stock alert at ${Number(product.minStock) || 0} pcs) · ${expiry}. It shows up in the Sales / POS right away.`,
+      confirmLabel: "Yes, Add Product",
+      icon: "bi-plus-circle",
+    };
+  };
+
+  const saveDialog = saveTarget ? describeSave(saveTarget) : null;
+
+  const filteredProducts = numberedProducts.filter(p => {
     if (filter === "all") return true;
     if (filter === "low-stock") return p.stock <= p.minStock;
     return p.category === filter;
@@ -129,23 +196,23 @@ export default function Inventory({ products, setProducts }) {
       <InventoryTable
         products={filteredProducts}
         onEdit={openEditModal}
-        onDelete={deleteProduct}
+        onDelete={requestDelete}
         onRestock={openRestockModal}
       />
 
       {/* Add/Edit Modal */}
-      {modal === "form" && (
+      {modal === "form" && !saveTarget && (
         <InventoryModal
           form={form}
           setForm={setForm}
           editId={editId}
           onClose={() => setModal(null)}
-          onSave={save}
+          onSave={requestSave}
         />
       )}
 
       {/* Restock Modal */}
-      {modal === "restock" && (
+      {modal === "restock" && !saveTarget && (
         <div className="modal show d-block" tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content inventory-modal">
@@ -180,7 +247,12 @@ export default function Inventory({ products, setProducts }) {
                 <button type="button" className="btn btn-secondary" onClick={() => setModal(null)}>
                   Cancel
                 </button>
-                <button type="button" className="btn btn-success" onClick={handleRestock}>
+                <button
+                  type="button"
+                  className="btn btn-success"
+                  onClick={requestRestock}
+                  disabled={!(Number(form.restockAmount) > 0)}
+                >
                   <i className="bi bi-check-circle me-2"></i>
                   Restock
                 </button>
@@ -189,7 +261,33 @@ export default function Inventory({ products, setProducts }) {
           </div>
         </div>
       )}
-      {modal && <div className="modal-backdrop show"></div>}
+      {modal && !saveTarget && <div className="modal-backdrop show"></div>}
+
+      {saveTarget && saveDialog && (
+        <ConfirmDialog
+          title={saveDialog.title}
+          message={saveDialog.message}
+          detail={saveDialog.detail}
+          confirmLabel={saveDialog.confirmLabel}
+          cancelLabel="Go back"
+          confirmClassName="btn-success"
+          icon={saveDialog.icon}
+          onConfirm={() => confirmSave(saveTarget)}
+          onClose={() => setSaveTarget(null)}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDialog
+          title="Delete Product?"
+          message={`Delete ${deleteTarget.name}${deleteTarget.productNumber ? ` (#${deleteTarget.productNumber})` : ""} from inventory?`}
+          detail={`It still has ${Number(deleteTarget.stock) || 0} pcs in stock. Once deleted it disappears from the Sales / POS, and this cannot be undone.`}
+          confirmLabel="Yes, Delete"
+          cancelLabel="Keep it"
+          onConfirm={() => confirmDelete(deleteTarget)}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }

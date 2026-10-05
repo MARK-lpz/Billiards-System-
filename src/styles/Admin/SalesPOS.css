@@ -771,3 +771,287 @@
   border-color: #fca5a5;
   color: #b91c1c;
 }
+
+/* One receipt per order: the ticket's total at the bottom */
+.order-ticket-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.14);
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.order-ticket-total strong {
+  color: #34d399;
+  font-size: 15px;
+}
+
+/* ── Pool table bills (ended sessions waiting to be paid) ─────────────────────── */
+.table-bills-panel {
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.table-bills-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #f0f0f0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.table-bills-header > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-bills-header i { color: #10b981; }
+
+.table-bills-count {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.table-bills-count.has-bills {
+  background: rgba(234, 179, 8, 0.16);
+  color: #fbbf24;
+}
+
+.table-bills-empty {
+  margin: 8px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.table-bills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.table-bill-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.table-bill-card.on-bill { border-color: rgba(16, 185, 129, 0.45); }
+
+.table-bill-main { min-width: 0; }
+
+.table-bill-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  color: #f0f0f0;
+  font-size: 13px;
+}
+
+.table-bill-title span { color: #9ca3af; font-size: 12px; }
+
+.table-bill-meta,
+.table-bill-prepaid {
+  margin-top: 2px;
+  color: #6b7280;
+  font-size: 11px;
+}
+
+.table-bill-prepaid { color: #60a5fa; }
+
+.table-bill-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.table-bill-amount { color: #10b981; font-size: 14px; }
+
+.table-bill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #10b981;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.table-bill-btn:hover:not(:disabled) { background: #059669; }
+
+.table-bill-btn:disabled {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  cursor: default;
+}
+
+.light .table-bills-panel { background: #f0fdf4; border-color: #bbf7d0; }
+.light .table-bills-header { color: var(--text-primary); }
+.light .table-bills-count { background: var(--bg-subtle); color: var(--text-muted); }
+.light .table-bills-count.has-bills { background: #fef3c7; color: #b45309; }
+.light .table-bills-empty,
+.light .table-bill-meta { color: var(--text-muted); }
+.light .table-bill-card { background: var(--bg-surface); border-color: var(--border); }
+.light .table-bill-card.on-bill { border-color: #6ee7b7; }
+.light .table-bill-title { color: var(--text-primary); }
+.light .table-bill-title span { color: var(--text-muted); }
+.light .table-bill-prepaid { color: #1d4ed8; }
+.light .table-bill-amount { color: #047857; }
+.light .table-bill-btn:disabled { background: #d1fae5; color: #047857; }
+
+@media (max-width: 520px) {
+  .table-bill-card { flex-direction: column; align-items: stretch; }
+  .table-bill-side { justify-content: space-between; }
+}
+
+/* A table charge on the running bill is one whole session, so it has no − / + */
+.cart-item-session {
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.light .cart-item-session { color: var(--text-muted); }
+
+/* ── Transaction history: reopen a receipt ────────────────────────────────────── */
+.order-history-header-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.order-history-receipt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  background: transparent;
+  color: #d1d5db;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.order-history-receipt-btn:hover { border-color: #10b981; color: #34d399; }
+
+.order-history-item-pill.is-table {
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
+}
+
+.light .order-history-receipt-btn { border-color: var(--border); color: var(--text-secondary); }
+.light .order-history-receipt-btn:hover { border-color: #10b981; color: #047857; }
+.light .order-history-item-pill.is-table { border-color: #a7f3d0; color: #047857; }
+
+/* ── Receipt: a paper slip, the same in both themes and on the printer ─────────── */
+.receipt-modal .modal-body {
+  max-height: calc(100vh - 170px);
+  overflow-y: auto;
+}
+
+.rcpt-paper {
+  max-width: 340px;
+  margin: 0 auto;
+  padding: 18px 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  color: #111827;
+  font-family: "Courier New", Courier, ui-monospace, monospace;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.rcpt-brand {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.rcpt-center { text-align: center; }
+
+.rcpt-muted { color: #4b5563; font-size: 11.5px; }
+
+.rcpt-rule {
+  margin: 10px 0;
+  border-top: 1px dashed #9ca3af;
+}
+
+.rcpt-section {
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.rcpt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rcpt-row > span:last-child { text-align: right; white-space: nowrap; }
+
+.rcpt-line + .rcpt-line { margin-top: 6px; }
+
+.rcpt-strong { font-weight: 700; }
+
+.rcpt-total {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* The light theme forces modal text to one colour; the slip keeps its own. */
+.light .modal-body .rcpt-paper,
+.light .modal-body .rcpt-paper div,
+.light .modal-body .rcpt-paper span { color: #111827 !important; }
+.light .modal-body .rcpt-paper .rcpt-muted,
+.light .modal-body .rcpt-paper .rcpt-muted span { color: #4b5563 !important; }
+.light .rcpt-paper { box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08); }
+
+/* The copy sent to the printer (see printReceipt in ReceiptModal.jsx). */
+.rcpt-print-body { margin: 0; background: #fff; }
+.rcpt-print-body .rcpt-paper {
+  max-width: 80mm;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media print {
+  @page { margin: 6mm; }
+}

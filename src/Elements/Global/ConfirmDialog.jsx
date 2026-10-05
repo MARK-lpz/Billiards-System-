@@ -11,6 +11,10 @@ export default function ConfirmDialog({
   detail = "",
   confirmLabel = "Yes, continue",
   cancelLabel = "Go back",
+  // A destructive action stays red; a routine one, like marking an order
+  // served, can pass "btn-success" and its own icon.
+  confirmClassName = "btn-danger",
+  icon = "bi-exclamation-triangle-fill",
   onConfirm,
   onClose,
 }) {
@@ -32,20 +36,22 @@ export default function ConfirmDialog({
           <div className="modal-content">
             <div className="modal-header">
               <h5 className="modal-title">
-                <i className="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                <i className={`bi ${icon}`} aria-hidden="true"></i>
                 {title}
               </h5>
               <button type="button" className="btn-close btn-close-white" aria-label="Close" onClick={onClose}></button>
             </div>
             <div className="modal-body">
               <p className="confirm-dialog-copy">{message}</p>
-              {detail && <p className="confirm-dialog-detail">{detail}</p>}
+              {detail && (
+                <p className={`confirm-dialog-detail ${confirmClassName === "btn-success" ? "success" : ""}`}>{detail}</p>
+              )}
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={onClose}>
                 {cancelLabel}
               </button>
-              <button type="button" className="btn btn-danger" onClick={onConfirm}>
+              <button type="button" className={`btn ${confirmClassName}`} onClick={onConfirm}>
                 {confirmLabel}
               </button>
             </div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ForgotPassModal from "../Elements/Global/ForgotPassModal";
 import { MIN_PASSWORD_LENGTH } from "../utils/passwordRules";
+import { saveSignedInUser } from "../utils/session";
 import "../styles/Login.css";
 
 export default function Login({ onLogin, onGoToRegister }) {
@@ -50,12 +51,9 @@ export default function Login({ onLogin, onGoToRegister }) {
         return;
       }
 
-      // Store token and user data
-      if (data.token) {
-        localStorage.setItem('authToken', data.token);
-      }
+      // Kept for this tab only, so another tab can be signed in as someone else.
       if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
+        saveSignedInUser(data.user, data.token);
       }
 
       // ✅ FIX: Extract role and pass it to onLogin
