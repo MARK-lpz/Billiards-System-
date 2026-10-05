@@ -17,6 +17,12 @@ function ensureTournamentEventsTable($pdo) {
     );
 }
 
+// Short text staff write for players (a reason), trimmed to a safe length.
+function cleanEventText($value, $limit = 200) {
+    $text = trim((string) ($value ?? ''));
+    return trim(function_exists('mb_substr') ? mb_substr($text, 0, $limit) : substr($text, 0, $limit));
+}
+
 function normalizeEvent($event) {
     if (!is_array($event)) {
         return null;
@@ -38,6 +44,15 @@ function normalizeEvent($event) {
         fn($participant) => is_string($participant) && trim($participant) !== ''
     ));
 
+    // The schedule before staff moved the event, so the website can show both.
+    $previous = $event['rescheduledFrom'] ?? null;
+    $rescheduledFrom = is_array($previous)
+        ? [
+            'date' => cleanEventText($previous['date'] ?? '', 20),
+            'time' => cleanEventText($previous['time'] ?? '', 10),
+        ]
+        : null;
+
     return [
         'id' => $id,
         'name' => $name,
@@ -49,6 +64,11 @@ function normalizeEvent($event) {
         'gameType' => trim((string) ($event['gameType'] ?? '8-ball')),
         'tables' => array_values(is_array($event['tables'] ?? null) ? $event['tables'] : []),
         'participants' => $participants,
+        'cancelledAt' => cleanEventText($event['cancelledAt'] ?? '', 40),
+        'cancelReason' => cleanEventText($event['cancelReason'] ?? ''),
+        'rescheduledFrom' => $rescheduledFrom,
+        'rescheduledAt' => cleanEventText($event['rescheduledAt'] ?? '', 40),
+        'rescheduleReason' => cleanEventText($event['rescheduleReason'] ?? ''),
     ];
 }
 
