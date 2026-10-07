@@ -1,7 +1,8 @@
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
 import { numberFieldValue, readNumberField } from "../../utils/numberField";
+import { getTodayDate } from "../../utils/reservations";
 
-export default function ReservationModal({ form, setForm, editId, tables, onClose, onSave }) {
+export default function ReservationModal({ form, setForm, editId, scheduleError = "", tables, onClose, onSave }) {
   const phoneWarning = getSmsWarning(form.phone);
   // Required: every booking must have a number to reach the customer, and the
   // server refuses bookings without one.
@@ -55,25 +56,35 @@ export default function ReservationModal({ form, setForm, editId, tables, onClos
               </div>
 
               {/* Date & Time */}
-              <div className="row g-3 mb-3">
-                <div className="col-6">
-                  <label className="form-label">Date</label>
-                  <input 
-                    type="date" 
-                    className="form-control" 
-                    value={form.date} 
-                    onChange={e => setForm({ ...form, date: e.target.value })}
-                  />
+              <div className="mb-3">
+                <div className="row g-3">
+                  <div className="col-6">
+                    <label className="form-label">Date</label>
+                    <input
+                      type="date"
+                      className={`form-control ${scheduleError ? "reservations-input-error" : ""}`}
+                      min={getTodayDate()}
+                      value={form.date}
+                      onChange={e => setForm({ ...form, date: e.target.value })}
+                      aria-invalid={Boolean(scheduleError)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label">Time</label>
+                    <input
+                      type="time"
+                      className={`form-control ${scheduleError && form.time ? "reservations-input-error" : ""}`}
+                      value={form.time}
+                      onChange={e => setForm({ ...form, time: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div className="col-6">
-                  <label className="form-label">Time</label>
-                  <input 
-                    type="time" 
-                    className="form-control" 
-                    value={form.time} 
-                    onChange={e => setForm({ ...form, time: e.target.value })}
-                  />
-                </div>
+                {scheduleError && (
+                  <div className="reservations-field-warning" role="alert">
+                    <i className="bi bi-exclamation-circle me-1"></i>
+                    {scheduleError}
+                  </div>
+                )}
               </div>
 
               {/* Table & Pax */}
@@ -130,6 +141,7 @@ export default function ReservationModal({ form, setForm, editId, tables, onClos
                   !phoneIsValid ||
                   !form.date ||
                   !form.time ||
+                  Boolean(scheduleError) ||
                   !form.tableId
                 }
               >

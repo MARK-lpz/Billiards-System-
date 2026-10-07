@@ -3,13 +3,11 @@ import { appendAuditLog } from "../../utils/audit";
 import { isValidSmsNumber } from "../../utils/phone";
 import { useNotifications } from "../Global/useNotifications";
 import { updateRemoteReservation } from "../../utils/reservationApi";
-import {
-  RESERVATIONS_PAGE_SIZE as PAGE_SIZE,
-  matchesSearch,
-  paginate,
-} from "../../utils/reservationList";
+import { RESERVATIONS_PAGE_SIZE as PAGE_SIZE, matchesSearch } from "../../utils/reservationList";
+import { paginate } from "../../utils/pagination";
 import {
   getAvailableReservationTables,
+  getReservationScheduleError,
   hasReservationConflict,
 } from "../../utils/reservations";
 import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
@@ -54,6 +52,13 @@ export default function useAdminReservations({
     time: form.time,
     excludeId: editId,
   });
+
+  // A booking being edited may keep the slot it already has, even once that has
+  // passed; a new date or time must still be ahead.
+  const editedReservation = editId ? reservations.find((reservation) => reservation.id === editId) : null;
+  const keepsBookedSlot =
+    Boolean(editedReservation) && editedReservation.date === form.date && editedReservation.time === form.time;
+  const scheduleError = keepsBookedSlot ? "" : getReservationScheduleError(form.date, form.time);
 
   const matchedReservations = reservations.filter((reservation) => {
     const inFilter =
@@ -235,6 +240,11 @@ export default function useAdminReservations({
       return;
     }
 
+    if (scheduleError) {
+      window.alert(scheduleError);
+      return;
+    }
+
     const payload = buildReservationPayload(form, tables);
     if (!payload) return;
 
@@ -351,6 +361,7 @@ export default function useAdminReservations({
     filteredReservations,
     form,
     modal,
+    scheduleError,
     search,
     setSearch: changeSearch,
     page: currentPage,

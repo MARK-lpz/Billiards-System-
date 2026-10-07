@@ -1,7 +1,17 @@
 import { numberFieldValue, readNumberField } from "../../utils/numberField";
 import { MAX_EVENT_REASON_LENGTH, formatEventWhen } from "../../utils/eventUpdates";
+import { getTodayDate } from "../../utils/reservations";
 
-export default function EventsModal({ form, setForm, tables = [], isEdit = false, scheduleChange = null, onClose, onSave }) {
+export default function EventsModal({
+  form,
+  setForm,
+  tables = [],
+  isEdit = false,
+  scheduleChange = null,
+  scheduleError = "",
+  onClose,
+  onSave,
+}) {
   return (
     <>
       <div className="modal show d-block" tabIndex="-1">
@@ -52,25 +62,35 @@ export default function EventsModal({ form, setForm, tables = [], isEdit = false
               </div>
 
               {/* Date & Time */}
-              <div className="row g-3 mb-3">
-                <div className="col-6">
-                  <label className="form-label">Date</label>
-                  <input 
-                    type="date" 
-                    className="form-control" 
-                    value={form.date} 
-                    onChange={e => setForm({ ...form, date: e.target.value })}
-                  />
+              <div className="mb-3">
+                <div className="row g-3">
+                  <div className="col-6">
+                    <label className="form-label">Date</label>
+                    <input
+                      type="date"
+                      className={`form-control ${scheduleError ? "events-input-error" : ""}`}
+                      min={getTodayDate()}
+                      value={form.date}
+                      onChange={e => setForm({ ...form, date: e.target.value })}
+                      aria-invalid={Boolean(scheduleError)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label">Time</label>
+                    <input
+                      type="time"
+                      className={`form-control ${scheduleError && form.time ? "events-input-error" : ""}`}
+                      value={form.time}
+                      onChange={e => setForm({ ...form, time: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div className="col-6">
-                  <label className="form-label">Time</label>
-                  <input 
-                    type="time" 
-                    className="form-control" 
-                    value={form.time} 
-                    onChange={e => setForm({ ...form, time: e.target.value })}
-                  />
-                </div>
+                {scheduleError && (
+                  <div className="events-field-warning" role="alert">
+                    <i className="bi bi-exclamation-circle me-1"></i>
+                    {scheduleError}
+                  </div>
+                )}
               </div>
 
               {/* Moving an existing event: players see the old and new schedule on the website */}
@@ -168,10 +188,11 @@ export default function EventsModal({ form, setForm, tables = [], isEdit = false
               >
                 Cancel
               </button>
-              <button 
-                type="button" 
-                className="btn btn-success" 
+              <button
+                type="button"
+                className="btn btn-success"
                 onClick={onSave}
+                disabled={Boolean(scheduleError)}
               >
                 <i className="bi bi-check-circle me-2"></i>
                 {isEdit ? "Save Changes" : "Create Event"}

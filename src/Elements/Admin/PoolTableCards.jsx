@@ -1,6 +1,12 @@
 ﻿import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatPeso, getSessionTotal } from "../../utils/tableSession";
+import {
+  RESERVATION_GRACE_MINUTES,
+  addMinutesToTime,
+  formatReservationDate,
+  formatReservationTime,
+} from "../../utils/reservations";
 
 // The pop-up is drawn at the app's theme wrapper, not inside the card: the card
 // lifts on hover with a CSS transform, which would drag a fixed pop-up along with
@@ -154,11 +160,18 @@ export default function PoolTableCard({
 
       {isReserved && (table.reservationDate || table.reservationTime) && (
         <div className="pool-table-reservation-slot">
-          <i className="bi bi-calendar-check me-2" aria-hidden="true"></i>
-          <span>
-            Reserved for {table.reservationDate || "selected date"}
-            {table.reservationTime ? ` at ${table.reservationTime}` : ""}
-          </span>
+          <i className="bi bi-calendar-check" aria-hidden="true"></i>
+          <div>
+            <div>
+              Reserved for {table.reservationDate ? formatReservationDate(table.reservationDate) : "selected date"}
+              {table.reservationTime ? ` at ${formatReservationTime(table.reservationTime)}` : ""}
+            </div>
+            {table.reservationTime && (
+              <div className="pool-table-reservation-expiry">
+                Expires {formatReservationTime(addMinutesToTime(table.reservationTime, RESERVATION_GRACE_MINUTES))} if not checked in
+              </div>
+            )}
+          </div>
         </div>
       )}
 

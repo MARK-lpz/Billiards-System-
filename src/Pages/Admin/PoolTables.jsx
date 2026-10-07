@@ -6,13 +6,14 @@ import PoolTableModal from "../../Elements/Admin/PoolTableModal";
 import WalkInModal from "../../Elements/Admin/WalkInModal";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import { findTableReservation, formatHoursLabel } from "../../utils/reservations";
+import { saveTableReservationStatus } from "../../utils/reservationApi";
 import { formatPeso, getPlayedMinutes, getSessionTotal } from "../../utils/tableSession";
 import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
 
 // Read only from click handlers, never while rendering.
 const getCurrentTimestamp = () => Date.now();
 
-export default function PoolTables({ tables, setTables, reservations = [], tableCharges = [], setTableCharges }) {
+export default function PoolTables({ tables, setTables, reservations = [], setReservations, tableCharges = [], setTableCharges }) {
   const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ name: "", rate: 15, durationMinutes: 60 });
@@ -53,6 +54,7 @@ export default function PoolTables({ tables, setTables, reservations = [], table
     setTables(prev => prev.map(t =>
       t.id === table.id ? { ...t, ...ENDED_SESSION_FIELDS } : t
     ));
+    saveTableReservationStatus({ table, reservations, setReservations, from: ["seated"], status: "completed" });
     if (charge) {
       setTableCharges?.(prev => [charge, ...prev]);
       addNotification({ message: describeEndedCharge(charge) });
@@ -69,6 +71,8 @@ export default function PoolTables({ tables, setTables, reservations = [], table
         ? { ...t, status: "occupied", startTime: Date.now(), durationMinutes: bookedMinutes > 0 ? bookedMinutes : Number(t.durationMinutes || 60), addedMinutes: 0 }
         : t
     ));
+    // Seated, so the booking is not expired as a no-show while the guest plays.
+    saveTableReservationStatus({ table, reservations, setReservations, from: ["approved", "reserved", "arrived"], status: "seated" });
     addNotification({
       message: `${table?.name || 'Table'} checked in`,
     });

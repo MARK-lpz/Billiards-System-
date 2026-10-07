@@ -371,7 +371,9 @@ function App() {
 
       return changed ? nextTables : currentTables
     })
-  }, [reservations])
+    // Tables too: a shared-status poll can bring back a stale "reserved" copy
+    // after the booking expired, and it must be freed again.
+  }, [reservations, tables])
 
   useEffect(() => {
     let cancelled = false

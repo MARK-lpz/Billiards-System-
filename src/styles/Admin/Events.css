@@ -93,6 +93,53 @@
 .events-stat-yellow .events-stat-value { color: #fbbf24; }
 
 /* Events List */
+/* Active Events / Previous Events, the same look as the reservation filters. */
+.events-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.events-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.events-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.events-tab-btn.active {
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+}
+
+.events-tab-count { opacity: 0.7; }
+
+.events-empty {
+  padding: 32px 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
+}
+
+.light .events-empty { border-color: #cbd5e1; color: #64748b; }
+
 .events-list {
   display: flex;
   flex-direction: column;
@@ -425,6 +472,27 @@
 .events-reschedule-hint { color: #94a3b8; font-size: 12px; }
 
 .events-reschedule-note .form-label { margin: 4px 0 0; }
+
+/* A date or time an event cannot be set for. */
+.modal-content .form-control.events-input-error,
+.modal-content .form-control.events-input-error:focus {
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15);
+}
+
+.events-field-warning {
+  margin-top: 8px;
+  color: #fda4af;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.light .modal-content .form-control.events-input-error,
+.light .modal-content .form-control.events-input-error:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+}
+.light .modal-body .events-field-warning { color: #b91c1c !important; }
 
 .light .events-update-note { color: #1d4ed8; }
 .light .modal-body .events-reschedule-note { background: #eff6ff; border-color: #bfdbfe; }

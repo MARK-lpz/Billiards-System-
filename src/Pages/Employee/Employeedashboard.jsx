@@ -16,6 +16,7 @@ import ReservationDesk from "./ReservationDesk";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import { findTableReservation, formatHoursLabel } from "../../utils/reservations";
+import { saveTableReservationStatus } from "../../utils/reservationApi";
 import { formatPeso, getPlayedMinutes, getSessionTotal } from "../../utils/tableSession";
 import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
 
@@ -133,6 +134,8 @@ export default function EmployeeDashboard({
       durationMinutes: bookedMinutes > 0 ? bookedMinutes : Number(table.durationMinutes || 60),
       addedMinutes: 0,
     });
+    // Seated, so the booking is not expired as a no-show while the guest plays.
+    saveTableReservationStatus({ table, reservations, setReservations, from: ["approved", "reserved", "arrived"], status: "seated" });
     addLog({
       action: "Checked in reservation",
       detail: `${customer} checked in at ${getTableLabel(table)}`,
@@ -171,6 +174,7 @@ export default function EmployeeDashboard({
     const { cost, booked, played } = describeSessionEnd(table);
     const charge = createTableCharge({ table, reservations, tableCharges, endedBy: "Employee", now: getCurrentTimestamp() });
     updateTable(id, ENDED_SESSION_FIELDS);
+    saveTableReservationStatus({ table, reservations, setReservations, from: ["seated"], status: "completed" });
     if (charge) setTableCharges?.((prev) => [charge, ...prev]);
     addLog({
       action: "Ended session",

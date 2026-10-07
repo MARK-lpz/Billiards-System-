@@ -5,6 +5,9 @@ export const DEFAULT_RESERVATION_DURATION_MINUTES = 60;
 export const RESERVATION_SLOT_MINUTES = 30;
 // Guests book whole hours, at least this many, starting at any time they choose.
 export const MIN_RESERVATION_HOURS = 1;
+// A guest not checked in this long after their reserved time is a no-show: the
+// server expires the booking and the table is freed. Matches reservations.php.
+export const RESERVATION_GRACE_MINUTES = 30;
 
 const ACTIVE_STATUSES = new Set(["pending", "approved", "reserved", "arrived", "seated"]);
 
@@ -128,6 +131,18 @@ const toTimeValue = (minutesOfDay) => {
 
 const formatClock = (time) => formatTime(toDateTime("2000-01-01", time));
 
+/** "11:53 AM", from a booking's "11:53". Anything unreadable is shown as given. */
+export const formatReservationTime = (time) =>
+  Number.isNaN(toDateTime("2000-01-01", time).getTime()) ? time : formatClock(time);
+
+/** "Oct 7, 2026", from a booking's "2026-10-07". Anything unreadable is shown as given. */
+export const formatReservationDate = (date) => {
+  const day = toDateTime(date, "00:00");
+  return Number.isNaN(day.getTime())
+    ? date
+    : day.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+};
+
 export const RESERVATION_CLOSED_HOURS_MESSAGE = `Break & Chill closes at ${formatClock(RESERVATION_CUTOFF_TIME)}. Online reservations open again at ${formatClock(RESERVATION_OPEN_TIME)}.`;
 
 /**
@@ -186,12 +201,15 @@ export const findTableReservation = (table, reservations = []) => {
   );
 };
 
-// A walk-in stays whole hours, up to this many.
-export const MAX_WALK_IN_HOURS = 12;
+// How long a walk-in can choose to stay, in minutes. Staff add time later if
+// the customer stays longer.
+export const WALK_IN_DURATIONS = [30, 60, 120];
+const LONGEST_WALK_IN = Math.max(...WALK_IN_DURATIONS);
 
 /**
- * How many whole hours a walk-in can stay on a table from now. It stops before
- * the table's next booking, so a walk-in never runs into a reserved guest.
+ * How many minutes a walk-in can stay on a table from now, up to the longest
+ * choice. It stops before the table's next booking, so a walk-in never runs
+ * into a reserved guest.
  */
 export const getWalkInLimit = ({ table, reservations = [], now = new Date() }) => {
   const next = reservations
@@ -206,13 +224,13 @@ export const getWalkInLimit = ({ table, reservations = [], now = new Date() }) =
     .filter((entry) => entry.range && entry.range.end > now)
     .sort((first, second) => first.range.start - second.range.start)[0];
 
-  if (!next) return { maxHours: MAX_WALK_IN_HOURS, nextBooking: null };
+  if (!next) return { maxMinutes: LONGEST_WALK_IN, nextBooking: null };
 
   const startsIn = Math.floor((next.range.start.getTime() - now.getTime()) / 60000);
   const sameDay = next.range.start.toDateString() === now.toDateString();
 
   return {
-    maxHours: Math.max(0, Math.min(MAX_WALK_IN_HOURS, Math.floor(startsIn / 60))),
+    maxMinutes: Math.max(0, Math.min(LONGEST_WALK_IN, startsIn)),
     nextBooking: {
       startsIn,
       label: sameDay ? formatTime(next.range.start) : `${formatTime(next.range.start)} on ${next.reservation.date}`,
@@ -496,4 +514,19 @@ export const getReservationValidationMessage = (date, time, now = new Date()) =>
   }
 
   return "";
+};
+
+/** Today as "2026-10-07", the value a date input uses. */
+export const getTodayDate = (now = new Date()) => now.toLocaleDateString("en-CA");
+
+/**
+ * Why staff cannot book this date and time, or "" when they can or have not
+ * filled both in yet. A past date is caught as soon as it is picked, before
+ * any time is chosen.
+ */
+export const getReservationScheduleError = (date, time, now = new Date()) => {
+  if (!date) return "";
+  if (date < getTodayDate(now)) return "This date has already passed. Please choose today or a later date.";
+  if (!time) return "";
+  return getReservationValidationMessage(date, time, now);
 };

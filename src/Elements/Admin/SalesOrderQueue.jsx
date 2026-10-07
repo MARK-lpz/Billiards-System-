@@ -1,5 +1,7 @@
 import { useState } from "react";
 import ConfirmDialog from "../Global/ConfirmDialog";
+import Pagination from "../Global/Pagination";
+import usePagination from "../Global/usePagination";
 
 const fmtPeso = (value) =>
   `₱${Number(value || 0).toLocaleString("en-PH", {
@@ -19,6 +21,8 @@ export default function SalesOrderQueue({
   // Marking served asks first: a stray tap would otherwise close an order, and a
   // fully served order moves to history where it cannot be changed.
   const [confirmTarget, setConfirmTarget] = useState(null);
+  // The counts above stay for every ticket; only the list below is paged.
+  const pagination = usePagination(orderTickets);
 
   // Takes the target as an argument rather than reading `confirmTarget` from the
   // closure: the React Compiler narrows a closed-over `confirmTarget.type` into a
@@ -82,7 +86,7 @@ export default function SalesOrderQueue({
         <div className="order-history-empty">No order tickets yet. Send food or drink items from the running bill.</div>
       ) : (
         <div className="order-ticket-list">
-          {orderTickets.map((ticket) => {
+          {pagination.items.map((ticket) => {
             const pendingCount = ticket.items.filter((item) => !item.served).length;
             const ticketTotal = ticket.items.reduce((sum, item) => sum + item.price * item.qty, 0);
 
@@ -142,6 +146,8 @@ export default function SalesOrderQueue({
           })}
         </div>
       )}
+
+      <Pagination {...pagination} />
 
       {confirmTarget && dialog && (
         <ConfirmDialog

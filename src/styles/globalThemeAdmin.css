@@ -136,6 +136,7 @@
 
 .light .inventory-filter-btn,
 .light .reservations-filter-btn,
+.light .events-tab-btn,
 .light .reports-tab-btn {
   background: var(--bg-muted) !important;
   border: 1px solid var(--border-strong) !important;
@@ -144,6 +145,7 @@
 
 .light .inventory-filter-btn:hover,
 .light .reservations-filter-btn:hover,
+.light .events-tab-btn:hover,
 .light .reports-tab-btn:hover {
   background: var(--border) !important;
   color: var(--text-secondary) !important;
@@ -151,6 +153,7 @@
 
 .light .inventory-filter-btn.active,
 .light .reservations-filter-btn.active,
+.light .events-tab-btn.active,
 .light .reports-tab-btn.active {
   background: var(--accent) !important;
   border-color: var(--accent) !important;
@@ -465,6 +468,13 @@
   background: var(--bg-surface);
   color: var(--text-secondary);
 }
+.light .reservations-modal .form-control.reservations-input-error,
+.light .reservations-modal .form-control.reservations-input-error:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+}
+/* Beats the ".light .modal-body div" rule below, which would turn warnings black. */
+.light .modal-body .reservations-field-warning { color: #b91c1c !important; }
 
 .light .sales-pos-title    { color: var(--text-primary) !important; }
 .light .sales-pos-subtitle { color: var(--text-muted) !important; }

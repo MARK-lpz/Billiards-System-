@@ -1,21 +1,27 @@
 import { useEffect, useState } from "react";
 import "../../styles/Admin/PoolTables.css";
-import { MAX_WALK_IN_HOURS, formatHoursLabel, getWalkInLimit } from "../../utils/reservations";
+import { WALK_IN_DURATIONS, formatHoursLabel, getWalkInLimit } from "../../utils/reservations";
 import { formatPeso } from "../../utils/tableSession";
 
-const HOUR_MS = 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+const SHORTEST_WALK_IN = WALK_IN_DURATIONS[0];
+const LONGEST_WALK_IN = WALK_IN_DURATIONS[WALK_IN_DURATIONS.length - 1];
 
 const clock = (ms) =>
   new Date(ms).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
 
 /**
- * Starts a walk-in session. Staff say how many hours the customer will stay, so
- * the timer ends when planned instead of after the table's default session.
+ * Starts a walk-in session. Staff say how long the customer will stay, so the
+ * timer ends when planned instead of after the table's default session.
  */
 export default function WalkInModal({ table, reservations = [], onClose, onStart }) {
   const [customer, setCustomer] = useState("");
-  // The table's default session, in hours, is the starting choice.
-  const [hours, setHours] = useState(() => String(Math.max(1, Math.round(Number(table?.durationMinutes || 60) / 60))));
+  // The table's default session is the starting choice when it is one of the
+  // choices; otherwise 1 hour.
+  const [minutes, setMinutes] = useState(() => {
+    const tableDefault = Number(table?.durationMinutes);
+    return String(WALK_IN_DURATIONS.includes(tableDefault) ? tableDefault : 60);
+  });
   const [now, setNow] = useState(() => Date.now());
 
   // Keeps the "until" times true while the window stays open.
@@ -32,17 +38,20 @@ export default function WalkInModal({ table, reservations = [], onClose, onStart
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
 
-  const { maxHours, nextBooking } = getWalkInLimit({ table, reservations, now: new Date(now) });
-  const canStart = maxHours >= 1;
-  const chosenHours = Math.min(Math.max(1, Number(hours) || 1), Math.max(1, maxHours));
-  const hourOptions = Array.from({ length: maxHours }, (_, index) => index + 1);
+  const { maxMinutes, nextBooking } = getWalkInLimit({ table, reservations, now: new Date(now) });
+  // Only the choices that end before the table's next booking.
+  const durationOptions = WALK_IN_DURATIONS.filter((option) => option <= maxMinutes);
+  const canStart = durationOptions.length > 0;
+  // The choice made, or the longest one still free when a booking cuts it short.
+  const chosenMinutes =
+    durationOptions.filter((option) => option <= Number(minutes)).pop() ?? durationOptions[0] ?? 0;
   const tableName = table?.name || "This table";
-  const limitedByBooking = Boolean(nextBooking) && maxHours < MAX_WALK_IN_HOURS;
-  const total = Number(table?.rate || 0) * chosenHours;
+  const limitedByBooking = Boolean(nextBooking) && maxMinutes < LONGEST_WALK_IN;
+  const total = (Number(table?.rate || 0) * chosenMinutes) / 60;
 
   const start = () => {
     if (!canStart) return;
-    onStart({ customer: customer.trim() || "Walk-in Customer", minutes: chosenHours * 60 });
+    onStart({ customer: customer.trim() || "Walk-in Customer", minutes: chosenMinutes });
   };
 
   return (
@@ -76,21 +85,21 @@ export default function WalkInModal({ table, reservations = [], onClose, onStart
                 <select
                   id="walkin-hours"
                   className="form-select"
-                  value={canStart ? String(chosenHours) : ""}
-                  onChange={(event) => setHours(event.target.value)}
+                  value={canStart ? String(chosenMinutes) : ""}
+                  onChange={(event) => setMinutes(event.target.value)}
                   disabled={!canStart}
                 >
                   {!canStart && <option value="">No time free on this table</option>}
-                  {hourOptions.map((option) => (
+                  {durationOptions.map((option) => (
                     <option key={option} value={option}>
-                      {formatHoursLabel(option * 60)} (until {clock(now + option * HOUR_MS)})
+                      {formatHoursLabel(option)} (until {clock(now + option * MINUTE_MS)})
                     </option>
                   ))}
                 </select>
                 {limitedByBooking && canStart && (
                   <p className="walkin-note">
                     <i className="bi bi-calendar-check"></i>
-                    Up to {formatHoursLabel(maxHours * 60)}: {tableName} is reserved at {nextBooking.label}.
+                    Up to {formatHoursLabel(durationOptions[durationOptions.length - 1])}: {tableName} is reserved at {nextBooking.label}.
                   </p>
                 )}
               </div>
@@ -99,10 +108,10 @@ export default function WalkInModal({ table, reservations = [], onClose, onStart
                 <div className="walkin-summary">
                   <span>
                     <i className="bi bi-flag"></i>
-                    Session ends at <strong>{clock(now + chosenHours * HOUR_MS)}</strong>
+                    Session ends at <strong>{clock(now + chosenMinutes * MINUTE_MS)}</strong>
                   </span>
                   <span className="walkin-summary-total">
-                    {formatPeso(total)} for {formatHoursLabel(chosenHours * 60)}
+                    {formatPeso(total)} for {formatHoursLabel(chosenMinutes)}
                   </span>
                 </div>
               ) : (
@@ -110,7 +119,7 @@ export default function WalkInModal({ table, reservations = [], onClose, onStart
                   <i className="bi bi-exclamation-triangle"></i>
                   {nextBooking?.startsIn <= 0
                     ? `${tableName} is booked right now (from ${nextBooking.label}). Please seat this walk-in at another table.`
-                    : `${tableName} is reserved at ${nextBooking?.label}, less than an hour from now. Please seat this walk-in at another table.`}
+                    : `${tableName} is reserved at ${nextBooking?.label}, less than ${formatHoursLabel(SHORTEST_WALK_IN)} from now. Please seat this walk-in at another table.`}
                 </p>
               )}
             </div>

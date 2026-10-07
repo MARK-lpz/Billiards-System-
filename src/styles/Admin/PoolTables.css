@@ -348,13 +348,21 @@
   gap: 6px;
 }
 
+/* The icon sits on the first line, with both lines of text lined up beside it. */
 .pool-table-reservation-slot {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  gap: 0.5rem;
   margin: -0.35rem 0 0.85rem;
   color: #fbbf24;
   font-size: 0.8rem;
   font-weight: 600;
+  line-height: 1.4;
+}
+
+.pool-table-reservation-expiry {
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 /* Actions */

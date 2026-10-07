@@ -249,6 +249,11 @@
   color: var(--text-primary) !important;
 }
 
+/* Beats globalThemeAdmin's ".light .modal-body p", which would turn warnings black. */
+.light .modal-body .rd-field-warning {
+  color: #b91c1c !important;
+}
+
 .light .rd-subtitle,
 .light .rd-stat-label,
 .light .rd-table thead th,

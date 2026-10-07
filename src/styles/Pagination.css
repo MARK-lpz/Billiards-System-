@@ -1,0 +1,67 @@
+/* The "Showing 1–10 of 23 · Previous · Page 1 of 3 · Next" bar under paged lists. */
+.list-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.list-pagination-count {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.list-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.list-page-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.list-page-btn:hover:not(:disabled) {
+  border-color: rgba(16, 185, 129, 0.55);
+  color: #6ee7b7;
+}
+
+.list-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.list-page-indicator {
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.light .list-pagination-count { color: #64748b; }
+
+.light .list-page-btn {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.light .list-page-indicator { color: #0f172a; }
+
+@media (max-width: 640px) {
+  .list-pagination { justify-content: center; }
+}

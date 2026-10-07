@@ -1,7 +1,7 @@
 // ReservationModal.jsx
 import { useEffect } from "react";
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
-import { RESERVATION_CUTOFF_TIME } from "../../utils/reservations";
+import { RESERVATION_CUTOFF_TIME, getReservationScheduleError, getTodayDate } from "../../utils/reservations";
 
 export default function ReservationModal({
   mode,
@@ -19,6 +19,8 @@ export default function ReservationModal({
   // Required: every booking must have a number to reach the customer, and the
   // server refuses bookings without one.
   const phoneIsValid = isValidSmsNumber(reservationForm.phone);
+  // Shown as soon as a past date is picked, not only when Save is pressed.
+  const scheduleError = getReservationScheduleError(reservationForm.date, reservationForm.time);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -134,6 +136,8 @@ export default function ReservationModal({
                   <input
                     className="rd-input"
                     type="date"
+                    min={getTodayDate()}
+                    aria-invalid={Boolean(scheduleError)}
                     value={reservationForm.date}
                     onChange={(e) =>
                       setReservationForm((prev) => ({
@@ -156,6 +160,7 @@ export default function ReservationModal({
                     }
                   />
 
+                  {scheduleError && <p className="rd-field-warning" role="alert">{scheduleError}</p>}
                   <p className="rd-field-hint">Reservation cutoff: {RESERVATION_CUTOFF_TIME}</p>
 
                   <input
@@ -202,6 +207,7 @@ export default function ReservationModal({
                       !phoneIsValid ||
                       !reservationForm.date ||
                       !reservationForm.time ||
+                      Boolean(scheduleError) ||
                       !reservationForm.tableId
                     }
                   >

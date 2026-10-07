@@ -10,6 +10,7 @@ import Menu from "../../Elements/Global/Menu";
 import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import { formatHoursLabel } from "../../utils/reservations";
+import { saveTableReservationStatus } from "../../utils/reservationApi";
 import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
 
 // Admin Elements
@@ -110,6 +111,7 @@ export default function Dashboard({
     setTables((previous) =>
       previous.map((entry) => (entry.id === id ? { ...entry, ...ENDED_SESSION_FIELDS } : entry))
     );
+    saveTableReservationStatus({ table, reservations, setReservations, from: ["seated"], status: "completed" });
     if (!charge) return;
     setTableCharges?.((previous) => [charge, ...previous]);
     addNotification({ message: describeEndedCharge(charge) });
@@ -181,6 +183,7 @@ export default function Dashboard({
           tables={tables}
           setTables={setTables}
           reservations={reservations}
+          setReservations={setReservations}
           tableCharges={tableCharges}
           setTableCharges={setTableCharges}
         />;

@@ -1,15 +1,12 @@
-/**
- * What players are told about a tournament that was cancelled or moved. Staff
- * record it in Events; the public website and the registration form show it.
- */
+
+import { getTodayDate } from "./reservations";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-// A cancellation without a date stays on the website this long.
+
 const CANCELLED_NOTICE_DAYS = 7;
 
 export const MAX_EVENT_REASON_LENGTH = 200;
 
-/** "Sat, Oct 18, 2026 · 7:00 PM", or whichever part is set. */
 export const formatEventWhen = (date, time) => {
   const day = date ? new Date(`${date}T00:00:00`) : null;
   const clock = time ? new Date(`2000-01-01T${time}`) : null;
@@ -26,12 +23,21 @@ export const formatEventWhen = (date, time) => {
 
 const statusOf = (event) => String(event?.status || "upcoming").toLowerCase();
 
-/** True when staff moved the event to a different day or time after posting it. */
 export const wasRescheduled = (event) =>
   Boolean(event?.rescheduledFrom) &&
   (event.rescheduledFrom.date !== event.date || event.rescheduledFrom.time !== event.time);
 
-/** The schedule change staff are about to save, or null when date and time stay the same. */
+export const getEventScheduleError = (date, time, now = new Date()) => {
+  if (!date) return "";
+  if (date < getTodayDate(now)) return "This date has already passed. Please choose today or a later date.";
+  if (!time) return "";
+
+  const start = new Date(`${date}T${time}`);
+  return !Number.isNaN(start.getTime()) && start <= now
+    ? "This time has already passed today. Please choose a later time."
+    : "";
+};
+
 export const getScheduleChange = (original, form) => {
   if (!original) return null;
   const moved = (original.date || "") !== (form.date || "") || (original.time || "") !== (form.time || "");
@@ -43,11 +49,6 @@ const endOfEventDay = (event) => {
   return day && !Number.isNaN(day.getTime()) ? day.getTime() : null;
 };
 
-/**
- * The notices the website shows, soonest first: every cancelled or rescheduled
- * tournament whose day has not passed yet. A cancellation with no date is shown
- * for a week after it was made.
- */
 export const getEventNotices = (events = [], now = Date.now()) =>
   events
     .filter((event) => {
@@ -64,7 +65,6 @@ export const getEventNotices = (events = [], now = Date.now()) =>
     .map((event) => ({ event, type: statusOf(event) === "cancelled" ? "cancelled" : "rescheduled" }))
     .sort((first, second) => String(first.event.date || "9999").localeCompare(String(second.event.date || "9999")));
 
-/** Tournaments still open for registration whose day has not passed, soonest first. */
 export const getOpenEvents = (events = [], now = Date.now()) =>
   events
     .filter((event) => ["upcoming", "active"].includes(statusOf(event)))

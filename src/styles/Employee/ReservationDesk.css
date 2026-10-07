@@ -91,6 +91,11 @@
   line-height: 1.4;
 }
 
+/* Its own row, so a warning never pushes the next field out of its column. */
+.rd-form-grid .rd-field-warning {
+  grid-column: 1 / -1;
+}
+
 .rd-field-hint {
   grid-column: 1 / -1;
   margin: -4px 0 0;

@@ -5,7 +5,14 @@ import EventsStats from "../../Elements/Admin/EventStats";
 import EventCard from "../../Elements/Admin/EventCard";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import ConfirmDialog from "../../Elements/Global/ConfirmDialog";
-import { MAX_EVENT_REASON_LENGTH, formatEventWhen, getScheduleChange } from "../../utils/eventUpdates";
+import Pagination from "../../Elements/Global/Pagination";
+import usePagination from "../../Elements/Global/usePagination";
+import {
+  MAX_EVENT_REASON_LENGTH,
+  formatEventWhen,
+  getEventScheduleError,
+  getScheduleChange,
+} from "../../utils/eventUpdates";
 
 // When staff cancelled or moved an event, as shown to players on the website.
 const getCurrentIsoTime = () => new Date().toISOString();
@@ -18,6 +25,22 @@ const getEventStart = (event) => {
   const start = new Date(`${event.date}T${event.time || "00:00"}`);
   return Number.isNaN(start.getTime()) ? null : start;
 };
+
+// Still to be played or being played; completed and cancelled ones are previous events.
+const ACTIVE_EVENT_STATUSES = new Set(["upcoming", "active"]);
+const isActiveEvent = (event) => ACTIVE_EVENT_STATUSES.has(String(event.status || "upcoming").toLowerCase());
+
+const EVENT_VIEWS = [
+  { value: "active", label: "Active Events", icon: "bi-calendar-event" },
+  { value: "previous", label: "Previous Events", icon: "bi-clock-history" },
+];
+
+// Events without a readable date go to the end of either list.
+const startTimeOr = (event, missing) => getEventStart(event)?.getTime() ?? missing;
+const soonestFirst = (first, second) =>
+  startTimeOr(first, Number.MAX_SAFE_INTEGER) - startTimeOr(second, Number.MAX_SAFE_INTEGER);
+const latestFirst = (first, second) =>
+  startTimeOr(second, Number.MIN_SAFE_INTEGER) - startTimeOr(first, Number.MIN_SAFE_INTEGER);
 
 const formatEventStart = (event) => {
   const start = getEventStart(event);
@@ -38,6 +61,8 @@ export default function Events({ events, setEvents, tables }) {
   const [cancelReason, setCancelReason] = useState("");
   // Completing locks the event for good, so the button only arms this confirmation.
   const [completeTarget, setCompleteTarget] = useState(null);
+  // Which list is shown: events still to come, or completed and cancelled ones.
+  const [view, setView] = useState("active");
   const [form, setForm] = useState({ 
     name: "", 
     date: "", 
@@ -60,8 +85,16 @@ export default function Events({ events, setEvents, tables }) {
   // The event as it was before this edit, to tell whether its date or time moved.
   const editedEvent = form.id ? events.find((event) => event.id === form.id) || null : null;
   const scheduleChange = getScheduleChange(editedEvent, form);
+  // An edit that keeps the event's date and time is fine even once it has
+  // passed; a new event, or a new date or time, must still be ahead.
+  const scheduleError = !form.id || scheduleChange ? getEventScheduleError(form.date, form.time) : "";
 
   const save = () => {
+    if (scheduleError) {
+      window.alert(scheduleError);
+      return;
+    }
+
     const normalizedTables = resolveAssignedTables(form.tables);
     // A new date or time is published as a reschedule, so players see both.
     const rescheduleDetails = scheduleChange
@@ -116,7 +149,9 @@ export default function Events({ events, setEvents, tables }) {
 
     const details = { status: "cancelled", cancelledAt: getCurrentIsoTime(), cancelReason: cleanReason(cancelReason) };
     setEvents((prev) => prev.map((ev) => (ev.id === eventId ? { ...ev, ...details } : ev)));
-    addNotification({ message: `${event.name || "Event"} cancelled. The website now shows it as cancelled.` });
+    addNotification({
+      message: `${event.name || "Event"} cancelled. The website now shows it as cancelled, and it moved to Previous Events.`,
+    });
     setCancelTarget(null);
   };
 
@@ -127,7 +162,7 @@ export default function Events({ events, setEvents, tables }) {
     setEvents(prev => prev.map(ev => 
       ev.id === eventId ? { ...ev, status: "completed" } : ev
     ));
-    addNotification({ message: `${event?.name || "Event"} marked completed.` });
+    addNotification({ message: `${event?.name || "Event"} marked completed. It moved to Previous Events.` });
   };
 
   const requestComplete = (event) => {
@@ -182,6 +217,17 @@ export default function Events({ events, setEvents, tables }) {
     totalParticipants: events.reduce((s, e) => s + e.participants.length, 0),
   };
 
+  // Active events read soonest first; previous ones most recent first.
+  const activeEvents = events.filter(isActiveEvent).sort(soonestFirst);
+  const previousEvents = events.filter((event) => !isActiveEvent(event)).sort(latestFirst);
+  const eventCounts = { active: activeEvents.length, previous: previousEvents.length };
+  const pagination = usePagination(view === "active" ? activeEvents : previousEvents);
+
+  const changeView = (nextView) => {
+    setView(nextView);
+    pagination.goToPage(1);
+  };
+
   return (
     <div className="events-container">
       {/* Header */}
@@ -204,21 +250,48 @@ export default function Events({ events, setEvents, tables }) {
 
       <EventsStats stats={stats} />
 
-      <div className="events-list">
-        {events.map(e => (
-          <EventCard
-            key={e.id}
-            event={e}
-            tables={tables}
-            onEdit={() => editEvent(e)}
-            onMarkComplete={() => requestComplete(e)}
-            onCancel={() => {
-              setCancelReason("");
-              setCancelTarget(e);
-            }}
-          />
+      <div className="events-tabs" role="tablist" aria-label="Event list">
+        {EVENT_VIEWS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            role="tab"
+            aria-selected={view === option.value}
+            className={`events-tab-btn ${view === option.value ? "active" : ""}`}
+            onClick={() => changeView(option.value)}
+          >
+            <i className={`bi ${option.icon}`}></i>
+            {option.label}
+            <span className="events-tab-count">({eventCounts[option.value]})</span>
+          </button>
         ))}
       </div>
+
+      {pagination.total === 0 ? (
+        <div className="events-empty">
+          {view === "active"
+            ? "No active events. Use Create Event to add a tournament."
+            : "No previous events yet. Completed and cancelled events show up here."}
+        </div>
+      ) : (
+        <div className="events-list">
+          {pagination.items.map(e => (
+            <EventCard
+              key={e.id}
+              event={e}
+              tables={tables}
+              onEdit={() => editEvent(e)}
+              onMarkComplete={() => requestComplete(e)}
+              onCancel={() => {
+                setCancelReason("");
+                setCancelTarget(e);
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      <Pagination {...pagination} />
 
       {cancelTarget && (
         <>
@@ -288,6 +361,7 @@ export default function Events({ events, setEvents, tables }) {
           tables={tables || []}
           isEdit={Boolean(form.id)}
           scheduleChange={scheduleChange}
+          scheduleError={scheduleError}
           onClose={() => setModal(null)}
           onSave={save}
         />
