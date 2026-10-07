@@ -153,15 +153,22 @@ function isValidReservation($reservation) {
         && $reservation['tableName'] !== '';
 }
 
+// A guest who has not checked in this long after their reserved time is a
+// no-show: the booking expires and the table is freed. Checked-in bookings are
+// 'seated' or 'arrived', so they never expire. Keep in step with the frontend's
+// RESERVATION_GRACE_MINUTES.
+const RESERVATION_GRACE_MINUTES = 30;
+
 function expirePastReservations($pdo) {
-    $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+    $cutoff = new DateTime('now', new DateTimeZone('Asia/Manila'));
+    $cutoff->modify('-' . RESERVATION_GRACE_MINUTES . ' minutes');
     $stmt = $pdo->prepare(
         "UPDATE reservations
          SET status = 'expired'
          WHERE status IN ('approved', 'reserved')
            AND TIMESTAMP(reservation_date, reservation_time) < ?"
     );
-    $stmt->execute([$now->format('Y-m-d H:i:s')]);
+    $stmt->execute([$cutoff->format('Y-m-d H:i:s')]);
 }
 
 function hasScheduleConflict($pdo, $reservation) {
