@@ -171,6 +171,67 @@ function expirePastReservations($pdo) {
     $stmt->execute([$cutoff->format('Y-m-d H:i:s')]);
 }
 
+// A booked guest can be checked in ("arrived") only from the reserved time until
+// the grace period ends: before that they are not due, after it they are a
+// no-show. Same window as getArrivalWindow in the frontend's reservations.js.
+function isWithinArrivalWindow($date, $time) {
+    $zone = new DateTimeZone('Asia/Manila');
+    $start = DateTime::createFromFormat('Y-m-d H:i', $date . ' ' . $time, $zone);
+    if ($start === false) {
+        return true;
+    }
+    $graceEnd = clone $start;
+    $graceEnd->modify('+' . RESERVATION_GRACE_MINUTES . ' minutes');
+    $now = new DateTime('now', $zone);
+    return $now >= $start && $now <= $graceEnd;
+}
+
+// When a table someone is playing on stays busy, or null when it is free for
+// this booking. Read from the table status the desks share (tables.php). A
+// session past its booked end that has not been ended still has a player, so
+// it counts until now. Same rule as getOccupiedTableRange in reservations.js.
+function getOccupiedTableEnd($pdo, $reservation) {
+    try {
+        $storedTables = $pdo->query('SELECT tables_json FROM pool_table_status WHERE id = 1')->fetchColumn();
+    } catch (PDOException $error) {
+        return null; // No table status saved yet.
+    }
+    $tables = $storedTables ? json_decode($storedTables, true) : [];
+    if (!is_array($tables)) {
+        return null;
+    }
+
+    $zone = new DateTimeZone('Asia/Manila');
+    $candidateStart = DateTime::createFromFormat('Y-m-d H:i', $reservation['date'] . ' ' . $reservation['time'], $zone);
+    if ($candidateStart === false) {
+        return null;
+    }
+    $candidateEnd = clone $candidateStart;
+    $candidateEnd->modify('+' . $reservation['durationMinutes'] . ' minutes');
+
+    foreach ($tables as $table) {
+        if ((int) ($table['id'] ?? 0) !== (int) $reservation['tableId']) {
+            continue;
+        }
+        if (($table['status'] ?? '') !== 'occupied' || empty($table['startTime'])) {
+            return null;
+        }
+
+        $sessionStart = new DateTime('@' . intdiv((int) $table['startTime'], 1000));
+        $sessionStart->setTimezone($zone);
+        $sessionEnd = clone $sessionStart;
+        $sessionEnd->modify('+' . max(1, (int) ($table['durationMinutes'] ?? 60)) . ' minutes');
+        $now = new DateTime('now', $zone);
+        if ($sessionEnd < $now) {
+            $sessionEnd = $now;
+        }
+
+        return $candidateStart < $sessionEnd && $sessionStart < $candidateEnd ? $sessionEnd : null;
+    }
+
+    return null;
+}
+
 function hasScheduleConflict($pdo, $reservation) {
     $candidateStart = new DateTime($reservation['date'] . ' ' . $reservation['time']);
     $candidateEnd = clone $candidateStart;
@@ -287,6 +348,35 @@ if ($method === 'POST') {
     }
 }
 
+// A new booking, or one moved to another table or time, must not land on a
+// table someone is still playing on. Status changes on a booking that stays put
+// are not checked: its own guest may be the one at the table.
+$movesSlot = $method === 'POST';
+if ($method === 'PUT') {
+    $stmt = $pdo->prepare(
+        'SELECT reservation_date AS date, TIME_FORMAT(reservation_time, "%H:%i") AS time, table_id AS tableId
+         FROM reservations WHERE id = ?'
+    );
+    $stmt->execute([$data['id']]);
+    $stored = $stmt->fetch();
+    $movesSlot = !$stored
+        || $stored['date'] !== $data['date']
+        || $stored['time'] !== $data['time']
+        || (int) $stored['tableId'] !== (int) $data['tableId'];
+}
+if ($movesSlot && in_array($data['status'], ['pending', 'approved', 'reserved'], true)) {
+    $occupiedUntil = getOccupiedTableEnd($pdo, $data);
+    if ($occupiedUntil !== null) {
+        http_response_code(409);
+        echo json_encode([
+            'success' => false,
+            'message' => "{$data['tableName']} is in use until about " . $occupiedUntil->format('g:i A')
+                . '. Please choose another table or a later time.',
+        ]);
+        exit();
+    }
+}
+
 if (hasScheduleConflict($pdo, $data)) {
     http_response_code(409);
     echo json_encode([
@@ -328,6 +418,26 @@ if ($method === 'POST') {
 
     echo json_encode(['success' => true, 'reservation' => $data]);
     exit();
+}
+
+if ($method === 'PUT' && $data['status'] === 'arrived') {
+    // Judged on the stored booking, not the times the request sends.
+    $stmt = $pdo->prepare(
+        'SELECT status, reservation_date AS date, TIME_FORMAT(reservation_time, "%H:%i") AS time
+         FROM reservations WHERE id = ?'
+    );
+    $stmt->execute([$data['id']]);
+    $stored = $stmt->fetch();
+    if ($stored && in_array($stored['status'], ['approved', 'reserved'], true)
+        && !isWithinArrivalWindow($stored['date'], $stored['time'])) {
+        http_response_code(409);
+        echo json_encode([
+            'success' => false,
+            'message' => 'This guest can be marked arrived only from the reserved time until '
+                . RESERVATION_GRACE_MINUTES . ' minutes after it.',
+        ]);
+        exit();
+    }
 }
 
 if ($method === 'PUT') {
