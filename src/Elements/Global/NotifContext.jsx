@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { NotificationContext } from './NotificationContext';
 
 const ADMIN_NOTIFICATION_KEY = 'adminNotifications';
@@ -22,6 +22,8 @@ export function NotificationProvider({
   canReceiveEmployeeNotifications = false,
 }) {
   const [notifications, setNotifications] = useState([]);
+  // The one short pop-up note on screen (see Toast.jsx); a newer one replaces it.
+  const [toast, setToast] = useState(null);
 
   const mergeNotifications = (incoming) => {
     if (!Array.isArray(incoming) || incoming.length === 0) return;
@@ -174,6 +176,17 @@ export function NotificationProvider({
     setNotifications([]);
   };
 
+  // Kept the same between renders: the app re-renders every few seconds as it
+  // syncs, and a new dismissToast each time restarted the toast's timer for good.
+  const showToast = useCallback((nextToast) => {
+    setToast({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, ...nextToast });
+  }, []);
+
+  // By id, so a timer left over from an older toast cannot close a newer one.
+  const dismissToast = useCallback((id) => {
+    setToast((current) => (current && current.id === id ? null : current));
+  }, []);
+
   return (
     <NotificationContext.Provider 
       value={{ 
@@ -184,7 +197,10 @@ export function NotificationProvider({
         markAllAsRead, 
         markAsRead, 
         deleteNotification,
-        clearAll 
+        clearAll,
+        toast,
+        showToast,
+        dismissToast,
       }}
     >
       {children}

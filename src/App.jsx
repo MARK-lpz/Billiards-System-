@@ -13,6 +13,10 @@ import './styles/Modal.css'
 import './styles/globalTheme.css'
 import './styles/globalThemeAdmin.css'
 import './styles/globalThemeEmployee.css'
+// Contrast fixes for both themes, after the theme files they correct.
+import './styles/themeReadability.css'
+// Last on purpose: the brand layer is meant to win over the page styles above.
+import './styles/brand.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
 import { initialReservations } from './utils/reservations'
 

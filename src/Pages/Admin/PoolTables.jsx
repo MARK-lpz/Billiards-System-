@@ -4,17 +4,18 @@ import PoolTableStats from "../../Elements/Admin/PoolTableStats.jsx";
 import PoolTableCard from "../../Elements/Admin/PoolTableCards";
 import PoolTableModal from "../../Elements/Admin/PoolTableModal";
 import WalkInModal from "../../Elements/Admin/WalkInModal";
+import EndSessionModal from "../../Elements/Admin/EndSessionModal";
+import CancelReservationModal from "../../Elements/Admin/CancelReservationModal";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import { findTableReservation, formatHoursLabel } from "../../utils/reservations";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
-import { formatPeso, getPlayedMinutes, getSessionTotal } from "../../utils/tableSession";
-import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
+import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
 
 // Read only from click handlers, never while rendering.
 const getCurrentTimestamp = () => Date.now();
 
 export default function PoolTables({ tables, setTables, reservations = [], setReservations, tableCharges = [], setTableCharges }) {
-  const { addNotification } = useNotifications();
+  const { addNotification, showToast } = useNotifications();
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ name: "", rate: 15, durationMinutes: 60 });
   const [editId, setEditId] = useState(null);
@@ -22,7 +23,9 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
   const [endingTable, setEndingTable] = useState(null);
   // When End Session was pressed, so the total shown is the one charged.
   const [endingAt, setEndingAt] = useState(null);
-  const [endingExtensionMinutes, setEndingExtensionMinutes] = useState("30");
+  // The reserved table whose Cancel pop-up is open; gone if it is no longer reserved.
+  const [cancelTableId, setCancelTableId] = useState(null);
+  const cancelTable = tables.find(t => t.id === cancelTableId && t.status === "reserved") || null;
   const [statusFilter, setStatusFilter] = useState("all");
 
   // The session runs as long as the customer said they would stay.
@@ -41,7 +44,6 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
   };
 
   const requestEndSession = (id) => {
-    setEndingExtensionMinutes("30");
     setEndingAt(getCurrentTimestamp());
     setEndingTable(tables.find(t => t.id === id) || null);
   };
@@ -58,6 +60,7 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
     if (charge) {
       setTableCharges?.(prev => [charge, ...prev]);
       addNotification({ message: describeEndedCharge(charge) });
+      showToast(endedChargeToast(charge));
     }
     setEndingTable(null);
   };
@@ -78,8 +81,15 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
     });
   };
 
+  // Runs once the Cancel pop-up is confirmed. The booking itself is cancelled
+  // too, or the reservations sync would mark the table reserved again.
   const cancelReserve = (id) => {
-    setTables(prev => prev.map(t => 
+    const table = tables.find(t => t.id === id);
+    if (!table) return;
+
+    saveTableReservationStatus({ table, reservations, setReservations, from: ["approved", "reserved", "arrived"], status: "cancelled" });
+    addNotification({ message: `Reservation for ${table.name || 'Table'} was cancelled.` });
+    setTables(prev => prev.map(t =>
       t.id === id
         ? {
             ...t,
@@ -196,7 +206,7 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
       onWalkIn={() => openWalkInModal(table.id)}
       onEndSession={() => requestEndSession(table.id)}
       onCheckIn={() => checkIn(table.id)}
-      onCancelReserve={() => cancelReserve(table.id)}
+      onCancelReserve={() => setCancelTableId(table.id)}
       onAddTime={(minutes) => addTime(table.id, minutes)}
       onUndoTime={(minutes) => undoTime(table.id, minutes)}
       onEdit={() => openEditModal(table)}
@@ -250,69 +260,24 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
       )}
 
       {endingTable && (
-        <div className="modal show d-block" tabIndex="-1">
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content pool-end-modal">
-              <div className="modal-header">
-                <h5 className="modal-title">
-                  <i className="bi bi-exclamation-triangle me-2"></i>
-                  End Session Warning
-                </h5>
-                <button
-                  type="button"
-                  className="pool-modal-close"
-                  aria-label="Close end session warning"
-                  onClick={() => setEndingTable(null)}
-                >
-                  <i className="bi bi-x-lg"></i>
-                </button>
-              </div>
-              <div className="modal-body">
-                <p className="pool-end-copy">
-                  Ending {endingTable.name} will clear the active timer and mark the table as available.
-                </p>
-                <p className="pool-end-copy">
-                  Played {formatHoursLabel(getPlayedMinutes(endingTable, endingAt))} of{" "}
-                  {formatHoursLabel(Number(endingTable.durationMinutes || 60))}. Total:{" "}
-                  <strong>{formatPeso(getSessionTotal(endingTable))}</strong>
-                  {getPlayedMinutes(endingTable, endingAt) < Number(endingTable.durationMinutes || 60) &&
-                    ` for the full booked time`}
-                </p>
-                <p className="pool-end-copy">
-                  The bill goes to Sales / POS, where the customer pays it together with any food and drinks.
-                </p>
-                <div className="pool-end-actions">
-                  <input
-                    aria-label="Extension time in minutes"
-                    className="pool-extension-select"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={endingExtensionMinutes}
-                    onChange={(event) => setEndingExtensionMinutes(event.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-outline-warning"
-                    onClick={() => {
-                      addTime(endingTable.id, Number(endingExtensionMinutes));
-                      setEndingTable(null);
-                    }}
-                  >
-                    <i className="bi bi-plus-circle me-2"></i>
-                    Add Selected Time
-                  </button>
-                  <button type="button" className="btn btn-danger" onClick={endSession}>
-                    <i className="bi bi-stop-circle me-2"></i>
-                    Confirm End Session
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <EndSessionModal
+          table={endingTable}
+          endingAt={endingAt}
+          onClose={() => setEndingTable(null)}
+          onConfirm={endSession}
+        />
       )}
-      {endingTable && <div className="modal-backdrop show"></div>}
+
+      {cancelTable && (
+        <CancelReservationModal
+          table={cancelTable}
+          onClose={() => setCancelTableId(null)}
+          onConfirm={() => {
+            cancelReserve(cancelTable.id);
+            setCancelTableId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

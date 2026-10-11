@@ -2,15 +2,16 @@ import { useEffect, useState } from "react";
 import { appendAuditLog } from "../../utils/audit";
 import { isValidSmsNumber } from "../../utils/phone";
 import { useNotifications } from "../Global/useNotifications";
-import { updateRemoteReservation } from "../../utils/reservationApi";
+import { createRemoteReservation, updateRemoteReservation } from "../../utils/reservationApi";
 import { RESERVATIONS_PAGE_SIZE as PAGE_SIZE, matchesSearch } from "../../utils/reservationList";
 import { paginate } from "../../utils/pagination";
 import {
   getAvailableReservationTables,
+  getChosenTableError,
   getReservationScheduleError,
   hasReservationConflict,
 } from "../../utils/reservations";
-import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
+import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
 
 // Read only from handlers, never while rendering.
 const getCurrentTimestamp = () => Date.now();
@@ -37,7 +38,7 @@ export default function useAdminReservations({
   setTableCharges,
   setLogs,
 }) {
-  const { addNotification } = useNotifications();
+  const { addNotification, showToast } = useNotifications();
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -59,6 +60,23 @@ export default function useAdminReservations({
   const keepsBookedSlot =
     Boolean(editedReservation) && editedReservation.date === form.date && editedReservation.time === form.time;
   const scheduleError = keepsBookedSlot ? "" : getReservationScheduleError(form.date, form.time);
+  // The picked table must be free then: not occupied, reserved or under
+  // maintenance. A booking kept on its own slot and table is not checked against
+  // itself (its guest may be the one playing there).
+  const keepsBookedTable =
+    keepsBookedSlot && Number(editedReservation.tableId ?? editedReservation.table) === Number(form.tableId);
+  const tableError = keepsBookedTable
+    ? ""
+    : getChosenTableError({
+        tables,
+        reservations,
+        tableId: form.tableId,
+        date: form.date,
+        time: form.time,
+        durationMinutes: editedReservation?.durationMinutes,
+        excludeId: editId,
+      });
+  const chosenTableName = tables.find((table) => String(table.id) === String(form.tableId))?.name || "";
 
   const matchedReservations = reservations.filter((reservation) => {
     const inFilter =
@@ -156,8 +174,11 @@ export default function useAdminReservations({
         return prev;
       }
 
+      // Only a free or reserved table is marked, as the sync below also does: one
+      // that is occupied, being cleaned or under maintenance keeps its state
+      // (marking it reserved wiped a running session and its bill).
       return prev.map((table) =>
-        isReservationTable(table, tableId, reservation)
+        isReservationTable(table, tableId, reservation) && ["available", "reserved"].includes(table.status)
           ? { ...table, ...reservationDetails }
           : table
       );
@@ -186,6 +207,7 @@ export default function useAdminReservations({
     if (charge) {
       setTableCharges?.((prev) => [charge, ...prev]);
       addNotification({ message: describeEndedCharge(charge) });
+      showToast(endedChargeToast(charge));
     }
 
     setTables((prev) =>
@@ -234,7 +256,7 @@ export default function useAdminReservations({
     }
   };
 
-  const saveReservation = () => {
+  const saveReservation = async () => {
     if (!isValidSmsNumber(form.phone)) {
       window.alert("Please enter the customer's mobile number in 09XXXXXXXXX format.");
       return;
@@ -245,6 +267,11 @@ export default function useAdminReservations({
       return;
     }
 
+    if (tableError) {
+      window.alert(tableError);
+      return;
+    }
+
     const payload = buildReservationPayload(form, tables);
     if (!payload) return;
 
@@ -252,8 +279,8 @@ export default function useAdminReservations({
 
     if (editId) {
       saveExistingReservation(payload);
-    } else {
-      saveNewReservation(payload);
+    } else if (!(await saveNewReservation(payload))) {
+      return;
     }
 
     setModal(null);
@@ -312,17 +339,28 @@ export default function useAdminReservations({
     addNotification({ message: `${payload.customerName} reservation updated.` });
   };
 
-  const saveNewReservation = (payload) => {
-    const id = Date.now();
-    setReservations((prev) => [...prev, { id, ...payload, status: "pending", source: "admin" }]);
+  // Booked in person (walk-in), so it is confirmed on the spot: only online
+  // bookings wait for approval. Saved to the server first, as the front desk
+  // does, so the employees see it and the slot cannot be booked online.
+  const saveNewReservation = async (payload) => {
+    let saved;
+    try {
+      saved = await createRemoteReservation({ id: Date.now(), ...payload, status: "approved", source: "admin" });
+    } catch (error) {
+      window.alert(error.message || "Unable to save the reservation.");
+      return false;
+    }
+
+    setReservations((prev) => [...prev, saved]);
     logReservationEvent({
       action: "Reservation created",
-      detail: `${payload.customerName} reservation created for ${payload.tableName} on ${payload.date} ${payload.time}`,
-      reservation: { id, ...payload },
+      detail: `${saved.customerName} walk-in reservation created and confirmed for ${saved.tableName} on ${saved.date} ${saved.time}`,
+      reservation: saved,
       previousStatus: null,
-      nextStatus: "pending",
+      nextStatus: "approved",
     });
-    addNotification({ message: `${payload.customerName} reservation created.` });
+    addNotification({ message: `${saved.customerName} is booked for ${saved.tableName} on ${saved.date} at ${saved.time}.` });
+    return true;
   };
 
   const openEdit = (reservation) => {
@@ -355,6 +393,7 @@ export default function useAdminReservations({
 
   return {
     availableTables,
+    chosenTableName,
     counts,
     editId,
     filter,
@@ -362,6 +401,7 @@ export default function useAdminReservations({
     form,
     modal,
     scheduleError,
+    tableError,
     search,
     setSearch: changeSearch,
     page: currentPage,

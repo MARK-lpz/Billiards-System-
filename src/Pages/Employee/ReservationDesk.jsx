@@ -6,8 +6,11 @@ import ReservationQueue from "../../Elements/Employee/ReservationQueue";
 import ReservationModal from "../../Elements/Employee/ReservationModal.jsx";
 import PaymentCheckModal from "../../Elements/Employee/PaymentCheckModal.jsx";
 import {
+  RESERVATION_GRACE_MINUTES,
   describeReservationTime,
+  getArrivalWindow,
   getAvailableReservationTables,
+  getChosenTableError,
   getReservationValidationMessage,
   hasReservationConflict,
 } from "../../utils/reservations";
@@ -18,7 +21,7 @@ import {
   createRemoteReservation,
   updateRemoteReservation,
 } from "../../utils/reservationApi";
-import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
+import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
 
 const getCurrentTimestamp = () => Date.now();
 const todayStr = () => new Date().toLocaleDateString("en-CA");
@@ -36,6 +39,23 @@ const getTableNumber = (name) => {
   return match ? Number(match[1]) : null;
 };
 
+const isGuestPlaying = (table, booking) =>
+  table?.status === "occupied" &&
+  String(table.customer || "").trim().toLowerCase() === String(booking.customerName || "").trim().toLowerCase();
+
+// Why a booking's guest cannot be seated at its table now, or "" when they can.
+// Seating takes the table over, so one in use would lose its session and bill.
+const getSeatingBlock = (table, booking) => {
+  if (!table || ["available", "reserved"].includes(table.status)) return "";
+
+  const tableName = table.name || booking.tableName;
+  if (table.status === "occupied") {
+    return `${tableName} is still occupied by ${table.customer || "another customer"}. End that session first, or seat ${booking.customerName} at another table.`;
+  }
+  if (table.status === "maintenance") return `${tableName} is under maintenance and cannot be used yet.`;
+  return `${tableName} is still being cleaned. Set it back to available in Actions first.`;
+};
+
 const isBookingTable = (table, booking) =>
   String(table.id) === String(booking.tableId ?? booking.table) ||
   normalizeTableName(table.name) === normalizeTableName(booking.tableName) ||
@@ -51,7 +71,7 @@ export default function ReservationDesk({
   setTableCharges,
   setLogs,
 }) {
-  const { addNotification, queueAdminNotification } = useNotifications();
+  const { addNotification, queueAdminNotification, showToast } = useNotifications();
   const [reservationFilter, setReservationFilter] = useState("all");
   const [activeModal, setActiveModal] = useState(null);
   // The online booking whose GCash payment is being checked.
@@ -81,6 +101,20 @@ export default function ReservationDesk({
       }),
     [reservationForm.date, reservationForm.time, reservations, tables]
   );
+
+  // The picked table must be free at that time: not occupied, reserved or under maintenance.
+  const reservationTableError =
+    activeModal === "reservation"
+      ? getChosenTableError({
+          tables,
+          reservations,
+          tableId: reservationForm.tableId,
+          date: reservationForm.date,
+          time: reservationForm.time,
+        })
+      : "";
+  const chosenTableName =
+    tables.find((table) => String(table.id) === String(reservationForm.tableId))?.name || "";
 
   const summary = useMemo(
     () => ({
@@ -205,6 +239,11 @@ export default function ReservationDesk({
     );
     if (reservationValidationMessage) {
       window.alert(reservationValidationMessage);
+      return;
+    }
+
+    if (reservationTableError) {
+      window.alert(reservationTableError);
       return;
     }
 
@@ -377,6 +416,26 @@ export default function ReservationDesk({
     const booking = reservations.find((entry) => entry.id === bookingId);
     if (!booking) return;
 
+    // If the guest was already checked in from the table card, only the booking is updated.
+    const bookingTable = tables.find((entry) => isBookingTable(entry, booking));
+    const alreadyPlaying = nextStatus === "seated" && isGuestPlaying(bookingTable, booking);
+    const seatingBlock = nextStatus === "seated" && !alreadyPlaying ? getSeatingBlock(bookingTable, booking) : "";
+    if (seatingBlock) {
+      window.alert(seatingBlock);
+      return;
+    }
+
+    // The button is off outside the window, but the page may have sat open past it.
+    if (nextStatus === "arrived") {
+      const arrival = getArrivalWindow(booking);
+      if (!arrival.open) {
+        window.alert(
+          `${booking.customerName} can be marked arrived only from the reserved time until ${RESERVATION_GRACE_MINUTES} minutes after it. ${arrival.note}.`
+        );
+        return;
+      }
+    }
+
     if (!(await saveBookingStatus(booking, nextStatus))) return;
 
     if (nextStatus === "arrived") {
@@ -388,6 +447,11 @@ export default function ReservationDesk({
         table: { id: booking.tableId, name: booking.tableName, previousStatus: "reserved", currentStatus: "reserved" },
       });
       addNotification({ message: `${booking.customerName} arrived for ${booking.tableName}.` });
+      return;
+    }
+
+    if (nextStatus === "seated" && alreadyPlaying) {
+      addNotification({ message: `${booking.customerName} is already playing at ${booking.tableName}.` });
       return;
     }
 
@@ -425,6 +489,7 @@ export default function ReservationDesk({
         if (charge) {
           setTableCharges?.((prev) => [charge, ...prev]);
           addNotification({ message: describeEndedCharge(charge) });
+          showToast(endedChargeToast(charge));
         }
       }
       addLog({
@@ -502,6 +567,8 @@ export default function ReservationDesk({
           setReservationForm={setReservationForm}
           availableTables={availableTables}
           reservationTables={reservationTables}
+          tableError={reservationTableError}
+          chosenTableName={chosenTableName}
           onClose={closeModal}
           onWalkInSubmit={handleWalkInSubmit}
           onReservationSubmit={handleReservationSubmit}

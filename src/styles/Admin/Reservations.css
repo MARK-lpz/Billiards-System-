@@ -358,9 +358,11 @@
   color: #f0f0f0;
 }
 
-/* A date or time that cannot be booked. */
+/* A date, time or table that cannot be booked. */
 .reservations-modal .form-control.reservations-input-error,
-.reservations-modal .form-control.reservations-input-error:focus {
+.reservations-modal .form-control.reservations-input-error:focus,
+.reservations-modal .form-select.reservations-input-error,
+.reservations-modal .form-select.reservations-input-error:focus {
   border-color: #f87171;
   box-shadow: 0 0 0 0.25rem rgba(248, 113, 113, 0.15);
 }
@@ -473,6 +475,17 @@
   color: #fda4af;
   font-size: 12px;
   font-weight: 500;
+}
+
+/* Two fields a row (date and time, table and pax): ".row.g-3" is a
+   3-column grid app-wide, which squeezed the table name out of its box. */
+.reservations-modal .row.g-3 {
+  grid-template-columns: 1fr 1fr !important;
+}
+
+/* Under the Table and Pax row, which keeps its own bottom margin */
+.reservations-table-warning {
+  margin: -8px 0 16px;
 }
 
 

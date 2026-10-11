@@ -2,7 +2,20 @@ import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils
 import { numberFieldValue, readNumberField } from "../../utils/numberField";
 import { getTodayDate } from "../../utils/reservations";
 
-export default function ReservationModal({ form, setForm, editId, scheduleError = "", tables, onClose, onSave }) {
+export default function ReservationModal({
+  form,
+  setForm,
+  editId,
+  scheduleError = "",
+  tableError = "",
+  chosenTableName = "",
+  tables,
+  onClose,
+  onSave,
+}) {
+  // A table picked before the date or time changed may no longer be offered;
+  // it stays in the list, marked, so the reason below matches what is selected.
+  const chosenTableMissing = Boolean(form.tableId) && !tables.some((table) => String(table.id) === String(form.tableId));
   const phoneWarning = getSmsWarning(form.phone);
   // Required: every booking must have a number to reach the customer, and the
   // server refuses bookings without one.
@@ -92,11 +105,15 @@ export default function ReservationModal({ form, setForm, editId, scheduleError 
                 <div className="col-6">
                   <label className="form-label">Table</label>
                   <select 
-                    className="form-select" 
+                    className={`form-select ${tableError ? "reservations-input-error" : ""}`}
                     value={form.tableId}
                     onChange={e => setForm({ ...form, tableId: e.target.value })}
+                    aria-invalid={Boolean(tableError)}
                   >
                     <option value="">Select table...</option>
+                    {chosenTableMissing && (
+                      <option value={form.tableId}>{chosenTableName || "Selected table"} (not available)</option>
+                    )}
                     {tables.map(t => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
@@ -114,6 +131,13 @@ export default function ReservationModal({ form, setForm, editId, scheduleError 
                   />
                 </div>
               </div>
+              {/* Outside the row: ".row.g-3" is a 3-column grid app-wide. */}
+              {tableError && (
+                <div className="reservations-field-warning reservations-table-warning" role="alert">
+                  <i className="bi bi-exclamation-circle me-1"></i>
+                  {tableError}
+                </div>
+              )}
 
               {/* Notes */}
               <div className="mb-3">
@@ -142,6 +166,7 @@ export default function ReservationModal({ form, setForm, editId, scheduleError 
                   !form.date ||
                   !form.time ||
                   Boolean(scheduleError) ||
+                  Boolean(tableError) ||
                   !form.tableId
                 }
               >

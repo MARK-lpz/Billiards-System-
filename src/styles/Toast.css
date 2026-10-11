@@ -1,0 +1,122 @@
+/* The pop-up note in the bottom-right corner (Toast.jsx). It sits above modals,
+   so a note still shows while the time's up pop-up is open for another table. */
+
+.app-toast {
+  position: fixed;
+  z-index: 2100;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(380px, calc(100vw - 32px));
+  padding: 14px 12px 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-left: 4px solid #34d399;
+  border-radius: 12px;
+  background: #111c33;
+  color: #e2e8f0;
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.6);
+  animation: app-toast-in 0.25s ease-out;
+}
+
+.app-toast-icon {
+  margin-top: 1px;
+  color: #34d399;
+  font-size: 1.25rem;
+}
+
+.app-toast-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-toast-title {
+  display: block;
+  margin-bottom: 2px;
+  color: #ffffff;
+  font-size: 0.95rem;
+}
+
+.app-toast-message {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.app-toast-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #34d399;
+  color: #022c22;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.app-toast-action:hover {
+  background: #6ee7b7;
+}
+
+.app-toast-close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+}
+
+.app-toast-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.light .app-toast {
+  border-color: var(--border);
+  border-left-color: #047857;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: 0 18px 40px -14px rgba(11, 23, 48, 0.35);
+}
+
+.light .app-toast-icon { color: #047857; }
+.light .app-toast-title { color: var(--text-primary); }
+.light .app-toast-message { color: var(--text-secondary); }
+
+.light .app-toast-action {
+  background: #047857;
+  color: #ffffff;
+}
+
+.light .app-toast-action:hover { background: #065f46; }
+.light .app-toast-close { color: var(--text-muted); }
+
+.light .app-toast-close:hover {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+}
+
+@keyframes app-toast-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 576px) {
+  .app-toast {
+    right: 16px;
+    bottom: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-toast { animation: none; }
+}

@@ -8,10 +8,11 @@ import LoadingBar from "../../Elements/Global/Loading";
 import Notification from "../../Elements/Global/Notification";
 import Menu from "../../Elements/Global/Menu";
 import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
+import Toast from "../../Elements/Global/Toast";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import { formatHoursLabel } from "../../utils/reservations";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
-import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
+import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
 
 // Admin Elements
 import Sidebar from "../../Elements/Admin/Sidebar";
@@ -84,7 +85,7 @@ export default function Dashboard({
   const [activeNav, setActiveNav] = useState("dashboard");
   const [loading, setLoading] = useState(false);
   const [selectedEquipmentIssue, setSelectedEquipmentIssue] = useState(null);
-  const { addNotification } = useNotifications();
+  const { addNotification, showToast } = useNotifications();
 
   // Used by the time's up pop-up, which shows on every admin page, not only on
   // Pool Tables, so it cannot rely on that page's own handlers.
@@ -115,6 +116,7 @@ export default function Dashboard({
     if (!charge) return;
     setTableCharges?.((previous) => [charge, ...previous]);
     addNotification({ message: describeEndedCharge(charge) });
+    showToast(endedChargeToast(charge));
   };
 
   const reportedIssuesCount = logs.filter((entry) => isIssueEntry(entry) && !isResolvedIssue(entry)).length;
@@ -272,6 +274,12 @@ export default function Dashboard({
     <>
       <LoadingBar loading={loading} />
       <TimeUpAlert tables={tables} onAddTime={addTableTime} onEndSession={endTableSession} />
+      {/* "Open POS" on a bill's note; hidden when already there. */}
+      <Toast
+        actions={{
+          "open-pos": activeNav === "sales-pos" ? null : { label: "Open POS", onClick: () => handleNavChange("sales-pos") },
+        }}
+      />
       <div className="dashboard-layout">
         <Sidebar 
           activeNav={activeNav} 

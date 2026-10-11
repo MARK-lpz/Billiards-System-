@@ -228,6 +228,33 @@
   color: #1e3a8a;
 }
 
+/* A field the product form cannot save yet, and what to fix in it */
+.inventory-modal .form-control.inventory-input-error,
+.inventory-modal .form-control.inventory-input-error:focus {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15) !important;
+}
+
+.inventory-field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  margin-top: 6px;
+  color: #fda4af;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.light .inventory-modal .form-control.inventory-input-error,
+.light .inventory-modal .form-control.inventory-input-error:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
+}
+
+/* Beats ".light .modal-body div", which would turn the message black */
+.light .modal-body .inventory-field-error { color: #b91c1c !important; }
+
 .inventory-category-badge {
   background: rgba(96, 165, 250, 0.15);
   color: #60a5fa;

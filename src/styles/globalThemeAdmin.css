@@ -469,7 +469,9 @@
   color: var(--text-secondary);
 }
 .light .reservations-modal .form-control.reservations-input-error,
-.light .reservations-modal .form-control.reservations-input-error:focus {
+.light .reservations-modal .form-control.reservations-input-error:focus,
+.light .reservations-modal .form-select.reservations-input-error,
+.light .reservations-modal .form-select.reservations-input-error:focus {
   border-color: #dc2626 !important;
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
 }
@@ -950,37 +952,7 @@
   background: linear-gradient(90deg, var(--accent), #14b8a6);
 }
 
-.light .login-container {
-  background: #0f172a !important;
-  color: #cbd5e1 !important;
-  min-height: 100vh;
-}
-
-.light .login-container *:not(img):not(svg):not(path) {
-  background-color: transparent;
-}
-
-.light .login-container .login-card {
-  background: rgba(30, 41, 59, 0.85) !important;
-  border: 1px solid rgba(71, 85, 105, 0.5) !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
-  color: #cbd5e1 !important;
-}
-
-.light .login-container .form-input {
-  background: rgba(255, 255, 255, 0.92) !important;
-  border-color: #10b981 !important;
-  color: #0f172a !important;
-  box-shadow: none !important;
-}
-
-.light .login-container .form-input::placeholder { color: #94a3b8 !important; }
-
-.light .login-container .form-input:focus {
-  background: #ffffff !important;
-  border-color: #10b981 !important;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
-}
+/* The login screen stays dark in both themes; see login.css. */
 
 
 

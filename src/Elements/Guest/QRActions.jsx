@@ -16,9 +16,9 @@ export default function QRActions({ url, copied, onCopy }) {
         className="action-btn"
         onClick={onCopy}
         style={{
-          background: copied ? "rgba(0,201,122,0.15)" : "rgba(255,255,255,0.06)",
-          color: copied ? "#00c97a" : "rgba(255,255,255,0.7)",
-          border: `1px solid ${copied ? "rgba(0,201,122,0.4)" : "rgba(255,255,255,0.1)"}`,
+          background: copied ? "rgba(31,191,100,0.15)" : "rgba(255,255,255,0.06)",
+          color: copied ? "#1fbf64" : "rgba(255,255,255,0.7)",
+          border: `1px solid ${copied ? "rgba(31,191,100,0.4)" : "rgba(255,255,255,0.1)"}`,
         }}
       >
         <i className={`bi ${copied ? "bi-check-circle-fill" : "bi-clipboard"}`} style={{ marginRight: 6 }}></i>
@@ -28,7 +28,7 @@ export default function QRActions({ url, copied, onCopy }) {
         className="action-btn"
         onClick={handleDownload}
         style={{
-          background: "linear-gradient(135deg, #00c97a, #00a060)",
+          background: "linear-gradient(135deg, #1fbf64, #16a052)",
           color: "#001a0d",
         }}
       >

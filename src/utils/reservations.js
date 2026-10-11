@@ -42,16 +42,18 @@ const getCandidateRange = (candidate) => {
   };
 };
 
-const getOccupiedTableRange = (table) => {
+// While a session is running the table is busy until its booked end. A session
+// past that end but not ended yet still has someone at the table, so it counts
+// as busy until now (`overrun` marks that case, `bookedEnd` keeps the real end).
+const getOccupiedTableRange = (table, now = new Date()) => {
   if (table?.status !== "occupied" || !table.startTime) return null;
 
   const start = new Date(Number(table.startTime));
   if (Number.isNaN(start.getTime())) return null;
 
-  return {
-    start,
-    end: new Date(start.getTime() + getDurationMinutes(table) * 60 * 1000),
-  };
+  const bookedEnd = new Date(start.getTime() + getDurationMinutes(table) * 60 * 1000);
+  const overrun = bookedEnd < now;
+  return { start, end: overrun ? new Date(now.getTime()) : bookedEnd, bookedEnd, overrun };
 };
 
 // A table booked for a tournament is held for the WHOLE day, not just from the
@@ -67,7 +69,7 @@ const getTournamentReservationConflict = ({ table, events = [], candidate }) =>
     );
   });
 
-export const getTableReservationAvailability = ({ table, reservations = [], events = [], candidate, excludeId = null }) => {
+export const getTableReservationAvailability = ({ table, reservations = [], events = [], candidate, excludeId = null, now = new Date() }) => {
   if (isTableUnderMaintenance(table)) {
     return {
       available: false,
@@ -89,11 +91,13 @@ export const getTableReservationAvailability = ({ table, reservations = [], even
   const candidateRange = getCandidateRange(candidate);
   if (!candidateRange) return { available: true, reason: "" };
 
-  const occupiedRange = getOccupiedTableRange(table);
+  const occupiedRange = getOccupiedTableRange(table, now);
   if (occupiedRange && rangesOverlap(candidateRange.start, candidateRange.end, occupiedRange.start, occupiedRange.end)) {
     return {
       available: false,
-      reason: `${table.name || "This table"} is occupied until ${formatTime(occupiedRange.end)}.`,
+      reason: occupiedRange.overrun
+        ? `${table.name || "This table"} is still occupied: its time ran out at ${formatTime(occupiedRange.bookedEnd)}, but the session has not been ended.`
+        : `${table.name || "This table"} is occupied until ${formatTime(occupiedRange.end)}.`,
       type: "occupied",
     };
   }
@@ -244,6 +248,27 @@ export const hasReservationEnded = (reservation, now = new Date()) => {
   return Boolean(range) && range.end <= now;
 };
 
+/**
+ * Whether the desk can mark a booked guest as arrived: from the reserved start
+ * time until the grace period is over. Earlier the guest is not due yet; later
+ * the server expires the booking as a no-show. `note` says when the window
+ * opens or closes. Matches isWithinArrivalWindow in reservations.php.
+ */
+export const getArrivalWindow = (reservation, now = new Date()) => {
+  const range = reservation ? getCandidateRange(reservation) : null;
+  // A booking with no readable time (e.g. imported from a table) has no window to keep.
+  if (!range) return { open: true, note: "" };
+
+  const graceEnd = new Date(range.start.getTime() + RESERVATION_GRACE_MINUTES * 60 * 1000);
+  const startText = range.start.toDateString() === now.toDateString()
+    ? formatTime(range.start)
+    : `${formatReservationDate(reservation.date)}, ${formatTime(range.start)}`;
+
+  if (now < range.start) return { open: false, note: `Check-in opens at ${startText}` };
+  if (now > graceEnd) return { open: false, note: `Grace period ended at ${formatTime(graceEnd)}` };
+  return { open: true, note: `Grace period until ${formatTime(graceEnd)}` };
+};
+
 /** The clock time a booking ends, e.g. ("13:00", 120) gives "15:00". */
 export const addMinutesToTime = (time, minutes) => toTimeValue(toMinutesOfDay(time) + Number(minutes || 0));
 
@@ -304,7 +329,7 @@ export const getOpenTimeWindows = ({
     .map(getCandidateRange)
     .filter(Boolean);
 
-  const occupiedRange = getOccupiedTableRange(table);
+  const occupiedRange = getOccupiedTableRange(table, now);
   if (occupiedRange) busyRanges.push(occupiedRange);
 
   const taken = busyRanges
@@ -488,7 +513,9 @@ export const getAvailableReservationTables = ({
   events = [],
   date = "",
   time = "",
+  durationMinutes,
   excludeId = null,
+  now = new Date(),
 }) => {
   if (!date || !time) return tables;
 
@@ -497,10 +524,45 @@ export const getAvailableReservationTables = ({
       table,
       reservations,
       events,
-      candidate: { tableId: table.id, date, time },
+      candidate: { tableId: table.id, date, time, durationMinutes },
       excludeId,
+      now,
     }).available
   );
+};
+
+/**
+ * Why the table picked in a staff booking form cannot take that booking, or ""
+ * when it can (or the form is not filled in yet). The table list only offers
+ * free tables, but a table picked before the date or time was changed stays
+ * picked, so it is checked again here: occupied, already reserved, under
+ * maintenance or held for a tournament.
+ */
+export const getChosenTableError = ({
+  tables = [],
+  reservations = [],
+  events = [],
+  tableId,
+  date,
+  time,
+  durationMinutes,
+  excludeId = null,
+  now = new Date(),
+}) => {
+  if (!tableId || !date || !time) return "";
+
+  const table = tables.find((entry) => Number(entry.id) === Number(tableId));
+  if (!table) return "That table is no longer in the list. Please choose another table.";
+
+  const { available, reason } = getTableReservationAvailability({
+    table,
+    reservations,
+    events,
+    candidate: { tableId: table.id, date, time, durationMinutes },
+    excludeId,
+    now,
+  });
+  return available ? "" : `${reason} Please choose another table or time.`;
 };
 
 export const getReservationValidationMessage = (date, time, now = new Date()) => {

@@ -8,7 +8,7 @@
 .forgot-modal .forgot-password {
   background: none;
   border: none;
-  color: #10b981;
+  color: #1fbf64;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -17,7 +17,7 @@
 }
 
 .forgot-modal .forgot-password:hover {
-  color: #059669;
+  color: #16a052;
   text-decoration: underline;
 }
 
@@ -35,7 +35,7 @@
 .forgot-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(17, 22, 20, 0.75);
   backdrop-filter: blur(4px);
 }
 
@@ -43,10 +43,10 @@
   position: relative;
   width: min(520px, 100%);
   max-width: 520px;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(17, 22, 20, 0.95);
+  border: 1px solid rgba(155, 165, 158, 0.12);
   border-radius: 24px;
-  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.45);
+  box-shadow: 0 28px 80px rgba(17, 22, 20, 0.45);
   padding: 32px;
   z-index: 1;
 }
@@ -69,7 +69,7 @@
 .forgot-close-btn {
   border: none;
   background: transparent;
-  color: #cbd5e1;
+  color: #ccd3cc;
   font-size: 1.25rem;
   cursor: pointer;
   display: inline-flex;
@@ -81,7 +81,7 @@
 }
 
 .forgot-close-btn:hover {
-  background: rgba(148, 163, 184, 0.12);
+  background: rgba(155, 165, 158, 0.12);
   color: #ffffff;
 }
 
@@ -98,8 +98,8 @@
   padding: 4px;
   margin-bottom: 16px;
   border-radius: 14px;
-  background: rgba(15, 23, 42, 0.65);
-  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(17, 22, 20, 0.65);
+  border: 1px solid rgba(155, 165, 158, 0.16);
 }
 
 .forgot-role-tab {
@@ -107,7 +107,7 @@
   border-radius: 10px;
   padding: 10px 12px;
   background: transparent;
-  color: #94a3b8;
+  color: #9ba59e;
   font-size: 0.88rem;
   font-weight: 800;
   cursor: pointer;
@@ -119,18 +119,18 @@
 }
 
 .forgot-role-tab:hover {
-  background: rgba(148, 163, 184, 0.1);
-  color: #e2e8f0;
+  background: rgba(155, 165, 158, 0.1);
+  color: #e2e6e0;
 }
 
 .forgot-role-tab.active {
-  background: #10b981;
+  background: #1fbf64;
   color: #06130d;
-  box-shadow: 0 8px 18px rgba(16, 185, 129, 0.24);
+  box-shadow: 0 8px 18px rgba(31, 191, 100, 0.24);
 }
 
 .forgot-description {
-  color: #9ca3af;
+  color: #a0a7a2;
   font-size: 14px;
   margin-bottom: 16px;
   line-height: 1.7;
@@ -149,7 +149,7 @@
 .forgot-modal .form-label {
   display: block;
   font-size: 0.95rem;
-  color: #cbd5e1;
+  color: #ccd3cc;
   margin-bottom: 8px;
 }
 
@@ -159,9 +159,9 @@
 
 .forgot-modal .form-input {
   width: 100%;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(15, 23, 42, 0.85);
-  color: #f8fafc;
+  border: 1px solid rgba(155, 165, 158, 0.18);
+  background: rgba(17, 22, 20, 0.85);
+  color: #f6f7f4;
   padding: 14px 16px;
   border-radius: 14px;
   outline: none;
@@ -170,8 +170,8 @@
 }
 
 .forgot-modal .form-input:focus {
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.12);
+  border-color: #3cc8f0;
+  box-shadow: 0 0 0 4px rgba(60, 200, 240, 0.12);
 }
 
 .forgot-actions {
@@ -203,8 +203,8 @@
 
 .forgot-actions .btn-secondary {
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  color: #cbd5e1;
+  border: 1px solid rgba(155, 165, 158, 0.2);
+  color: #ccd3cc;
 }
 
 .forgot-actions .btn-secondary:hover:not(:disabled) {
@@ -213,26 +213,26 @@
 }
 
 .forgot-actions .btn-success {
-  background: linear-gradient(135deg, #4ade80 0%, #10b981 100%);
-  color: #0f172a;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, #4ade80 0%, #1fbf64 100%);
+  color: #111614;
+  box-shadow: 0 4px 14px rgba(31, 191, 100, 0.3);
 }
 
 .forgot-actions .btn-success:hover:not(:disabled) {
-  background: linear-gradient(135deg, #22c55e 0%, #059669 100%);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+  background: linear-gradient(135deg, #22c55e 0%, #16a052 100%);
+  box-shadow: 0 6px 20px rgba(31, 191, 100, 0.45);
   transform: translateY(-1px);
 }
 
 .forgot-success {
   text-align: center;
-  color: #e2e8f0;
+  color: #e2e6e0;
   padding: 18px 0;
 }
 
 .forgot-success .success-icon {
   font-size: 3rem;
-  color: #34d399;
+  color: #45d982;
   margin-bottom: 14px;
 }
 
@@ -243,7 +243,7 @@
 }
 
 .forgot-success p {
-  color: #cbd5e1;
+  color: #ccd3cc;
   line-height: 1.7;
   margin-bottom: 24px;
 }
@@ -255,20 +255,20 @@
   border-radius: 10px;
   border: none;
   cursor: pointer;
-  background: linear-gradient(135deg, #4ade80 0%, #10b981 100%);
-  color: #0f172a;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, #4ade80 0%, #1fbf64 100%);
+  color: #111614;
+  box-shadow: 0 4px 14px rgba(31, 191, 100, 0.3);
   transition: all 0.2s ease;
 }
 
 .forgot-success .btn-primary:hover {
-  background: linear-gradient(135deg, #22c55e 0%, #059669 100%);
+  background: linear-gradient(135deg, #22c55e 0%, #16a052 100%);
   transform: translateY(-1px);
 }
 
 /* Reset Password Modal Content */
 .forgot-modal .reset-description {
-  color: #9ca3af;
+  color: #a0a7a2;
   font-size: 14px;
   margin-bottom: 20px;
   line-height: 1.6;
@@ -281,7 +281,7 @@
 
 .forgot-modal .reset-success i {
   font-size: 64px;
-  color: #10b981;
+  color: #1fbf64;
   margin-bottom: 16px;
   display: block;
   animation: successPop 0.5s ease-out;
@@ -295,20 +295,20 @@
 }
 
 .forgot-modal .reset-success p {
-  color: #9ca3af;
+  color: #a0a7a2;
   font-size: 14px;
   margin-bottom: 8px;
   line-height: 1.6;
 }
 
 .forgot-modal .reset-success strong {
-  color: #10b981;
+  color: #1fbf64;
   font-weight: 600;
 }
 
 .forgot-modal .reset-note {
   font-size: 13px;
-  color: #6b7280;
+  color: #717a74;
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -345,19 +345,19 @@
   align-items: flex-start;
   gap: 7px;
   margin: 12px 0 0;
-  color: #94a3b8;
+  color: #9ba59e;
   font-size: 11px;
   line-height: 1.5;
 }
 
-.forgot-privacy-note > i { flex-shrink: 0; margin-top: 2px; color: #34d399; }
+.forgot-privacy-note > i { flex-shrink: 0; margin-top: 2px; color: #45d982; }
 
 /* SMS reset */
 .forgot-info {
-  background: rgba(52, 211, 153, 0.12);
-  border: 1px solid rgba(52, 211, 153, 0.3);
+  background: rgba(69, 217, 130, 0.12);
+  border: 1px solid rgba(69, 217, 130, 0.3);
   border-radius: 12px;
-  color: #6ee7b7;
+  color: #7ee8a6;
   padding: 12px 14px;
   margin-bottom: 14px;
   font-size: 14px;
@@ -368,10 +368,10 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  background: rgba(255, 207, 51, 0.1);
+  border: 1px solid rgba(255, 207, 51, 0.3);
   border-radius: 12px;
-  color: #fde68a;
+  color: #ffe993;
   padding: 12px 14px;
   font-size: 14px;
   line-height: 1.6;
@@ -380,12 +380,12 @@
 .forgot-notice > i {
   flex-shrink: 0;
   margin-top: 2px;
-  color: #fbbf24;
+  color: #ffcf33;
 }
 
 .forgot-field-warning {
   margin: 6px 0 0;
-  color: #fbbf24;
+  color: #ffcf33;
   font-size: 12px;
 }
 
@@ -403,7 +403,7 @@
   padding: 0;
   border: none;
   background: none;
-  color: #34d399;
+  color: #45d982;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

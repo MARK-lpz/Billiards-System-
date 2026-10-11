@@ -1,11 +1,13 @@
 ﻿export default function ProductGrid({ products, cart, onAddToCart }) {
+  // Each category's color on the navy theme, and the deeper shade of it that the
+  // light theme uses for the text (the pale one is too faint on white).
   const getCategoryColor = (category) => {
     const colors = {
-      Beverage: "#60a5fa",
-      Food: "#10b981",
-      Equipment: "#fbbf24",
+      Beverage: ["#60a5fa", "#1d4ed8"],
+      Food: ["#10b981", "#047857"],
+      Equipment: ["#fbbf24", "#b45309"],
     };
-    return colors[category] || "#9ca3af";
+    return colors[category] || ["#9ca3af", "#475569"];
   };
 
   if (!products.length) {
@@ -23,7 +25,7 @@
     <div className="product-grid">
       {products.map((product) => {
         const inCart = cart.find((item) => item.id === product.id);
-        const categoryColor = getCategoryColor(product.category);
+        const [categoryColor, categoryInk] = getCategoryColor(product.category);
         const stockLeft = Number(product.stock) || 0;
         const minStock = Number(product.minStock) > 0 ? Number(product.minStock) : 5;
         const outOfStock = stockLeft <= 0;
@@ -45,7 +47,8 @@
               className="product-category"
               style={{
                 backgroundColor: `${categoryColor}15`,
-                color: categoryColor,
+                "--category-color": categoryColor,
+                "--category-ink": categoryInk,
               }}
             >
               {product.category}

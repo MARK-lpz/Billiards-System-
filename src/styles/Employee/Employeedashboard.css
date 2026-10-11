@@ -1,5 +1,5 @@
 * {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: inherit;
 }
 
 .employee-stats {
@@ -83,7 +83,9 @@
 
 .view-all-btn:hover { color: #22c55e; }
 
-.badge {
+/* Only the "N Active" count on the dashboard. As a bare .badge it also painted
+   every status badge in the app (Out of Stock, cancelled, ...) green. */
+.active-tables-card .badge {
   background: rgba(74, 222, 128, 0.15);
   color: #4ade80;
   padding: 0.25rem 0.75rem;

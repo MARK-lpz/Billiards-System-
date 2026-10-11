@@ -1,19 +1,22 @@
 .light {
-  --bg-root:          #cfd4ca;
+  /* Daylight version of the navy dark theme: cool blue-gray page, white cards,
+     navy text, and the same green and cyan accents. Text colors keep at least
+     4.5:1 contrast on white so everything stays readable. */
+  --bg-root:          #eaf0f8;
   --bg-surface:       #ffffff;
-  --bg-card:          #e2e6de;
-  --bg-subtle:        #e9ede5;
-  --bg-muted:         #dce2d8;
-  --border:           #bac4b5;
-  --border-strong:    #aab6a4;
-  --text-primary:     #0f172a;
-  --text-secondary:   #334155;
-  --text-muted:       #64748b;
-  --text-placeholder: #94a3b8;
-  --accent:           #10b981;
-  --accent-hover:     #059669;
-  --accent-subtle:    rgba(16, 185, 129, 0.1);
-  --shadow:           none;
+  --bg-card:          #ffffff;
+  --bg-subtle:        #f4f7fc;
+  --bg-muted:         #e2e9f3;
+  --border:           #d0d9e7;
+  --border-strong:    #b3c0d4;
+  --text-primary:     #0b1730;
+  --text-secondary:   #24344d;
+  --text-muted:       #4f5f78;
+  --text-placeholder: #8593a8;
+  --accent:           #047857;
+  --accent-hover:     #065f46;
+  --accent-subtle:    rgba(4, 120, 87, 0.1);
+  --shadow:           0 1px 2px rgba(11, 23, 48, 0.05), 0 8px 20px -14px rgba(11, 23, 48, 0.25);
 }.light,
 .light body {
   background-color: var(--bg-root);
@@ -58,21 +61,7 @@
   color: var(--text-secondary);
 }
 
-.light .login-container .form-label,
-.light .login-container .title,
-.light .login-container .subtitle { color: #cbd5e1 !important; }
-
-.light .login-container .login-button,
-.light .login-container .register-button {
-  background: linear-gradient(135deg, #4ade80 0%, #10b981 100%) !important;
-  color: #0f172a !important;
-  border-color: transparent !important;
-}
-
-.light .login-container .input-icon,
-.light .login-container .password-toggle { color: #64748b !important; }
-.light .login-container .forgot-password  { color: #10b981 !important; }
-.light .login-container .error-message    { color: #f87171 !important; }
+/* The login screen stays dark in both themes (login.css), like the splash. */
 
 .light .qr-container {
   background: transparent !important;
@@ -341,97 +330,8 @@
 .light .notification-empty   { color: #94a3b8 !important; }
 .light .notification-empty i { color: #94a3b8 !important; }
 
-.light .forgot-modal-card {
-  background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.12) !important;
-}
-
-.light .forgot-modal-overlay {
-  background: rgba(15, 23, 42, 0.5) !important;
-}
-
-.light .forgot-modal-header h2 { color: #0f172a !important; }
-
-.light .forgot-role-tabs {
-  background: #f1f5f9 !important;
-  border-color: #e2e8f0 !important;
-}
-
-.light .forgot-role-tab {
-  color: #64748b !important;
-}
-
-.light .forgot-role-tab:hover {
-  background: #e2e8f0 !important;
-  color: #334155 !important;
-}
-
-.light .forgot-role-tab.active {
-  background: #10b981 !important;
-  color: #ffffff !important;
-  box-shadow: 0 8px 18px rgba(16, 185, 129, 0.2) !important;
-}
-
-.light .forgot-close-btn {
-  color: #64748b !important;
-}
-.light .forgot-close-btn:hover {
-  background: #f1f5f9 !important;
-  color: #0f172a !important;
-}
-
-.light .forgot-description  { color: #64748b !important; }
-
-.light .forgot-error {
-  background: rgba(239, 68, 68, 0.08) !important;
-  border-color: rgba(239, 68, 68, 0.25) !important;
-  color: #dc2626 !important;
-}
-
-.light .forgot-modal .form-label { color: #334155 !important; }
-
-.light .forgot-modal .form-input {
-  background: #f1f5f9 !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
-}
-.light .forgot-modal .form-input:focus {
-  border-color: #10b981 !important;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
-  background: #ffffff !important;
-}
-
-.light .forgot-success { color: #334155 !important; }
-.light .forgot-success h3 { color: #0f172a !important; }
-.light .forgot-success p  { color: #64748b !important; }
-.light .forgot-success .success-icon { color: #10b981 !important; }
-
-.light .forgot-modal .reset-description { color: #64748b !important; }
-.light .forgot-modal .reset-success h4  { color: #0f172a !important; }
-.light .forgot-modal .reset-success p   { color: #64748b !important; }
-.light .forgot-modal .reset-success strong { color: #10b981 !important; }
-.light .forgot-modal .reset-note {
-  color: #94a3b8 !important;
-  border-top-color: #e2e8f0 !important;
-}
-
-.light .forgot-modal .error-message {
-  background: rgba(239, 68, 68, 0.08) !important;
-  border-color: rgba(239, 68, 68, 0.25) !important;
-  color: #dc2626 !important;
-}
-
-.light .forgot-actions .btn-secondary {
-  background: #f1f5f9 !important;
-  border: 1px solid #cbd5e1 !important;
-  color: #334155 !important;
-}
-
-.light .forgot-actions .btn-secondary:hover:not(:disabled) {
-  background: #e2e8f0 !important;
-  color: #0f172a !important;
-}
+/* The reset-password pop-up opens over the login screen, which is dark in both
+   themes, so it keeps its dark look too (ForgotModal.css). */
 
 /* ── Sales POS Light Mode Additions ───────────────────────────────────────── */
 

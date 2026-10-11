@@ -74,6 +74,8 @@ export default function Reservations({
           setForm={reservationState.setForm}
           editId={reservationState.editId}
           scheduleError={reservationState.scheduleError}
+          tableError={reservationState.tableError}
+          chosenTableName={reservationState.chosenTableName}
           tables={reservationState.availableTables}
           onClose={() => reservationState.setModal(null)}
           onSave={reservationState.saveReservation}

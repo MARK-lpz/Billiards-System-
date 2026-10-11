@@ -5,65 +5,108 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: var(--bc-font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Container ─────────────────────────────────────────── */
+/* ─── Container: the dark wall the neon sign hangs on ───── */
+/* The same in both themes, like the splash screen. */
 .login-container {
   min-height: 100vh;
   min-height: 100dvh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%);
+  background-color: #0b0d0c;
+  background-image:
+    radial-gradient(620px 440px at 16% 20%, rgba(255, 61, 154, 0.15), transparent 70%),
+    radial-gradient(660px 460px at 86% 80%, rgba(53, 198, 244, 0.13), transparent 70%),
+    radial-gradient(560px 340px at 50% -4%, rgba(255, 210, 63, 0.12), transparent 70%),
+    var(--bc-grain);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem 1rem;
   overflow-y: auto;
+  color: #ccd3cc;
 }
 
 /* ─── Card ───────────────────────────────────────────────── */
 .login-card {
+  position: relative;
   width: 100%;
-  max-width: 450px;
-  background: rgba(30, 41, 59, 0.4);
-  backdrop-filter: blur(10px);
-  border-radius: 24px;
-  padding: 2rem;
-  border: 1px solid rgba(71, 85, 105, 0.5);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  max-width: 430px;
+  background: #121614;
+  border-radius: 18px;
+  padding: 2.25rem 2rem 2rem;
+  border: 1px solid rgba(226, 236, 230, 0.08);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.8);
   margin: auto;
+  overflow: hidden;
+}
+
+/* The four tubes of the sign along the top edge */
+.login-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--bc-tubes);
+  box-shadow: 0 0 18px rgba(255, 210, 63, 0.45);
 }
 
 /* ─── Logo ───────────────────────────────────────────────── */
 .logo-wrapper {
   display: flex;
   justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.1rem;
 }
 
 .logo-img {
-  width: 170px;
-  height: 170px;
+  width: 156px;
+  height: 156px;
   object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(255, 210, 63, 0.35)) drop-shadow(0 0 22px rgba(255, 61, 154, 0.18));
+}
+
+/* The sign switches on with a short flicker, once. */
+@media (prefers-reduced-motion: no-preference) {
+  .logo-img {
+    animation: login-sign-on 1.1s ease-out both;
+  }
+}
+
+@keyframes login-sign-on {
+  0% { opacity: 0.15; }
+  12% { opacity: 1; }
+  18% { opacity: 0.35; }
+  26% { opacity: 1; }
+  34% { opacity: 0.6; }
+  44%, 100% { opacity: 1; }
 }
 
 /* ─── Headings ───────────────────────────────────────────── */
-.title {
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: white;
+.login-card .title {
+  font-family: var(--bc-font-display);
+  font-synthesis: none;
+  font-size: 2rem;
+  font-weight: 400;
+  color: var(--bc-yellow);
   text-align: center;
-  margin-bottom: 0.5rem;
-  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 14px rgba(255, 210, 63, 0.45);
 }
 
-.subtitle {
-  color: #94a3b8;
+.login-card .subtitle {
+  color: #ff5b5d;
   text-align: center;
-  margin-bottom: 2rem;
-  font-size: 0.95rem;
+  margin-bottom: 1.9rem;
+  font-family: var(--bc-font-label);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
 }
 
 /* ─── Form ───────────────────────────────────────────────── */
@@ -72,10 +115,19 @@ body {
 
 .form-label {
   display: block;
-  color: #cbd5e1;
+  color: #ccd3cc;
   font-size: 0.875rem;
   margin-bottom: 0.5rem;
   font-weight: 500;
+}
+
+.login-card .form-label {
+  font-family: var(--bc-font-label);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9aa49d;
 }
 
 /* ─── Input ──────────────────────────────────────────────── */
@@ -89,26 +141,26 @@ body {
   width: 20px;
   height: 20px;
   font-size: 1.1rem;
-  color: #64748b;
+  color: #6c776f;
 }
 
 .form-input {
   width: 100%;
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid #334155;
-  border-radius: 12px;
+  background: #0c0f0e;
+  border: 1px solid #2a322e;
+  border-radius: 10px;
   padding: 0.875rem 1rem 0.875rem 3rem;
-  color: #cbd5e1;
-  font-size: 0.95rem;
+  color: #eef1ec;
+  font-size: 0.98rem;
   outline: none;
   transition: all 0.2s ease;
 }
 
-.form-input::placeholder { color: #64748b; }
+.form-input::placeholder { color: #6c776f; }
 
 .form-input:focus {
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  border-color: var(--bc-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 210, 63, 0.16);
 }
 
 .form-input:disabled {
@@ -124,7 +176,7 @@ body {
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #64748b;
+  color: #6c776f;
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -133,7 +185,7 @@ body {
   transition: color 0.2s ease;
 }
 
-.password-toggle:hover { color: #cbd5e1; }
+.password-toggle:hover { color: #ccd3cc; }
 
 .toggle-icon {
   width: 20px;
@@ -152,7 +204,7 @@ body {
   background: none;
   border: none;
   padding: 0;
-  color: #4ade80;
+  color: #ffdc5e;
   font-size: 0.875rem;
   font-weight: 500;
   text-decoration: none;
@@ -165,7 +217,11 @@ body {
   box-shadow: none;
 }
 
-.forgot-password:hover { color: #86efac; }
+.forgot-password:focus-visible {
+  text-decoration: underline;
+}
+
+.forgot-password:hover { color: #ffe993; text-decoration: underline; }
 
 /* ─── Error ──────────────────────────────────────────────── */
 .input-error { border-color: #f87171 !important; }
@@ -193,15 +249,18 @@ body {
 /* ─── Login Button ───────────────────────────────────────── */
 .login-button {
   width: 100%;
-  background: linear-gradient(135deg, #4ade80 0%, #10b981 100%);
-  color: #0f172a;
-  font-weight: 600;
-  font-size: 1rem;
-  padding: 0.875rem 1.5rem;
-  border-radius: 12px;
-  border: none;
+  background: var(--bc-yellow);
+  color: var(--bc-sign-ink);
+  font-family: var(--bc-font-label);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.85rem 1.5rem;
+  border-radius: 10px;
+  border: 1px solid #ffe07a;
   cursor: pointer;
-  box-shadow: 0 10px 20px rgba(74, 222, 128, 0.3);
+  box-shadow: 0 12px 28px -12px rgba(255, 210, 63, 0.85);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -209,9 +268,9 @@ body {
   gap: 0.5rem;
 }
 
-.login-button:hover {
-  background: linear-gradient(135deg, #22c55e 0%, #059669 100%);
-  box-shadow: 0 15px 30px rgba(74, 222, 128, 0.5);
+.login-button:hover:not(:disabled) {
+  background: #ffde66;
+  box-shadow: 0 14px 32px -10px rgba(255, 210, 63, 1);
   transform: translateY(-1px);
 }
 
@@ -226,8 +285,8 @@ body {
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(15, 23, 42, 0.3);
-  border-top-color: #0f172a;
+  border: 2px solid rgba(17, 22, 20, 0.3);
+  border-top-color: #111614;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -239,11 +298,11 @@ body {
   width: 100%;
   margin-top: 12px;
   padding: 14px 24px;
-  background: rgba(0, 201, 122, 0.1);
-  border: 1px solid rgba(0, 201, 122, 0.3);
-  border-radius: 12px;
-  color: #00c97a;
-  font-family: 'Poppins', sans-serif;
+  background: transparent;
+  border: 1px solid rgba(226, 236, 230, 0.16);
+  border-radius: 10px;
+  color: #e2e6e0;
+  font-family: var(--bc-font-body);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.3px;
@@ -255,10 +314,10 @@ body {
 }
 
 .register-button:hover {
-  background: rgba(0, 201, 122, 0.15);
-  border-color: #00c97a;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 201, 122, 0.2);
+  background: rgba(53, 198, 244, 0.08);
+  border-color: rgba(53, 198, 244, 0.6);
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 
 /* ─── Responsive ─────────────────────────────────────────── */
@@ -275,8 +334,8 @@ body {
   }
 
   .logo-img { width: 140px; height: 140px; }
-  .title { font-size: 1.625rem; }
-  .subtitle { font-size: 0.9rem; margin-bottom: 1.75rem; }
+  .login-card .title { font-size: 1.625rem; }
+  .login-card .subtitle { font-size: 0.9rem; margin-bottom: 1.75rem; }
 }
 
 @media (max-width: 640px) {
@@ -292,8 +351,8 @@ body {
   }
 
   .logo-img { width: 120px; height: 120px; }
-  .title { font-size: 1.5rem; }
-  .subtitle { font-size: 0.875rem; margin-bottom: 1.5rem; }
+  .login-card .title { font-size: 1.5rem; }
+  .login-card .subtitle { font-size: 0.875rem; margin-bottom: 1.5rem; }
 
   .form-input {
     font-size: 0.9rem;
@@ -322,12 +381,12 @@ body {
   .logo-wrapper { margin-bottom: 1rem; }
   .logo-img { width: 100px; height: 100px; }
 
-  .title {
+  .login-card .title {
     font-size: 1.35rem;
     letter-spacing: 0.03em;
   }
 
-  .subtitle {
+  .login-card .subtitle {
     font-size: 0.8rem;
     margin-bottom: 1.25rem;
   }
@@ -357,7 +416,7 @@ body {
 @media (max-width: 360px) {
   .login-card { padding: 1rem; }
   .logo-img { width: 85px; height: 85px; }
-  .title { font-size: 1.2rem; }
+  .login-card .title { font-size: 1.2rem; }
 }
 
 /* ─── 1366x768 Laptop Screen ─────────────────────────────── */
@@ -383,11 +442,11 @@ body {
     margin-bottom: 1rem;
   }
 
-  .title {
+  .login-card .title {
     font-size: 1.6rem;
   }
 
-  .subtitle {
+  .login-card .subtitle {
     font-size: 0.875rem;
     margin-bottom: 1.25rem;
   }

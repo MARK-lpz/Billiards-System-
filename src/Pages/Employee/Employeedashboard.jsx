@@ -4,7 +4,10 @@ import Sidebar from "../../Elements/Employee/SidebarEmp";
 import PoolTableStats from "../../Elements/Admin/PoolTableStats";
 import PoolTableCard from "../../Elements/Admin/PoolTableCards";
 import WalkInModal from "../../Elements/Admin/WalkInModal";
+import EndSessionModal from "../../Elements/Admin/EndSessionModal";
+import CancelReservationModal from "../../Elements/Admin/CancelReservationModal";
 import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
+import Toast from "../../Elements/Global/Toast";
 import Notification from "../../Elements/Global/Notification";
 import LoadingBar from "../../Elements/Global/Loading";
 import Menu from "../../Elements/Global/Menu";
@@ -18,7 +21,7 @@ import { useNotifications } from "../../Elements/Global/useNotifications";
 import { findTableReservation, formatHoursLabel } from "../../utils/reservations";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
 import { formatPeso, getPlayedMinutes, getSessionTotal } from "../../utils/tableSession";
-import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge } from "../../utils/tableCharges";
+import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
 
 const getCurrentTimestamp = () => Date.now();
 
@@ -42,7 +45,7 @@ export default function EmployeeDashboard({
   theme,
   setTheme,
 }) {
-  const { addNotification, queueAdminNotification } = useNotifications();
+  const { addNotification, queueAdminNotification, showToast } = useNotifications();
   // Must match a sidebar nav id, otherwise nothing is highlighted on load and
   // the page header has no entry to read its title from.
   const [activeNav, setActiveNav] = useState("Pool Tables");
@@ -50,6 +53,14 @@ export default function EmployeeDashboard({
   const [statusFilter, setStatusFilter] = useState("all");
   // The table a walk-in is being started on, while staff enter how long they stay.
   const [walkInTableId, setWalkInTableId] = useState(null);
+  // The table whose End Session warning is open, and when End Session was pressed.
+  const [endingTableId, setEndingTableId] = useState(null);
+  const [endingAt, setEndingAt] = useState(null);
+  // Gone once the session is over, e.g. ended from the time's up pop-up meanwhile.
+  const endingTable = tables.find((t) => t.id === endingTableId && t.startTime) || null;
+  // The reserved table whose Cancel pop-up is open; gone if it is no longer reserved.
+  const [cancelTableId, setCancelTableId] = useState(null);
+  const cancelTable = tables.find((t) => t.id === cancelTableId && t.status === "reserved") || null;
 
   const handleReload = () => {
     setLoading(true);
@@ -162,7 +173,6 @@ export default function EmployeeDashboard({
       cost: getSessionTotal(table),
       booked: formatHoursLabel(bookedMinutes),
       played: formatHoursLabel(playedMinutes),
-      endedEarly: playedMinutes < bookedMinutes,
     };
   };
 
@@ -196,20 +206,17 @@ export default function EmployeeDashboard({
       },
     });
     addNotification({ message: charge ? describeEndedCharge(charge) : `${getTableLabel(table)} session ended.` });
+    if (charge) showToast(endedChargeToast(charge));
   };
 
-  // The card's End Session asks first; the time's up pop-up already shows the total.
+  // The card's End Session asks first, in the same warning the admin's Pool
+  // Tables shows; the time's up pop-up already shows the total.
   const handleEndSession = (id) => {
     const table = tables.find((t) => t.id === id);
     if (!table?.startTime) return;
 
-    const { cost, booked, played, endedEarly } = describeSessionEnd(table);
-    const totalLine = endedEarly
-      ? `Total: ${formatPeso(cost)} for the full ${booked} booked`
-      : `Total: ${formatPeso(cost)}`;
-    if (window.confirm(`Played: ${played} of ${booked}\n${totalLine}\n\nThe bill goes to Sales / POS for payment.\nEnd session?`)) {
-      endSession(id);
-    }
+    setEndingAt(getCurrentTimestamp());
+    setEndingTableId(id);
   };
 
   const handleAddTime = (id, minutes) => {
@@ -243,33 +250,34 @@ export default function EmployeeDashboard({
     addNotification({ message: `${minutesToRemove} minutes removed from ${getTableLabel(table)}.` });
   };
 
-  const handleCancel = (id) => {
+  // Runs once the Cancel pop-up is confirmed. The booking itself is cancelled
+  // too, or the reservations sync would mark the table reserved again.
+  const cancelReservation = (id) => {
     const table = tables.find((t) => t.id === id);
-    if (window.confirm("Cancel reservation?")) {
-      updateTable(id, { status: "available", startTime: null, customer: "" });
-      if (table) {
-        addLog({
-          action: "Cancelled reservation",
-          detail: `Cancelled reservation for ${getTableLabel(table)}`,
-          customer: {
-            previous: table.customer ? { name: table.customer } : null,
-            current: null,
-          },
-          table: {
-            id: table.id,
-            name: getTableLabel(table),
-            previousStatus: table.status,
-            currentStatus: "available",
-          },
-      });
-      addNotification({ message: `Reservation for ${getTableLabel(table)} was cancelled.` });
-      queueAdminNotification({
-        type: "reservation-cancellation",
-        message: `Cancellation request: ${table?.customer || 'Customer'} reservation for ${getTableLabel(table)} was cancelled by an employee.`,
-        data: { tableId: id },
-      });
-    }
-    }
+    if (!table) return;
+
+    updateTable(id, ENDED_SESSION_FIELDS);
+    saveTableReservationStatus({ table, reservations, setReservations, from: ["approved", "reserved", "arrived"], status: "cancelled" });
+    addLog({
+      action: "Cancelled reservation",
+      detail: `Cancelled reservation for ${getTableLabel(table)}`,
+      customer: {
+        previous: table.customer ? { name: table.customer } : null,
+        current: null,
+      },
+      table: {
+        id: table.id,
+        name: getTableLabel(table),
+        previousStatus: table.status,
+        currentStatus: "available",
+      },
+    });
+    addNotification({ message: `Reservation for ${getTableLabel(table)} was cancelled.` });
+    queueAdminNotification({
+      type: "reservation-cancellation",
+      message: `Cancellation request: ${table.customer || "Customer"} reservation for ${getTableLabel(table)} was cancelled by an employee.`,
+      data: { tableId: id },
+    });
   };
 
   const renderModule = () => {
@@ -336,7 +344,7 @@ export default function EmployeeDashboard({
                   onWalkIn={() => setWalkInTableId(table.id)}
                   onEndSession={() => handleEndSession(table.id)}
                   onCheckIn={() => handleCheckIn(table.id)}
-                  onCancelReserve={() => handleCancel(table.id)}
+                  onCancelReserve={() => setCancelTableId(table.id)}
                   onAddTime={(minutes) => handleAddTime(table.id, minutes)}
                   onUndoTime={(minutes) => handleUndoTime(table.id, minutes)}
                 />
@@ -349,6 +357,29 @@ export default function EmployeeDashboard({
                 reservations={reservations}
                 onClose={() => setWalkInTableId(null)}
                 onStart={startWalkIn}
+              />
+            )}
+
+            {endingTable && (
+              <EndSessionModal
+                table={endingTable}
+                endingAt={endingAt}
+                onClose={() => setEndingTableId(null)}
+                onConfirm={() => {
+                  endSession(endingTable.id);
+                  setEndingTableId(null);
+                }}
+              />
+            )}
+
+            {cancelTable && (
+              <CancelReservationModal
+                table={cancelTable}
+                onClose={() => setCancelTableId(null)}
+                onConfirm={() => {
+                  cancelReservation(cancelTable.id);
+                  setCancelTableId(null);
+                }}
               />
             )}
           </>
@@ -382,6 +413,12 @@ export default function EmployeeDashboard({
       <LoadingBar loading={loading} />
       {/* Shown on every page, so a finished table is noticed even from the POS. */}
       <TimeUpAlert tables={tables} onAddTime={handleAddTime} onEndSession={endSession} />
+      {/* "Open POS" on a bill's note; hidden when already there. */}
+      <Toast
+        actions={{
+          "open-pos": activeNav === "sales" ? null : { label: "Open POS", onClick: () => handleNavChange("sales") },
+        }}
+      />
       <div className="dashboard-layout">
         <Sidebar
           activeNav={activeNav}

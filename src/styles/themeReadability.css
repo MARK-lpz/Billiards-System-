@@ -1,0 +1,513 @@
+/* Readable colors in both themes (staff app).
+   Every staff page was checked for contrast: text needs at least 4.5:1 against
+   what is behind it, 3:1 for large text and for disabled controls. The navy
+   theme keeps its palette; where a color was too faint only its shade changes.
+   App.jsx loads this file after the theme files and before brand.css.
+   The last section is generated (see its note); the rest is written by hand. */
+
+/* ---------- Green buttons and selected tabs ----------
+   White on emerald #10b981 is only 2.5:1. The navy theme keeps the emerald and
+   writes on it in deep green; the light theme uses a deeper emerald under white. */
+
+.dark :is(.account-form .btn-success, .payment-method-btn.active, .process-payment-btn,
+  .profile-form-card .profile-save-btn, .equipment-add-btn, .equipment-actions .btn-success,
+  .reported-issue-actions .btn-success, .events-add-btn, .events-tab-btn.active, .events-actions .btn-success,
+  .inventory-add-btn, .inventory-filter-btn.active, .inventory-actions .btn-success, .pool-tables-add-btn,
+  .reports-tab-btn.active, .sales-report-type.active, .reservations-add-btn, .reservations-filter-btn.active,
+  .reservations-actions .btn-success, .table-bill-btn, .rd-filter-btn.active, .rd-seat-btn, .rd-primary-btn,
+  .modal-footer .btn-success, .modal-body .btn-success, .modal-content .btn-outline-secondary.btn-sm.active,
+  .settings-btn.primary, .pool-table-available .pool-table-actions .btn-outline-success:hover,
+  .pool-table-reserved .pool-table-actions .btn-warning:hover):not(:disabled) {
+  color: #022c22 !important;
+}
+
+.dark :is(.account-form .btn-success, .payment-method-btn.active, .process-payment-btn,
+  .profile-form-card .profile-save-btn, .equipment-add-btn, .equipment-actions .btn-success,
+  .reported-issue-actions .btn-success, .events-add-btn, .events-tab-btn.active, .events-actions .btn-success,
+  .inventory-add-btn, .inventory-filter-btn.active, .inventory-actions .btn-success, .pool-tables-add-btn,
+  .reports-tab-btn.active, .sales-report-type.active, .reservations-add-btn, .reservations-filter-btn.active,
+  .reservations-actions .btn-success, .table-bill-btn, .rd-filter-btn.active, .rd-seat-btn, .rd-primary-btn,
+  .modal-footer .btn-success, .modal-body .btn-success, .modal-content .btn-outline-secondary.btn-sm.active,
+  .settings-btn.primary):hover:not(:disabled) {
+  background: #34d399 !important;
+  border-color: #34d399 !important;
+}
+
+.light :is(.account-form .btn-success, .payment-method-btn.active, .process-payment-btn,
+  .profile-form-card .profile-save-btn, .equipment-add-btn, .equipment-actions .btn-success,
+  .reported-issue-actions .btn-success, .events-add-btn, .events-tab-btn.active, .events-actions .btn-success,
+  .inventory-add-btn, .inventory-filter-btn.active, .inventory-actions .btn-success, .pool-tables-add-btn,
+  .reports-tab-btn.active, .sales-report-type.active, .reservations-add-btn, .reservations-filter-btn.active,
+  .reservations-actions .btn-success, .table-bill-btn, .rd-filter-btn.active, .rd-seat-btn, .rd-primary-btn,
+  .modal-footer .btn-success, .modal-body .btn-success, .modal-content .btn-outline-secondary.btn-sm.active,
+  .settings-btn.primary, .pool-table-available .pool-table-actions .btn-outline-success:hover,
+  .pool-table-reserved .pool-table-actions .btn-warning:hover):not(:disabled) {
+  background: #047857 !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
+}
+
+.light :is(.account-form .btn-success, .payment-method-btn.active, .process-payment-btn,
+  .profile-form-card .profile-save-btn, .equipment-add-btn, .equipment-actions .btn-success,
+  .reported-issue-actions .btn-success, .events-add-btn, .events-tab-btn.active, .events-actions .btn-success,
+  .inventory-add-btn, .inventory-filter-btn.active, .inventory-actions .btn-success, .pool-tables-add-btn,
+  .reports-tab-btn.active, .sales-report-type.active, .reservations-add-btn, .reservations-filter-btn.active,
+  .reservations-actions .btn-success, .table-bill-btn, .rd-filter-btn.active, .rd-seat-btn, .rd-primary-btn,
+  .modal-footer .btn-success, .modal-body .btn-success, .modal-content .btn-outline-secondary.btn-sm.active,
+  .settings-btn.primary):hover:not(:disabled) {
+  background: #065f46 !important;
+  border-color: #065f46 !important;
+}
+
+/* Counts inside a tab follow the tab's text color */
+:is(.dark, .light) :is(.reservations-filter-count, .rd-filter-count, .events-tab-count) {
+  color: inherit !important;
+  opacity: 1;
+}
+
+/* ---------- Red and blue buttons: one shade deeper so white text reads ---------- */
+
+:is(.dark, .light) :is(.equipment-actions .btn-danger, .inventory-actions .btn-danger,
+  .pool-table-occupied .pool-table-actions .btn-danger, .reservations-actions .btn-danger, .rd-reject-btn,
+  .rd-danger-btn, .modal-footer .btn-danger, .modal-body .btn-danger, .btn-end-session,
+  .pool-table-reserved .pool-table-actions .btn-outline-danger:hover):not(:disabled) {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+:is(.dark, .light) :is(.equipment-actions .btn-danger, .inventory-actions .btn-danger,
+  .pool-table-occupied .pool-table-actions .btn-danger, .reservations-actions .btn-danger, .rd-reject-btn,
+  .rd-danger-btn, .modal-footer .btn-danger, .modal-body .btn-danger, .btn-end-session):hover:not(:disabled) {
+  background: #b91c1c !important;
+  border-color: #b91c1c !important;
+}
+
+/* The unread count on the bell: white on #f87171 was 2.8:1 */
+:is(.dark, .light) .notification-badge {
+  background: #dc2626;
+}
+
+:is(.dark, .light) :is(.reservations-actions .btn-primary, .cust-page .cust-add-btn, .rd-approve-btn,
+  .rd-secondary-btn, .modal-footer .btn-primary, .modal-body .btn-primary):not(:disabled) {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+:is(.dark, .light) :is(.reservations-actions .btn-primary, .cust-page .cust-add-btn, .rd-approve-btn,
+  .rd-secondary-btn, .modal-footer .btn-primary, .modal-body .btn-primary):hover:not(:disabled) {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+}
+
+/* ---------- Disabled controls: dimmed, but the label still reads ---------- */
+
+.dark :is(.process-payment-btn, .rd-primary-btn, .rd-secondary-btn, .modal-footer .btn, .modal-body .btn, .pool-table-maintenance-btn,
+  .settings-btn):disabled {
+  opacity: 1 !important;
+  background: #1e293b !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+  color: #94a3b8 !important;
+  box-shadow: none !important;
+}
+
+.light :is(.process-payment-btn, .rd-primary-btn, .rd-secondary-btn, .modal-footer .btn, .modal-body .btn, .pool-table-maintenance-btn,
+  .settings-btn):disabled {
+  opacity: 1 !important;
+  background: #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+  box-shadow: none !important;
+}
+
+:is(.dark, .light) :is(.process-payment-btn, .rd-primary-btn, .rd-secondary-btn, .modal-footer .btn, .modal-body .btn,
+  .pool-table-maintenance-btn, .settings-btn):disabled i {
+  color: inherit !important;
+}
+
+:is(.dark, .light) .list-page-btn:disabled {
+  opacity: 0.65;
+}
+
+/* A sold-out product stays readable; the badge says it cannot be added */
+:is(.dark, .light) .product-card.out-of-stock {
+  opacity: 0.88;
+}
+
+/* ---------- Navy theme: soft gray text was 3:1 on navy; slate-400 reads ---------- */
+
+.dark :is(.cart-empty, .cart-item-meta, .page-subtitle, .issue-empty-state, .equipment-type, .equipment-info-label,
+  .events-datetime, .events-info-label, .events-participants-label, .pool-table-rate, .recent-transactions-title,
+  .recent-transaction-items, .reports-card-title, .reports-empty, .reports-transaction-details, .reports-table-notes,
+  .reservations-time, .reservations-notes, .reservations-empty, .recent-transactions-empty, .recent-transaction-meta,
+  .order-history-empty, .order-history-meta, .table-bills-empty, .table-bill-meta, .table-bill-prepaid, .task-time,
+  .qa-subtitle, .qa-reservation-customer, .qa-equipment-meta, .qa-empty, .qa-empty-text, .rd-table-sub,
+  .rd-table-notes, .rd-empty, .notification-time, .notification-empty, .settings-field em,
+  .pool-tables-subtitle, .inventory-subtitle, .events-subtitle, .equipment-subtitle, .reports-subtitle,
+  .sales-pos-subtitle, .reservations-subtitle, .audit-trail-subtitle, .rd-subtitle) {
+  color: #94a3b8;
+}
+
+.dark .notification-empty p,
+.dark .issue-empty-state p,
+.dark .cart-empty p {
+  color: #94a3b8;
+}
+
+/* Red and blue text on navy, one shade lighter */
+.dark :is(.equipment-condition-damaged, .equipment-condition span, .inventory-stock.out, .pool-stat-red .pool-stat-value,
+  .reports-table-low-stock, .product-low-badge, .pool-table-actions .btn-outline-danger, .inventory-badge-danger,
+  .events-badge-cancelled, .reports-badge-low, .equipment-badge-repair) {
+  color: #f87171 !important;
+}
+
+.dark .rd-stat-value--blue { color: #60a5fa !important; }
+.dark .inventory-category-badge { color: #93c5fd !important; }
+
+/* ---------- Light theme: parts still painted for the navy theme ---------- */
+
+.light .online-reservations-status {
+  background: var(--bg-surface);
+}
+
+.light .online-reservations-status strong { color: var(--text-primary); }
+.light .online-reservations-status small { color: var(--text-muted); }
+
+.light :is(.events-locked-note, .tourna-closed-note) {
+  border-color: var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+}
+
+.light .cart-total span:first-child { color: var(--text-secondary) !important; }
+/* "Expires 7:30 PM if not checked in": dimmed by opacity to 4:1 on a reserved card */
+.light .pool-table-reservation-expiry { opacity: 1; }
+.light .rd-page .rd-stat-value--muted { color: #475569 !important; }
+.light .card-subtitle { color: var(--text-muted); }
+
+.light :is(.list-pagination-count, .reports-toolbar-label) { color: var(--text-muted); }
+
+/* POS category tags: ProductGrid.jsx passes a deep shade of each category color */
+.light .product-category { color: var(--category-ink, #475569); }
+
+.light .equipment-view-tab.active { color: #92400e !important; }
+.light .cat-pill.active { color: #065f46 !important; }
+.light .inventory-price-unit { color: var(--text-muted); }
+
+/* "3 Active" on the dashboard */
+.light .active-tables-card .badge {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+/* ---------- Light theme: pale accent text (generated) ----------
+   Text colors made for the navy theme (green 400, amber 400, blue 400, ...) are
+   2:1 or worse on white. Under .light each one takes the deep shade of the same
+   hue. Built from the staff stylesheets by a script; rules that paint their own
+   solid or gradient background are left out. */
+
+.light .equipment-issue-row-copy span,
+.light .payment-verify-heading > i,
+.light .pool-table-cleaning .pool-status-text,
+.light .qa-badge--cleaning,
+.light .qa-status-btn--cleaning.is-active,
+.light .qa-status-btn--cleaning:hover:not(:disabled),
+.light .status-cleaning {
+  color: #0369a1 !important;
+}
+
+.light .account-row .btn-outline-secondary:hover,
+.light .audit-badge-sale,
+.light .audit-filter-btn.active,
+.light .audit-stat-green .audit-stat-icon,
+.light .audit-stat-green .audit-stat-value,
+.light .cart-item-total,
+.light .cart-item-type,
+.light .cart-total--highlighted .cart-total-amount,
+.light .cart-total-amount,
+.light .cat-pill.active,
+.light .discount-toggle.active,
+.light .equipment-badge-active,
+.light .equipment-condition-good,
+.light .equipment-empty-state i,
+.light .equipment-issue-empty i,
+.light .equipment-no-report i,
+.light .equipment-service-btn.done,
+.light .equipment-service-btn.done:hover,
+.light .equipment-side-notice > i,
+.light .equipment-stat-green .equipment-stat-value,
+.light .events-badge-completed,
+.light .events-prize,
+.light .events-stat-green .events-stat-value,
+.light .gcash-qr-copy strong,
+.light .inventory-badge-success,
+.light .inventory-price,
+.light .inventory-stat-green .inventory-stat-icon,
+.light .inventory-stat-green .inventory-stat-value,
+.light .list-page-btn:hover:not(:disabled),
+.light .notification-action-btn.approve,
+.light .order-history-item-pill.is-table,
+.light .order-history-receipt-btn:hover,
+.light .order-history-sort-btn.is-active,
+.light .order-history-sort-btn:hover,
+.light .order-history-total,
+.light .order-ticket-badge.served,
+.light .order-ticket-btn,
+.light .order-ticket-total strong,
+.light .password-reset-empty > i,
+.light .payment-change-row strong,
+.light .payment-details-heading strong,
+.light .payment-reference-ok,
+.light .payment-review-total strong,
+.light .payment-verify-success,
+.light .pool-stat-green .pool-stat-value,
+.light .pool-table-available .pool-status-text,
+.light .pool-table-available .pool-table-actions .btn-outline-success,
+.light .pool-table-charge,
+.light .pool-table-ends,
+.light .pool-table-reserved .pool-table-actions .btn-warning,
+.light .pos-subtab-btn.active,
+.light .product-price,
+.light .profile-avatar,
+.light .profile-saved,
+.light .qa-badge--available,
+.light .qa-badge--returned,
+.light .qa-status-btn--ready.is-active,
+.light .qa-status-btn--ready:hover:not(:disabled),
+.light .qa-success,
+.light .rd-badge-approved,
+.light .rd-status--arrived,
+.light .receipt-icon,
+.light .receipt-total,
+.light .recent-transaction-total,
+.light .reported-issue-card.is-resolved .equipment-issue-modal-alert,
+.light .reported-issue-resolved-tag,
+.light .reported-issues-empty i,
+.light .reports-badge-approved,
+.light .reports-badge-good,
+.light .reports-export-btn,
+.light .reports-export-btn:hover:not(:disabled),
+.light .reports-stat-green .reports-stat-icon,
+.light .reports-stat-green .reports-stat-value,
+.light .reports-table-price,
+.light .reports-transaction-total,
+.light .reservations-badge-approved,
+.light .reservations-mode-walkin,
+.light .settings-card-head > i,
+.light .settings-link,
+.light .settings-message.success,
+.light .settings-theme-check,
+.light .table-bill-amount,
+.light .table-bill-btn:disabled,
+.light .table-bills-header i,
+.light .time-up-total strong,
+.light .tourna-badge.completed,
+.light .tourna-walkin-btn,
+.light .tourna-walkin-btn:hover,
+.light .tourna-walkin-preview strong,
+.light .walkin-summary-total,
+.light .yearly-sales-current-label,
+.light .yearly-sales-total {
+  color: #065f46 !important;
+}
+
+.light .action-btn:hover,
+.light .active-tables-card .badge,
+.light .audit-badge-table,
+.light .btn-walkin,
+.light .confirm-dialog-detail.success,
+.light .current-badge,
+.light .equipment-side-notice span,
+.light .issue-empty-state i,
+.light .mark-read-btn,
+.light .mark-read-btn:hover,
+.light .order-history-section-header.completed,
+.light .priority-done,
+.light .rd-page .rd-stat-value--green,
+.light .stat-green,
+.light .stat-icon-green .stat-dot,
+.light .status-available,
+.light .view-all-btn,
+.light .view-all-btn:hover {
+  color: #166534 !important;
+}
+
+.light .audit-badge-reservation,
+.light .audit-severity-info,
+.light .audit-stat-blue .audit-stat-icon,
+.light .audit-stat-blue .audit-stat-value,
+.light .cust-page .cust-avatar,
+.light .events-actions .btn-info,
+.light .events-badge-upcoming,
+.light .events-reschedule-dates i,
+.light .events-reschedule-head,
+.light .events-stat-blue .events-stat-value,
+.light .events-update-note,
+.light .inventory-category-badge,
+.light .inventory-product-number-note,
+.light .inventory-product-number-note i,
+.light .inventory-sku,
+.light .inventory-stat-blue .inventory-stat-icon,
+.light .inventory-stat-blue .inventory-stat-value,
+.light .password-reset-user > i,
+.light .pool-stat-blue .pool-stat-dot,
+.light .pool-stat-blue .pool-stat-value,
+.light .pool-table-available .pool-table-actions .btn-success,
+.light .pool-table-maintenance .pool-status-text,
+.light .pool-table-remaining,
+.light .pool-table-time-alert,
+.light .priority-low,
+.light .qa-badge--borrowed,
+.light .qa-badge--maintenance,
+.light .qa-status-btn--maintenance.is-active,
+.light .qa-status-btn--maintenance:hover:not(:disabled),
+.light .rd-badge-completed,
+.light .rd-page .rd-stat-value--blue,
+.light .rd-status--completed,
+.light .rd-status--seated,
+.light .reports-badge-completed,
+.light .reports-stat-blue .reports-stat-icon,
+.light .reports-stat-blue .reports-stat-value,
+.light .reservations-badge-completed,
+.light .reservations-mode-online,
+.light .stat-blue,
+.light .status-maintenance,
+.light .table-bill-prepaid,
+.light .table-session-alert,
+.light .task-meta,
+.light .tourna-badge.upcoming,
+.light .tourna-empty-card i,
+.light .tourna-player-badge,
+.light .tourna-table-tag,
+.light .walkin-note {
+  color: #1d4ed8 !important;
+}
+
+.light .audit-badge-inventory,
+.light .stat-purple {
+  color: #7e22ce !important;
+}
+
+.light .account-message--warning,
+.light .audit-badge-auth,
+.light .audit-severity-medium,
+.light .audit-stat-yellow .audit-stat-icon,
+.light .audit-stat-yellow .audit-stat-value,
+.light .btn-add-time,
+.light .cart-discount-row,
+.light .cart-stock-warning,
+.light .cart-stock-warning i,
+.light .equipment-actions .btn-warning,
+.light .equipment-actions .btn-warning:hover,
+.light .equipment-badge-replacement,
+.light .equipment-condition-fair,
+.light .equipment-issue-modal-alert,
+.light .equipment-issue-row-icon,
+.light .equipment-report-linked,
+.light .equipment-report-linked:hover,
+.light .equipment-service-btn.replace,
+.light .equipment-service-btn.replace:hover,
+.light .equipment-stat-yellow .equipment-stat-value,
+.light .equipment-view-tab.active,
+.light .events-stat-yellow .events-stat-value,
+.light .inventory-badge-warning,
+.light .inventory-stat-yellow .inventory-stat-icon,
+.light .inventory-stat-yellow .inventory-stat-value,
+.light .inventory-stock.low,
+.light .order-history-discount,
+.light .order-history-section-header.pending,
+.light .order-ticket-badge.pending,
+.light .payment-field-warning,
+.light .payment-final-confirmation > i,
+.light .payment-reference-required,
+.light .pool-stat-yellow .pool-stat-value,
+.light .pool-table-remaining.warning,
+.light .pool-table-reservation-slot,
+.light .pool-table-reserved .pool-status-text,
+.light .pool-table-time-alert.warning,
+.light .pool-table-timer,
+.light .priority-medium,
+.light .product-stock.is-low,
+.light .qa-badge--reserved,
+.light .qa-table-block-note,
+.light .rd-badge-pending,
+.light .rd-page .rd-stat-value--yellow,
+.light .rd-status--reserved,
+.light .recent-transaction-discount,
+.light .reports-badge-pending,
+.light .reports-stat-yellow .reports-stat-icon,
+.light .reports-stat-yellow .reports-stat-value,
+.light .reservations-badge-pending,
+.light .settings-backup-note,
+.light .stat-icon-yellow .stat-dot,
+.light .stat-yellow,
+.light .status-reserved,
+.light .table-bills-count.has-bills,
+.light .table-session-alert.warning,
+.light .tourna-badge.active {
+  color: #92400e !important;
+}
+
+.light .audit-badge-issue,
+.light .audit-severity-high,
+.light .audit-stat-red .audit-stat-icon,
+.light .audit-stat-red .audit-stat-value,
+.light .btn-cancel,
+.light .confirm-dialog-detail,
+.light .cust-page .cust-remove-btn:hover,
+.light .equipment-badge-repair,
+.light .equipment-condition-damaged,
+.light .equipment-service-btn.repair,
+.light .equipment-service-btn.repair:hover,
+.light .equipment-stat-red .equipment-stat-value,
+.light .events-actions .btn-danger,
+.light .events-badge-cancelled,
+.light .events-field-warning,
+.light .inventory-badge-danger,
+.light .inventory-stat-red .inventory-stat-icon,
+.light .inventory-stat-red .inventory-stat-value,
+.light .inventory-stock.out,
+.light .issue-detail-icon,
+.light .notification-action-btn.reject,
+.light .notification-delete:hover,
+.light .payment-field-error,
+.light .pool-stat-red .pool-stat-value,
+.light .pool-table-occupied .pool-status-text,
+.light .pool-table-reserved .pool-table-actions .btn-outline-danger,
+.light .pool-table-session-status,
+.light .pool-table-time-alert.danger,
+.light .priority-high,
+.light .product-low-badge,
+.light .product-out-badge,
+.light .product-stock.is-out,
+.light .qa-badge--damaged,
+.light .qa-badge--occupied,
+.light .rd-badge-rejected,
+.light .rd-field-warning,
+.light .rd-status--cancelled,
+.light .reports-badge-low,
+.light .reports-badge-rejected,
+.light .reports-stat-red .reports-stat-icon,
+.light .reports-stat-red .reports-stat-value,
+.light .reports-table-low-stock,
+.light .reservations-badge-rejected,
+.light .reservations-field-warning,
+.light .sales-stock-alert,
+.light .settings-message.error,
+.light .stat-icon-red .stat-dot,
+.light .stat-red,
+.light .status-occupied,
+.light .table-session-alert.ended,
+.light .table-timer,
+.light .task-checkbox--icon,
+.light .tourna-walkin-error,
+.light .walkin-warning {
+  color: #b91c1c !important;
+}
+
+.light .audit-severity-reject,
+.light .priority-medium,
+.light .stat-orange {
+  color: #c2410c !important;
+}

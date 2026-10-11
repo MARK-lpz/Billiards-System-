@@ -134,6 +134,12 @@
   color: #f0f0f0;
 }
 
+/* A date, time or table the booking cannot use (the message is just below) */
+.rd-input[aria-invalid="true"],
+.rd-select[aria-invalid="true"] {
+  border-color: #f87171;
+}
+
 .rd-filters {
   display: flex;
   gap: 6px;
@@ -419,6 +425,29 @@
 
 .rd-secondary-btn:hover {
   background: #2563eb;
+}
+
+.rd-secondary-btn:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  color: #6b7280;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+}
+
+/* Under the actions: when Mark Arrived opens, or until when the grace period runs */
+.rd-arrival-note {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rd-arrival-note.is-open {
+  color: #fcd34d;
 }
 
 .rd-danger-btn {

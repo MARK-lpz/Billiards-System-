@@ -5,8 +5,8 @@
 }
 
 .qr-display-box {
-  background: #07080d;
-  border: 1px solid rgba(0,201,122,0.2);
+  background: #080a09;
+  border: 1px solid rgba(31,191,100,0.2);
   border-radius: 16px;
   padding: 16px;
   position: relative;
@@ -22,39 +22,39 @@
 .qr-corner-tl {
   top: 8px;
   left: 8px;
-  border-top: 2px solid #00c97a;
-  border-left: 2px solid #00c97a;
+  border-top: 2px solid #1fbf64;
+  border-left: 2px solid #1fbf64;
 }
 
 .qr-corner-tr {
   top: 8px;
   right: 8px;
-  border-top: 2px solid #00c97a;
-  border-right: 2px solid #00c97a;
+  border-top: 2px solid #1fbf64;
+  border-right: 2px solid #1fbf64;
 }
 
 .qr-corner-bl {
   bottom: 8px;
   left: 8px;
-  border-bottom: 2px solid #00c97a;
-  border-left: 2px solid #00c97a;
+  border-bottom: 2px solid #1fbf64;
+  border-left: 2px solid #1fbf64;
 }
 
 .qr-corner-br {
   bottom: 8px;
   right: 8px;
-  border-bottom: 2px solid #00c97a;
-  border-right: 2px solid #00c97a;
+  border-bottom: 2px solid #1fbf64;
+  border-right: 2px solid #1fbf64;
 }
 
 .qr-glow {
-  filter: drop-shadow(0 0 24px rgba(0,201,122,0.35));
+  filter: drop-shadow(0 0 24px rgba(31,191,100,0.35));
   transition: filter 0.3s ease, transform 0.3s ease;
   border-radius: 8px;
 }
 
 .qr-glow:hover {
-  filter: drop-shadow(0 0 40px rgba(0,201,122,0.6));
+  filter: drop-shadow(0 0 40px rgba(31,191,100,0.6));
   transform: scale(1.02);
 }
 
@@ -76,7 +76,7 @@
 
 .qr-scan-label {
   text-align: center;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: var(--bc-font-body);
   color: rgba(255,255,255,0.35);
   font-size: 12px;
   letter-spacing: 0.18em;

@@ -214,8 +214,8 @@
 
 .product-low-badge {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  bottom: 10px;
+  right: 10px; /* the category tag and the cart count use the top corners */
   background: rgba(239, 68, 68, 0.2);
   border: 1px solid rgba(239, 68, 68, 0.5);
   color: #ef4444;
@@ -228,6 +228,8 @@
 }
 
 .product-category {
+  /* Set per category by ProductGrid.jsx; the light theme uses --category-ink */
+  color: var(--category-color, #9ca3af);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -729,8 +731,8 @@
 
 .product-out-badge {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  bottom: 10px;
+  right: 10px; /* the category tag and the cart count use the top corners */
   padding: 2px 6px;
   border: 1px solid rgba(239, 68, 68, 0.6);
   border-radius: 4px;

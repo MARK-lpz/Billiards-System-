@@ -1,10 +1,10 @@
 .section-title {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.22em;
+  font-family: var(--bc-font-label);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #00c97a;
+  color: var(--bc-yellow);
   margin: 0 0 14px;
   display: flex;
   align-items: center;
@@ -15,7 +15,7 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: rgba(0,201,122,0.2);
+  background: rgba(255, 210, 63, 0.2);
 }
 
 .form-grid-2 {
@@ -35,8 +35,8 @@
 
 .label {
   display: block;
-  color: rgba(255,255,255,0.4);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  color: rgba(255,255,255,0.72);
+  font-family: var(--bc-font-body);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -51,7 +51,7 @@
   border-radius: 6px;
   color: #f0f0f0;
   padding: 12px 14px;
-  font-family: 'Josefin Sans', sans-serif;
+  font-family: var(--bc-font-body);
   font-size: 14px;
   letter-spacing: 0.05em;
   outline: none;
@@ -61,17 +61,17 @@
 }
 
 .field-input:focus {
-  border-color: #00c97a;
-  background: rgba(0,201,122,0.06);
-  box-shadow: 0 0 0 3px rgba(0,201,122,0.12);
+  border-color: var(--bc-yellow);
+  background: rgba(255, 210, 63, 0.05);
+  box-shadow: 0 0 0 3px rgba(255, 210, 63, 0.12);
 }
 
 .field-input::placeholder {
-  color: rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.45);
 }
 
 .field-input option {
-  background: #12131a;
+  background: #121513;
   color: #f0f0f0;
 }
 
@@ -103,11 +103,11 @@
   gap: 0.5rem;
   margin: -0.35rem 0 1rem;
   padding: 0.65rem 0.75rem;
-  border: 1px solid rgba(0, 201, 122, 0.3);
+  border: 1px solid rgba(31, 191, 100, 0.3);
   border-radius: 6px;
-  background: rgba(0, 201, 122, 0.07);
+  background: rgba(31, 191, 100, 0.07);
   color: rgba(235, 255, 247, 0.82);
-  font-family: 'Josefin Sans', sans-serif;
+  font-family: var(--bc-font-body);
   font-size: 12px;
   line-height: 1.45;
   letter-spacing: 0.03em;
@@ -115,7 +115,7 @@
 
 .reservation-closing-notice i {
   flex: 0 0 auto;
-  color: #00c97a;
+  color: #1fbf64;
   font-size: 0.95rem;
 }
 
@@ -129,7 +129,7 @@
   border-radius: 6px;
   background: rgba(255, 80, 80, 0.08);
   color: rgba(255, 215, 215, 0.92);
-  font-family: 'Josefin Sans', sans-serif;
+  font-family: var(--bc-font-body);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -158,12 +158,12 @@
 .submit-btn {
   width: 100%;
   padding: 15px;
-  background: linear-gradient(135deg, #00c97a, #00a060);
-  border: none;
-  border-radius: 8px;
-  color: #001a0d;
-  font-family: 'Josefin Sans', sans-serif;
-  font-size: 15px;
+  background: var(--bc-yellow);
+  border: 1px solid #ffe07a;
+  border-radius: 10px;
+  color: var(--bc-sign-ink);
+  font-family: var(--bc-font-label);
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -176,20 +176,22 @@
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0,201,122,0.4);
-  background: linear-gradient(135deg, #00e089, #00c070);
+  box-shadow: 0 14px 30px -12px rgba(255, 210, 63, 0.9);
+  background: #ffde66;
 }
 
 .submit-btn:disabled {
-  opacity: 0.3;
+  border-color: rgba(226, 236, 230, 0.12);
+  background: #232926;
+  color: #7f8a83;
   cursor: not-allowed;
 }
 
 .required-text {
   text-align: center;
   margin-top: 10px;
-  color: rgba(255,255,255,0.22);
-  font-family: 'Josefin Sans', sans-serif;
+  color: rgba(255,255,255,0.62);
+  font-family: var(--bc-font-body);
   font-size: 12px;
   letter-spacing: 0.05em;
   display: flex;
@@ -199,8 +201,8 @@
 
 .field-helper {
   margin-top: 8px;
-  color: rgba(255,255,255,0.35);
-  font-family: 'Josefin Sans', sans-serif;
+  color: rgba(255,255,255,0.65);
+  font-family: var(--bc-font-body);
   font-size: 12px;
   letter-spacing: 0.04em;
 }
@@ -208,7 +210,7 @@
 .field-warning {
   margin: 8px 0 0;
   color: #ff8f8f;
-  font-family: 'Josefin Sans', sans-serif;
+  font-family: var(--bc-font-body);
   font-size: 12px;
   letter-spacing: 0.04em;
 }
@@ -219,9 +221,9 @@
 .reservation-booked-times {
   margin: 14px 0 0;
   padding: 14px 16px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  border: 1px solid rgba(155, 165, 158, 0.28);
   border-radius: 10px;
-  background: rgba(15, 23, 42, 0.3);
+  background: rgba(17, 22, 20, 0.3);
 }
 
 .reservation-booked-head {
@@ -229,11 +231,11 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
-  color: #e2e8f0;
+  color: #e2e6e0;
   font-size: 13px;
 }
 
-.reservation-booked-head > i { color: #60a5fa; }
+.reservation-booked-head > i { color: #4cc3f2; }
 
 .reservation-booked-list {
   display: grid;
@@ -249,42 +251,42 @@
   justify-content: space-between;
   gap: 12px;
   padding: 8px 11px;
-  border-left: 3px solid rgba(148, 163, 184, 0.5);
+  border-left: 3px solid rgba(155, 165, 158, 0.5);
   border-radius: 6px;
-  background: rgba(148, 163, 184, 0.1);
+  background: rgba(155, 165, 158, 0.1);
   font-size: 12px;
 }
 
-.reservation-booked-row.reservation { border-left-color: #60a5fa; }
-.reservation-booked-row.tournament { border-left-color: #fbbf24; }
+.reservation-booked-row.reservation { border-left-color: #4cc3f2; }
+.reservation-booked-row.tournament { border-left-color: #ffcf33; }
 
 .reservation-booked-table {
-  color: #f8fafc;
+  color: #f6f7f4;
   font-weight: 700;
 }
 
 .reservation-booked-time {
-  color: #cbd5e1;
+  color: #ccd3cc;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.reservation-booked-row.tournament .reservation-booked-time { color: #fcd34d; }
+.reservation-booked-row.tournament .reservation-booked-time { color: #ffdc5e; }
 
 /* Free stretches of the chosen table */
 .reservation-open-times {
   margin-bottom: 16px;
-  border-color: rgba(0, 201, 122, 0.3);
+  border-color: rgba(31, 191, 100, 0.3);
 }
 
-.reservation-open-times .reservation-booked-head > i { color: #00c97a; }
+.reservation-open-times .reservation-booked-head > i { color: #1fbf64; }
 
 .reservation-booked-row.open {
-  border-left-color: #00c97a;
-  background: rgba(0, 201, 122, 0.08);
+  border-left-color: #1fbf64;
+  background: rgba(31, 191, 100, 0.08);
 }
 
-.reservation-booked-row.open .reservation-booked-time { color: #6ee7b7; }
+.reservation-booked-row.open .reservation-booked-time { color: #7ee8a6; }
 
 .reservation-booked-closed {
   margin: 0;
@@ -300,14 +302,14 @@
 
 .reservation-booked-empty {
   margin: 0;
-  color: #6ee7b7;
+  color: #7ee8a6;
   font-size: 12px;
   font-weight: 600;
 }
 
 .reservation-booked-note {
   margin: 10px 0 0;
-  color: #94a3b8;
+  color: #9ba59e;
   font-size: 11px;
   line-height: 1.5;
 }
@@ -324,9 +326,9 @@
 .gcash-panel {
   margin: 18px 0 0;
   padding: 16px;
-  border: 1px solid rgba(96, 165, 250, 0.35);
+  border: 1px solid rgba(76, 195, 242, 0.35);
   border-radius: 12px;
-  background: rgba(37, 99, 235, 0.08);
+  background: rgba(22, 141, 191, 0.08);
 }
 
 .gcash-panel-head {
@@ -334,11 +336,11 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
-  color: #93c5fd;
+  color: #9ad8f6;
   font-size: 14px;
 }
 
-.gcash-panel-head strong { color: #e2e8f0; }
+.gcash-panel-head strong { color: #e2e6e0; }
 
 .gcash-breakdown {
   display: grid;
@@ -346,25 +348,25 @@
   margin-bottom: 14px;
   padding: 12px;
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(17, 22, 20, 0.4);
 }
 
 .gcash-line {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: #cbd5e1;
+  color: #ccd3cc;
   font-size: 12px;
 }
 
 .gcash-line.gcash-total {
   margin-top: 4px;
   padding-top: 8px;
-  border-top: 1px solid rgba(148, 163, 184, 0.3);
+  border-top: 1px solid rgba(155, 165, 158, 0.3);
   font-size: 14px;
 }
 
-.gcash-line.gcash-total strong { color: #6ee7b7; font-size: 16px; }
+.gcash-line.gcash-total strong { color: #7ee8a6; font-size: 16px; }
 
 .gcash-steps {
   display: flex;
@@ -384,7 +386,7 @@
   flex: 1 1 220px;
   margin: 0;
   padding-left: 18px;
-  color: #cbd5e1;
+  color: #ccd3cc;
   font-size: 12px;
   line-height: 1.7;
 }
@@ -398,32 +400,32 @@
   justify-content: space-between;
   gap: 12px;
   margin-top: 6px;
-  color: #94a3b8;
+  color: #9ba59e;
   font-size: 11px;
   font-weight: 700;
 }
 
-.gcash-reference-ok { color: #34d399; }
+.gcash-reference-ok { color: #45d982; }
 
 .gcash-reference-hint {
   display: flex;
   align-items: flex-start;
   gap: 6px;
   margin: 6px 0 0;
-  color: #fbbf24;
+  color: #ffcf33;
   font-size: 11px;
   line-height: 1.5;
 }
 
-.gcash-reference-hint.subtle { color: #94a3b8; }
+.gcash-reference-hint.subtle { color: #9ba59e; }
 
 /* Confirmation text shown to the customer */
 .customer-message-card {
   margin: 18px 0 0;
   padding: 14px 16px;
-  border: 1px solid rgba(16, 185, 129, 0.35);
+  border: 1px solid rgba(31, 191, 100, 0.35);
   border-radius: 12px;
-  background: rgba(16, 185, 129, 0.08);
+  background: rgba(31, 191, 100, 0.08);
   text-align: left;
 }
 
@@ -432,20 +434,20 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
-  color: #6ee7b7;
+  color: #7ee8a6;
   font-size: 13px;
 }
 
 .customer-message-body {
   margin: 0;
-  color: #e2e8f0;
+  color: #e2e6e0;
   font-size: 13px;
   line-height: 1.6;
 }
 
 .customer-message-note {
   margin: 8px 0 0;
-  color: #94a3b8;
+  color: #9ba59e;
   font-size: 11px;
   line-height: 1.5;
 }
@@ -463,16 +465,16 @@
   align-items: flex-start;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid rgba(96, 165, 250, 0.35);
+  border: 1px solid rgba(76, 195, 242, 0.35);
   border-radius: 8px;
-  background: rgba(59, 130, 246, 0.1);
-  color: rgba(226, 232, 240, 0.9);
+  background: rgba(34, 168, 220, 0.1);
+  color: rgba(226, 230, 224, 0.9);
   font-size: 13px;
   line-height: 1.5;
 }
 
-.tourna-notice i { flex-shrink: 0; margin-top: 2px; color: #60a5fa; }
-.tourna-notice strong { color: #f8fafc; }
+.tourna-notice i { flex-shrink: 0; margin-top: 2px; color: #4cc3f2; }
+.tourna-notice strong { color: #f6f7f4; }
 
 .tourna-notice.is-cancelled {
   border-color: rgba(255, 80, 80, 0.35);
@@ -481,4 +483,4 @@
 
 .tourna-notice.is-cancelled i { color: #ff8f8f; }
 
-.field-helper-rescheduled { color: #93c5fd; }
+.field-helper-rescheduled { color: #9ad8f6; }

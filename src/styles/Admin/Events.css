@@ -344,6 +344,37 @@
   background: rgba(59, 130, 246, 0.24);
 }
 
+/* Cancel Event had no style of its own and fell back to a plain white button. */
+.events-actions .btn-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ff8f8f;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.events-actions .btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.light .events-actions .btn-info {
+  background: #e0f2fe;
+  color: #075985;
+  border-color: #7dd3fc;
+}
+
+.light .events-actions .btn-info:hover {
+  background: #bae6fd;
+}
+
+.light .events-actions .btn-danger {
+  background: #fee2e2;
+  color: #b91c1c !important;
+  border-color: #fca5a5;
+}
+
+.light .events-actions .btn-danger:hover {
+  background: #fecaca;
+}
+
 .events-actions .btn-outline-secondary {
   background: transparent;
   color: #9ca3af;

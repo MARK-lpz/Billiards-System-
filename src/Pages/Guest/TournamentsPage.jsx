@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "../../styles/Guest/GuestLanding.css";
 import "../../styles/Guest/TournamentsPage.css";
-import { formatEventWhen, getEventNotices, getOpenEvents, wasRescheduled } from "../../utils/eventUpdates";
+import { formatEventWhen, getDateTile, getEventNotices, getOpenEvents, wasRescheduled } from "../../utils/eventUpdates";
 
 const formatPrize = (amount) => `₱${Number(amount || 0).toLocaleString("en-PH")}`;
 
@@ -15,16 +15,6 @@ const describeDaysAway = (date, now) => {
   if (days <= 0) return "Today";
   if (days === 1) return "Tomorrow";
   return `In ${days} days`;
-};
-
-// The big month and day on the left of each tournament.
-const getDateTile = (date) => {
-  const day = date ? new Date(`${date}T00:00:00`) : null;
-  if (!day || Number.isNaN(day.getTime())) return { month: "TBA", day: "--" };
-  return {
-    month: day.toLocaleDateString("en-PH", { month: "short" }).toUpperCase(),
-    day: String(day.getDate()),
-  };
 };
 
 /**
@@ -163,7 +153,9 @@ export default function TournamentsPage({ events = [], onGoBack, onRegister }) {
       )}
 
       <footer className="guest-template-footer">
-        <span>BREAK &amp; CHILL BILLIARD HALL</span>
+        <span className="guest-footer-mark">
+          Break &amp; Chill <small>Billiard Hall</small>
+        </span>
         <span>Games, tournaments, and good breaks.</span>
       </footer>
     </main>

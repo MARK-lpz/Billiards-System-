@@ -125,6 +125,22 @@
   color: #6ee7b7;
 }
 
+/* Cancelled and running events had no colors and showed as dark text on dark. */
+.tourna-badge.cancelled {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ff9b9b;
+}
+
+.tourna-badge.active {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fcd34d;
+}
+
+.light .tourna-badge.upcoming { background: #e0f2fe; color: #075985; }
+.light .tourna-badge.completed { background: #d1fae5; color: #065f46; }
+.light .tourna-badge.cancelled { background: #fee2e2; color: #b91c1c; }
+.light .tourna-badge.active { background: #fef3c7; color: #92400e; }
+
 .tourna-detail-card {
   padding: 24px;
   display: flex;

@@ -1,7 +1,7 @@
 // ReservationQueue.jsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ConfirmDialog from "../Global/ConfirmDialog";
-import { describeReservationTime } from "../../utils/reservations";
+import { describeReservationTime, getArrivalWindow } from "../../utils/reservations";
 
 const HISTORY_STATUSES = new Set(["completed", "cancelled", "rejected", "expired"]);
 
@@ -15,6 +15,22 @@ export default function ReservationQueue({
 }) {
   // Cancelling cannot be undone, so the click only arms the confirmation.
   const [cancelTarget, setCancelTarget] = useState(null);
+  // The clock Mark Arrived is judged by. Booking times are whole minutes, so it
+  // ticks at the start of each minute and the button turns on right on time.
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    let timer;
+    const tickAtNextMinute = () => {
+      timer = window.setTimeout(() => {
+        setNow(Date.now());
+        tickAtNextMinute();
+      }, 60_000 - (Date.now() % 60_000) + 50);
+    };
+    tickAtNextMinute();
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   // Takes the booking as an argument rather than reading `cancelTarget` from
   // the closure: the React Compiler narrows a closed-over `cancelTarget.id` into
@@ -94,114 +110,127 @@ export default function ReservationQueue({
                 </tr>
               </thead>
               <tbody>
-                {reservations.map((booking) => (
-                  <tr key={booking.id}>
-                    <td>
-                      <div className="rd-table-customer">{booking.customerName}</div>
-                      {booking.phone ? (
-                        <div className="rd-table-sub">{booking.phone}</div>
-                      ) : null}
-                    </td>
-                    <td>
-                      <div className="rd-table-datetime">{booking.date}</div>
-                      <span className="rd-table-sub">{describeReservationTime(booking) || "No time set"}</span>
-                    </td>
-                    <td className="rd-table-name">{booking.tableName}</td>
-                    <td className="rd-table-pax">{booking.partySize}</td>
-                    <td>
-                      <span className={`rd-status ${getStatusClass(booking.status)}`}>
-                        {getStatusLabel(booking.status)}
-                      </span>
-                    </td>
-                    <td className="rd-table-notes">
-                      {booking.notes || (booking.status === "pending"
-                        ? booking.source === "online"
-                          ? "Paid online by GCash. Check the payment to approve."
-                          : "Waiting for admin approval"
-                        : booking.source === "existing"
-                          ? "Imported from table status"
-                          : booking.source === "online"
-                            ? "Online reservation"
-                            : "Front desk booking")}
-                    </td>
-                    <td>
-                      <div className="rd-actions">
-                        {/* Online bookings are paid by GCash, so the desk can approve
-                            them once the payment is found; other pending ones stay
-                            with the admin. */}
-                        {booking.status === "pending" && booking.source === "online" && (
-                          <button
-                            type="button"
-                            className="rd-primary-btn"
-                            onClick={() => onCheckPayment(booking)}
-                          >
-                            <i className="bi bi-shield-check"></i>
-                            Check Payment
-                          </button>
-                        )}
+                {reservations.map((booking) => {
+                  const arrival = getArrivalWindow(booking, new Date(now));
 
-                        {booking.status === "pending" && booking.source !== "online" && (
-                          <button
-                            type="button"
-                            className="rd-secondary-btn"
-                            disabled
-                          >
-                            Waiting Approval
-                          </button>
-                        )}
+                  return (
+                    <tr key={booking.id}>
+                      <td>
+                        <div className="rd-table-customer">{booking.customerName}</div>
+                        {booking.phone ? (
+                          <div className="rd-table-sub">{booking.phone}</div>
+                        ) : null}
+                      </td>
+                      <td>
+                        <div className="rd-table-datetime">{booking.date}</div>
+                        <span className="rd-table-sub">{describeReservationTime(booking) || "No time set"}</span>
+                      </td>
+                      <td className="rd-table-name">{booking.tableName}</td>
+                      <td className="rd-table-pax">{booking.partySize}</td>
+                      <td>
+                        <span className={`rd-status ${getStatusClass(booking.status)}`}>
+                          {getStatusLabel(booking.status)}
+                        </span>
+                      </td>
+                      <td className="rd-table-notes">
+                        {booking.notes || (booking.status === "pending"
+                          ? booking.source === "online"
+                            ? "Paid online by GCash. Check the payment to approve."
+                            : "Waiting for admin approval"
+                          : booking.source === "existing"
+                            ? "Imported from table status"
+                            : booking.source === "online"
+                              ? "Online reservation"
+                              : "Front desk booking")}
+                      </td>
+                      <td>
+                        <div className="rd-actions">
+                          {/* Online bookings are paid by GCash, so the desk can approve
+                              them once the payment is found; other pending ones stay
+                              with the admin. */}
+                          {booking.status === "pending" && booking.source === "online" && (
+                            <button
+                              type="button"
+                              className="rd-primary-btn"
+                              onClick={() => onCheckPayment(booking)}
+                            >
+                              <i className="bi bi-shield-check"></i>
+                              Check Payment
+                            </button>
+                          )}
 
-                        {(booking.status === "approved" || booking.status === "reserved") && (
-                          <>
+                          {booking.status === "pending" && booking.source !== "online" && (
                             <button
                               type="button"
                               className="rd-secondary-btn"
-                              onClick={() => onBookingStatus(booking.id, "arrived")}
+                              disabled
                             >
-                              Mark Arrived
+                              Waiting Approval
                             </button>
+                          )}
+
+                          {(booking.status === "approved" || booking.status === "reserved") && (
+                            <>
+                              {/* Only from the reserved time until the grace period ends */}
+                              <button
+                                type="button"
+                                className="rd-secondary-btn"
+                                onClick={() => onBookingStatus(booking.id, "arrived")}
+                                disabled={!arrival.open}
+                                title={arrival.note || undefined}
+                              >
+                                Mark Arrived
+                              </button>
+                              <button
+                                type="button"
+                                className="rd-primary-btn"
+                                onClick={() => onBookingStatus(booking.id, "seated")}
+                              >
+                                Assign Table
+                              </button>
+                            </>
+                          )}
+
+                          {booking.status === "arrived" && (
                             <button
                               type="button"
                               className="rd-primary-btn"
                               onClick={() => onBookingStatus(booking.id, "seated")}
                             >
-                              Assign Table
+                              Seat Customer
                             </button>
-                          </>
-                        )}
+                          )}
 
-                        {booking.status === "arrived" && (
-                          <button
-                            type="button"
-                            className="rd-primary-btn"
-                            onClick={() => onBookingStatus(booking.id, "seated")}
-                          >
-                            Seat Customer
-                          </button>
-                        )}
+                          {booking.status === "seated" && (
+                            <button
+                              type="button"
+                              className="rd-secondary-btn"
+                              onClick={() => onBookingStatus(booking.id, "completed")}
+                            >
+                              Complete
+                            </button>
+                          )}
 
-                        {booking.status === "seated" && (
-                          <button
-                            type="button"
-                            className="rd-secondary-btn"
-                            onClick={() => onBookingStatus(booking.id, "completed")}
-                          >
-                            Complete
-                          </button>
+                          {["pending", "approved", "reserved", "arrived"].includes(booking.status) && (
+                            <button
+                              type="button"
+                              className="rd-danger-btn"
+                              onClick={() => setCancelTarget(booking)}
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                        {(booking.status === "approved" || booking.status === "reserved") && arrival.note && (
+                          <span className={`rd-arrival-note ${arrival.open ? "is-open" : ""}`}>
+                            <i className={`bi ${arrival.open ? "bi-hourglass-split" : "bi-clock"}`} aria-hidden="true"></i>
+                            {arrival.note}
+                          </span>
                         )}
-
-                        {["pending", "approved", "reserved", "arrived"].includes(booking.status) && (
-                          <button
-                            type="button"
-                            className="rd-danger-btn"
-                            onClick={() => setCancelTarget(booking)}
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -1,6 +1,44 @@
+import { useState } from "react";
 import { numberFieldValue, readNumberField } from "../../utils/numberField";
 
-export default function InventoryModal({ form, setForm, editId, onClose, onSave }) {
+// In the order they appear, so a failed save can jump to the first one.
+const FIELDS = ["name", "price", "stock", "minStock", "expiryDate"];
+
+/**
+ * Add / Edit Product. `errors` comes from getProductErrors (inventoryValidation.js).
+ * A field's problem shows once that field has been left, or for every field once
+ * Add is pressed, so a fresh form does not open covered in red.
+ */
+export default function InventoryModal({ form, setForm, editId, errors = {}, onClose, onSave }) {
+  const [touched, setTouched] = useState({});
+  const [attempted, setAttempted] = useState(false);
+  const errorFor = (field) => ((attempted || touched[field]) && errors[field]) || "";
+  const touch = (field) => setTouched((previous) => ({ ...previous, [field]: true }));
+  const fieldProps = (field) => ({
+    id: `inventory-${field}`,
+    onBlur: () => touch(field),
+    "aria-invalid": Boolean(errorFor(field)),
+    "aria-describedby": errorFor(field) ? `inventory-${field}-error` : undefined,
+  });
+  const inputClass = (field, base = "form-control") => `${base}${errorFor(field) ? " inventory-input-error" : ""}`;
+  const errorText = (field) =>
+    errorFor(field) ? (
+      <div id={`inventory-${field}-error`} className="inventory-field-error" role="alert">
+        <i className="bi bi-exclamation-circle me-1" aria-hidden="true"></i>
+        {errorFor(field)}
+      </div>
+    ) : null;
+
+  const save = () => {
+    const firstError = FIELDS.find((field) => errors[field]);
+    if (firstError) {
+      setAttempted(true);
+      document.getElementById(`inventory-${firstError}`)?.focus();
+      return;
+    }
+    onSave();
+  };
+
   return (
     <>
       <div className="modal show d-block" tabIndex="-1">
@@ -25,14 +63,17 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
               </div>
 
               <div className="mb-3">
-                <label className="form-label">Product Name</label>
+                <label className="form-label" htmlFor="inventory-name">Product Name</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className={inputClass("name")}
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Coca Cola"
+                  maxLength={80}
+                  {...fieldProps("name")}
                 />
+                {errorText("name")}
               </div>
 
               <div className="mb-3">
@@ -50,49 +91,59 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
 
               <div className="row g-3 mb-3">
                 <div className="col-4">
-                  <label className="form-label">Price per piece (₱)</label>
+                  <label className="form-label" htmlFor="inventory-price">Price per piece (₱)</label>
                   <input
                     type="number"
-                    className="form-control"
+                    className={inputClass("price")}
                     value={numberFieldValue(form.price)}
                     onChange={e => setForm({ ...form, price: readNumberField(e) })}
                     min="0"
+                    step="0.01"
                     placeholder="0"
+                    {...fieldProps("price")}
                   />
-                  <small className="form-text text-muted">Selling price for one piece.</small>
+                  {errorText("price") || <small className="form-text text-muted">Selling price for one piece.</small>}
                 </div>
                 <div className="col-4">
-                  <label className="form-label">Stock (pcs)</label>
+                  <label className="form-label" htmlFor="inventory-stock">Stock (pcs)</label>
                   <input
                     type="number"
-                    className="form-control"
+                    className={inputClass("stock")}
                     value={numberFieldValue(form.stock)}
                     onChange={e => setForm({ ...form, stock: readNumberField(e) })}
                     min="0"
+                    step="1"
                     placeholder="0"
+                    {...fieldProps("stock")}
                   />
+                  {errorText("stock")}
                 </div>
                 <div className="col-4">
-                  <label className="form-label">Min Stock (pcs)</label>
+                  <label className="form-label" htmlFor="inventory-minStock">Min Stock (pcs)</label>
                   <input
                     type="number"
-                    className="form-control"
+                    className={inputClass("minStock")}
                     value={numberFieldValue(form.minStock)}
                     onChange={e => setForm({ ...form, minStock: readNumberField(e) })}
                     min="0"
+                    step="1"
                     placeholder="0"
+                    {...fieldProps("minStock")}
                   />
+                  {errorText("minStock")}
                 </div>
               </div>
 
               <div className="mb-3">
-                <label className="form-label">Expiry Date</label>
+                <label className="form-label" htmlFor="inventory-expiryDate">Expiry Date</label>
                 <input
                   type="date"
-                  className="form-control"
+                  className={inputClass("expiryDate")}
                   value={form.expiryDate || ""}
                   onChange={e => setForm({ ...form, expiryDate: e.target.value })}
+                  {...fieldProps("expiryDate")}
                 />
+                {errorText("expiryDate")}
               </div>
             </div>
 
@@ -100,7 +151,7 @@ export default function InventoryModal({ form, setForm, editId, onClose, onSave 
               <button type="button" className="btn btn-secondary" onClick={onClose}>
                 Cancel
               </button>
-              <button type="button" className="btn btn-success" onClick={onSave}>
+              <button type="button" className="btn btn-success" onClick={save}>
                 <i className="bi bi-check-circle me-2"></i>
                 {editId ? "Update" : "Add"} Product
               </button>

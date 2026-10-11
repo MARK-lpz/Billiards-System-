@@ -6,7 +6,7 @@ export default function SuccessMessage({ form, onReset }) {
       </div>
 
       <h2 className="success-title">
-        <i className="bi bi-check-circle-fill" style={{ marginRight: 8, color: '#00c97a' }}></i>
+        <i className="bi bi-check-circle-fill" style={{ marginRight: 8, color: '#1fbf64' }}></i>
         You're Registered!
       </h2>
       <p className="success-message">Good luck in the tournament, {form.firstName}!</p>

@@ -505,15 +505,6 @@
   gap: 0.5rem;
 }
 
-.pool-extension-select {
-  min-height: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  background: #1f2937;
-  color: #f8fafc;
-  padding: 0 0.5rem;
-}
-
 .pool-table-extension-control .btn {
   flex: 1;
 }
@@ -698,8 +689,10 @@
   gap: 10px;
 }
 
-.pool-end-actions .pool-extension-select {
-  grid-column: 1 / -1;
+.pool-end-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Animation */
@@ -798,3 +791,10 @@
   font-size: 13px;
   line-height: 1.45;
 }
+
+/* Light theme: the session pills used the dark theme's pale colors on a light card. */
+.light .pool-table-timer { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
+.light .pool-table-remaining { background: #e0f2fe; border-color: #7dd3fc; color: #075985; }
+.light .pool-table-remaining.warning { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
+.light .pool-table-session-status { background: #fee2e2; border-color: #fca5a5; color: #b91c1c; }
+.light .pool-table-ends { background: #d1fae5; border-color: #6ee7b7; color: #065f46; }

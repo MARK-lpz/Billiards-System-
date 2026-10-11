@@ -7,6 +7,8 @@ import { useNotifications } from "../../Elements/Global/useNotifications";
 import ConfirmDialog from "../../Elements/Global/ConfirmDialog";
 import { numberFieldValue } from "../../utils/numberField";
 import { getNextProductNumber, normalizeProductNumbers } from "../../utils/productNumbers";
+import { getProductErrors, getRestockError } from "../../utils/inventoryValidation";
+import { getTodayDate } from "../../utils/reservations";
 
 export default function Inventory({ products, setProducts }) {
   const { addNotification } = useNotifications();
@@ -30,19 +32,37 @@ export default function Inventory({ products, setProducts }) {
   // The table always shows one number per product, even for a list saved before
   // the numbers were fixed (App also repairs the stored list when it loads).
   const numberedProducts = normalizeProductNumbers(products);
+  const editedProduct = editId ? numberedProducts.find((item) => item.id === editId) || null : null;
+  // What is wrong with the open form, if anything; nothing is saved until it is fixed.
+  const formErrors =
+    modal === "form"
+      ? getProductErrors({ form, products: numberedProducts, editId, original: editedProduct, today: getTodayDate() })
+      : {};
+  const restockError = modal === "restock" ? getRestockError(form.restockAmount, editedProduct?.stock) : "";
+  // A restock box still at 0 is not an error yet, only not filled in.
+  const showRestockError = Boolean(restockError) && Number(form.restockAmount) !== 0;
 
   const save = () => {
+    if (Object.keys(formErrors).length) return;
+    // Stored clean: a trimmed name and numbers, whatever the inputs held.
+    const cleaned = {
+      ...form,
+      name: form.name.trim(),
+      price: Number(form.price),
+      stock: Number(form.stock),
+      minStock: Number(form.minStock),
+    };
     if (editId) {
-      setProducts(prev => prev.map(p => p.id === editId ? { ...p, ...form } : p));
-      addNotification({ message: `${form.name} inventory details updated.` });
+      setProducts(prev => prev.map(p => p.id === editId ? { ...p, ...cleaned } : p));
+      addNotification({ message: `${cleaned.name} inventory details updated.` });
     } else {
       // The number comes from the latest list and is set after the form, so a
       // leftover field can never hand a new product an existing number.
       setProducts(prev => {
         const numbered = normalizeProductNumbers(prev);
-        return [...numbered, { ...form, id: Date.now(), productNumber: getNextProductNumber(numbered) }];
+        return [...numbered, { ...cleaned, id: Date.now(), productNumber: getNextProductNumber(numbered) }];
       });
-      addNotification({ message: `${form.name} added to inventory.` });
+      addNotification({ message: `${cleaned.name} added to inventory.` });
     }
     setModal(null);
     setEditId(null);
@@ -66,7 +86,7 @@ export default function Inventory({ products, setProducts }) {
 
   const restockProduct = (id, amount) => {
     setProducts(prev => prev.map(p =>
-      p.id === id ? { ...p, stock: p.stock + amount } : p
+      p.id === id ? { ...p, stock: (Number(p.stock) || 0) + amount } : p
     ));
     const product = products.find((item) => item.id === id);
     addNotification({ message: `${product?.name || "Product"} restocked by ${amount} pcs.` });
@@ -91,7 +111,7 @@ export default function Inventory({ products, setProducts }) {
   };
 
   const handleRestock = () => {
-    if (form.restockAmount > 0) {
+    if (!getRestockError(form.restockAmount, editedProduct?.stock)) {
       restockProduct(editId, Number(form.restockAmount));
     }
     setModal(null);
@@ -100,6 +120,7 @@ export default function Inventory({ products, setProducts }) {
 
   // Editing an existing product saves straight away; a new product is checked first.
   const requestSave = () => {
+    if (Object.keys(formErrors).length) return;
     if (editId) {
       save();
       return;
@@ -108,7 +129,8 @@ export default function Inventory({ products, setProducts }) {
   };
 
   const requestRestock = () => {
-    const product = numberedProducts.find((item) => item.id === editId);
+    if (restockError) return;
+    const product = editedProduct;
     setSaveTarget({ type: "restock", product: product || form, amount: Number(form.restockAmount) });
   };
 
@@ -206,6 +228,7 @@ export default function Inventory({ products, setProducts }) {
           form={form}
           setForm={setForm}
           editId={editId}
+          errors={formErrors}
           onClose={() => setModal(null)}
           onSave={requestSave}
         />
@@ -232,15 +255,25 @@ export default function Inventory({ products, setProducts }) {
                   <strong>{form.name}</strong> - Current Stock: {form.stock} pcs
                 </p>
                 <div className="mb-3">
-                  <label className="form-label">Restock Amount</label>
+                  <label className="form-label" htmlFor="inventory-restock">Restock Amount</label>
                   <input
+                    id="inventory-restock"
                     type="number"
-                    className="form-control"
+                    className={`form-control${showRestockError ? " inventory-input-error" : ""}`}
                     value={numberFieldValue(form.restockAmount)}
                     onChange={e => setForm({ ...form, restockAmount: e.target.value })}
                     min="1"
+                    step="1"
                     placeholder="0"
+                    aria-invalid={showRestockError}
+                    aria-describedby={showRestockError ? "inventory-restock-error" : undefined}
                   />
+                  {showRestockError && (
+                    <div id="inventory-restock-error" className="inventory-field-error" role="alert">
+                      <i className="bi bi-exclamation-circle me-1" aria-hidden="true"></i>
+                      {restockError}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="modal-footer">
@@ -251,7 +284,7 @@ export default function Inventory({ products, setProducts }) {
                   type="button"
                   className="btn btn-success"
                   onClick={requestRestock}
-                  disabled={!(Number(form.restockAmount) > 0)}
+                  disabled={Boolean(restockError)}
                 >
                   <i className="bi bi-check-circle me-2"></i>
                   Restock

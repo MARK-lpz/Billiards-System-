@@ -1,0 +1,337 @@
+/* Break & Chill brand layer.
+   The staff app keeps its navy color palette; this file adds what makes it Break
+   & Chill rather than a stock dashboard: the sign's lettering for headings, the
+   four neon tubes of the logo (pink, yellow, green, cyan) as a stripe under page
+   titles and across pop-ups, and pool-table details (the rail with diamond sights
+   along the sidebar, tables drawn with felt and pockets, glossy ball dots, a
+   scoreboard clock). The login screen and the public site use the sign's yellow
+   as their main color; see login.css and Guest/GuestLanding.css.
+   App.jsx imports this file after every other stylesheet, so it wins ties. */
+
+:root {
+  --bc-font-display: "Righteous", "Barlow", "Segoe UI", system-ui, sans-serif;
+  --bc-font-body: "Barlow", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --bc-font-label: "Barlow Condensed", "Barlow", "Segoe UI", system-ui, sans-serif;
+
+  /* The tubes of the sign */
+  --bc-pink: #ff3d9a;
+  --bc-yellow: #ffd23f;
+  --bc-green: #4fe06a;
+  --bc-cyan: #35c6f4;
+  --bc-red: #ef2b2d;
+  --bc-sign-ink: #1c1600;
+  --bc-tubes: linear-gradient(90deg, var(--bc-pink) 0 25%, var(--bc-yellow) 25% 50%, var(--bc-green) 50% 75%, var(--bc-cyan) 75% 100%);
+
+  /* Felt grain and the diamond sights inlaid on a table rail */
+  --bc-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --bc-diamond: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='84'%3E%3Cpath d='M5 35l3.2 7L5 49l-3.2-7z' fill='%23e8d9b0' fill-opacity='.55'/%3E%3C/svg%3E");
+
+  /* The staff sidebar is navy in both themes */
+  --bc-sidebar: #001233;
+}
+
+/* ---------- Type ---------- */
+
+body {
+  font-family: var(--bc-font-body);
+}
+
+button,
+input,
+select,
+textarea,
+optgroup {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--bc-yellow);
+  color: var(--bc-sign-ink);
+}
+
+html {
+  scrollbar-color: rgba(128, 140, 160, 0.55) transparent;
+}
+
+/* ---------- Sidebar: the navy bar in both themes, with a table rail on its edge ---------- */
+
+:is(.dark, .light) .sidebar {
+  background-color: var(--bc-sidebar);
+  border-right: 0;
+  padding-right: 1.15rem;
+}
+
+/* The rail, with diamond sights every few inches */
+:is(.dark, .light) .sidebar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 10px;
+  background: var(--bc-diamond) center top / 10px 84px repeat-y, linear-gradient(90deg, #15100c, #23190f 55%, #1a130d);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.05), -1px 0 0 rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+:is(.dark, .light) .sidebar-logo {
+  position: relative;
+  border-bottom: 0;
+  padding-bottom: 1.35rem;
+  margin-bottom: 1.1rem;
+}
+
+:is(.dark, .light) .sidebar-logo::after {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--bc-tubes);
+}
+
+/* The light theme used to put the logo on a dark tile; the sidebar is navy now. */
+:is(.dark, .light) .sidebar-logo-img {
+  background: transparent !important;
+  padding: 0 !important;
+  filter: drop-shadow(0 0 5px rgba(255, 210, 63, 0.3));
+}
+
+:is(.dark, .light) .sidebar-brand {
+  font-family: var(--bc-font-display);
+  font-weight: 400;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+}
+
+:is(.dark, .light) .sidebar-sub {
+  font-family: var(--bc-font-label);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #bfdbfe;
+}
+
+/* "Admin Panel" / "Employee Panel" reads as a tag under the name */
+:is(.dark, .light) .sidebar-sub + .sidebar-sub {
+  width: fit-content;
+  margin-top: 0.35rem;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid rgba(191, 219, 254, 0.35);
+  border-radius: 4px;
+}
+
+:is(.dark, .light) .nav-item {
+  color: #a9b6c9;
+  font-size: 0.93rem;
+  font-weight: 500;
+}
+
+:is(.dark, .light) .nav-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+:is(.dark, .light) .nav-item.nav-active {
+  font-weight: 600;
+}
+
+/* ---------- Page headings: sign lettering, underlined by the tubes ---------- */
+
+:is(.page-title, .pool-tables-title, .inventory-title, .events-title, .equipment-title, .reports-title,
+  .sales-pos-title, .reservations-title, .audit-trail-title, .rd-title, .qa-title) {
+  font-family: var(--bc-font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+
+:is(.page-title, .pool-tables-title, .inventory-title, .events-title, .equipment-title, .reports-title,
+  .sales-pos-title, .reservations-title, .audit-trail-title, .rd-title, .qa-title)::after {
+  content: "";
+  display: block;
+  width: 72px;
+  height: 4px;
+  margin-top: 0.6rem;
+  border-radius: 4px;
+  background: var(--bc-tubes);
+}
+
+/* .section-title is a small label (Fields.css), so it keeps the label font. */
+:is(.modal-title, .card-title, .srp-title) {
+  font-family: var(--bc-font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+/* ---------- Numbers read like a scoreboard ---------- */
+
+:is(.stat-number, .stat-value, .reports-stat-value, .inventory-stat-value, .events-stat-value, .equipment-stat-value,
+  .audit-stat-value, .pool-stat-value, .sales-summary-value, .qa-summary-value, .order-queue-stat-value,
+  .cust-stat-val, .rd-stat-value) {
+  font-family: var(--bc-font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+:is(.stat-label, .reports-stat-label, .inventory-stat-label, .events-stat-label, .equipment-stat-label,
+  .audit-stat-label, .pool-stat-label, .sales-summary-label, .qa-summary-label, .order-queue-stat-label,
+  .cust-stat-lbl, .tourna-stat-label, .rd-stat-label) {
+  font-family: var(--bc-font-label);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.pool-table-timer {
+  font-family: var(--bc-font-label);
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The sign font has one weight: never let the browser fake a bold one. */
+:is(.page-title, .pool-tables-title, .inventory-title, .events-title, .equipment-title, .reports-title,
+  .sales-pos-title, .reservations-title, .audit-trail-title, .rd-title, .qa-title, .modal-title,
+  .card-title, .srp-title, .sidebar-brand, .stat-number, .stat-value, .reports-stat-value, .inventory-stat-value,
+  .events-stat-value, .equipment-stat-value, .audit-stat-value, .pool-stat-value, .sales-summary-value,
+  .qa-summary-value, .order-queue-stat-value, .cust-stat-val, .rd-stat-value, .pool-table-name, .table-number) {
+  font-synthesis: none;
+}
+
+/* ---------- Pop-ups carry the tubes along the top ---------- */
+
+:is(.dark, .light) .modal-content {
+  position: relative;
+  border-radius: 14px;
+}
+
+:is(.dark, .light) .modal-content::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+  background: var(--bc-tubes);
+  pointer-events: none;
+  z-index: 1;
+}
+
+:is(.dark, .light) .modal-title {
+  font-size: 1.15rem;
+}
+
+/* The reset-password pop-up over the login screen matches the login card. */
+.forgot-modal-card {
+  position: relative;
+}
+
+.forgot-modal-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+  background: var(--bc-tubes);
+  pointer-events: none;
+}
+
+.forgot-modal-header h2 {
+  font-family: var(--bc-font-display);
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: 0.01em;
+}
+
+.forgot-role-tab.active {
+  background: var(--bc-yellow) !important;
+  color: var(--bc-sign-ink) !important;
+  box-shadow: 0 8px 20px -10px rgba(255, 210, 63, 0.9) !important;
+}
+
+/* ---------- Tables are drawn as tables ---------- */
+
+/* Felt colors by status: green to play, burgundy in use, gold held, slate closed */
+:is(.mini-table-card, .pool-table-card) { --felt: #13704a; }
+:is(.mini-table-card.occupied, .pool-table-occupied) { --felt: #82283a; }
+:is(.mini-table-card.reserved, .pool-table-reserved) { --felt: #8d6c0e; }
+:is(.mini-table-card.cleaning, .pool-table-cleaning) { --felt: #1b6378; }
+:is(.mini-table-card.maintenance, .pool-table-maintenance) { --felt: #3f4844; }
+
+/* Dashboard: each table seen from above, with its wood rail and six pockets.
+   The status class is in the selector so it outranks the old tinted light-theme cards. */
+:is(.dark, .light) .mini-table-card,
+:is(.dark, .light) .mini-table-card:is(.available, .occupied, .reserved, .cleaning, .maintenance) {
+  border: 6px solid #3d2617 !important;
+  border-radius: 12px !important;
+  background:
+    radial-gradient(circle at 2px 2px, #060706 0 5px, transparent 5.5px),
+    radial-gradient(circle at calc(100% - 2px) 2px, #060706 0 5px, transparent 5.5px),
+    radial-gradient(circle at 2px calc(100% - 2px), #060706 0 5px, transparent 5.5px),
+    radial-gradient(circle at calc(100% - 2px) calc(100% - 2px), #060706 0 5px, transparent 5.5px),
+    radial-gradient(circle at 50% -1px, #060706 0 4px, transparent 4.5px),
+    radial-gradient(circle at 50% calc(100% + 1px), #060706 0 4px, transparent 4.5px),
+    radial-gradient(ellipse at 50% 35%, rgba(255, 255, 255, 0.14), transparent 70%),
+    var(--felt) !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3), inset 0 0 16px rgba(0, 0, 0, 0.35), 0 8px 16px -10px rgba(0, 0, 0, 0.7);
+}
+
+:is(.dark, .light) .mini-table-card .table-number {
+  color: #ffffff !important;
+  font-family: var(--bc-font-display);
+  font-weight: 400;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+:is(.dark, .light) .mini-table-card .table-status {
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-family: var(--bc-font-label);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Pool Tables page: a small table in the felt color beside each name */
+:is(.dark, .light) .pool-table-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--bc-font-display);
+  font-weight: 400;
+  font-size: 17px;
+  letter-spacing: 0.01em;
+}
+
+:is(.dark, .light) .pool-table-name::before {
+  content: "";
+  flex: none;
+  width: 26px;
+  height: 16px;
+  border: 2px solid #4a2f1c;
+  border-radius: 4px;
+  background:
+    radial-gradient(circle at 1px 1px, #060706 0 2px, transparent 2.6px),
+    radial-gradient(circle at calc(100% - 1px) 1px, #060706 0 2px, transparent 2.6px),
+    radial-gradient(circle at 1px calc(100% - 1px), #060706 0 2px, transparent 2.6px),
+    radial-gradient(circle at calc(100% - 1px) calc(100% - 1px), #060706 0 2px, transparent 2.6px),
+    var(--felt);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* ---------- Status dots are drawn as little pool balls ---------- */
+
+:is(.pool-status-dot, .pool-stat-dot, .order-dot) {
+  background-image: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.9) 0 12%, rgba(255, 255, 255, 0) 34%);
+  box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.35);
+}

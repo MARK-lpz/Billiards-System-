@@ -295,6 +295,11 @@
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12) !important;
 }
 
+.light .rd-input[aria-invalid="true"],
+.light .rd-select[aria-invalid="true"] {
+  border-color: #dc2626 !important;
+}
+
 .light .rd-select option {
   background: var(--bg-surface) !important;
   color: var(--text-secondary) !important;
@@ -362,6 +367,14 @@
   background: var(--bg-muted) !important;
   color: var(--text-placeholder) !important;
   border: 1px solid var(--border) !important;
+}
+
+.light .rd-arrival-note {
+  color: var(--text-muted);
+}
+
+.light .rd-arrival-note.is-open {
+  color: #92400e;
 }
 
 /* Quick Actions Light Mode */

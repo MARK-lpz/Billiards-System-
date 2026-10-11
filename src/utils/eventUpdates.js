@@ -21,6 +21,16 @@ export const formatEventWhen = (date, time) => {
   return [dayLabel, timeLabel].filter(Boolean).join(" · ") || "Schedule to be announced";
 };
 
+// The big month and day shown beside a tournament.
+export const getDateTile = (date) => {
+  const day = date ? new Date(`${date}T00:00:00`) : null;
+  if (!day || Number.isNaN(day.getTime())) return { month: "TBA", day: "--" };
+  return {
+    month: day.toLocaleDateString("en-PH", { month: "short" }).toUpperCase(),
+    day: String(day.getDate()),
+  };
+};
+
 const statusOf = (event) => String(event?.status || "upcoming").toLowerCase();
 
 export const wasRescheduled = (event) =>

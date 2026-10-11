@@ -11,6 +11,8 @@ export default function ReservationModal({
   setReservationForm,
   availableTables,
   reservationTables,
+  tableError = "",
+  chosenTableName = "",
   onClose,
   onWalkInSubmit,
   onReservationSubmit,
@@ -21,6 +23,11 @@ export default function ReservationModal({
   const phoneIsValid = isValidSmsNumber(reservationForm.phone);
   // Shown as soon as a past date is picked, not only when Save is pressed.
   const scheduleError = getReservationScheduleError(reservationForm.date, reservationForm.time);
+  // A table picked before the date or time changed may no longer be offered;
+  // it stays in the list, marked, so the reason below matches what is selected.
+  const chosenTableMissing =
+    Boolean(reservationForm.tableId) &&
+    !reservationTables.some((table) => String(table.id) === String(reservationForm.tableId));
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -179,6 +186,7 @@ export default function ReservationModal({
 
                   <select
                     className="rd-select"
+                    aria-invalid={Boolean(tableError)}
                     value={reservationForm.tableId}
                     onChange={(e) =>
                       setReservationForm((prev) => ({
@@ -192,12 +200,16 @@ export default function ReservationModal({
                         ? "Assign table for selected time..."
                         : "Assign table (availability updates after time selection)..."}
                     </option>
+                    {chosenTableMissing && (
+                      <option value={reservationForm.tableId}>{chosenTableName || "Selected table"} (not available)</option>
+                    )}
                     {reservationTables.map((table) => (
                       <option key={table.id} value={table.id}>
                         {table.name || `Table ${table.id}`}
                       </option>
                     ))}
                   </select>
+                  {tableError && <p className="rd-field-warning" role="alert">{tableError}</p>}
 
                   <button
                     className="rd-primary-btn rd-form-submit"
@@ -208,6 +220,7 @@ export default function ReservationModal({
                       !reservationForm.date ||
                       !reservationForm.time ||
                       Boolean(scheduleError) ||
+                      Boolean(tableError) ||
                       !reservationForm.tableId
                     }
                   >

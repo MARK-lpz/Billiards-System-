@@ -87,6 +87,14 @@ export const describeEndedCharge = (charge) =>
     ? `${charge.tableName} session ended. ${formatPeso(charge.amountDue)} is waiting for payment in Sales / POS.`
     : `${charge.tableName} session ended. Already paid online (${formatPeso(charge.sessionTotal)}).`;
 
+/** The pop-up note for an ended session (Toast.jsx); a bill still to pay links to Sales / POS. */
+export const endedChargeToast = (charge) => ({
+  icon: "bi-receipt",
+  title: charge.amountDue > 0 ? "Bill sent to Sales / POS" : "Session ended",
+  message: describeEndedCharge(charge),
+  action: charge.amountDue > 0 ? "open-pos" : null,
+});
+
 /** "Juan · 2 hours · 1:00 PM - 3:05 PM" */
 export const describeChargeSession = (charge) =>
   `${charge.customer} · ${formatHoursLabel(charge.bookedMinutes)} · ${formatClockTime(charge.startTime)} - ${formatClockTime(charge.endTime)}`;
