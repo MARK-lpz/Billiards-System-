@@ -11,12 +11,17 @@ const fmtPeso = (value) =>
 
 const shortId = (ticket) => String(ticket.id).slice(-5);
 
+// "Table 1 · Juan (Order #12345)", so the kitchen knows where it goes.
+const ticketName = (ticket) => (ticket.billLabel ? `${ticket.billLabel} (Order #${shortId(ticket)})` : `Order #${shortId(ticket)}`);
+
 export default function SalesOrderQueue({
   orderTickets = [],
   pendingItemsCount,
   servedItemsCount,
   onMarkTicketServed,
   onSetItemServed,
+  openBillIds = [],
+  onOpenBill,
 }) {
   // Marking served asks first: a stray tap would otherwise close an order, and a
   // fully served order moves to history where it cannot be changed.
@@ -48,7 +53,7 @@ export default function SalesOrderQueue({
     if (target.type === "ticket") {
       return {
         title: "Mark Order as Served?",
-        message: `Mark all ${pendingItems.length} pending ${pendingItems.length === 1 ? "item" : "items"} on Order #${shortId(target.ticket)} as served?`,
+        message: `Mark all ${pendingItems.length} pending ${pendingItems.length === 1 ? "item" : "items"} for ${ticketName(target.ticket)} as served?`,
         detail: "The order moves to Transaction History and can no longer be changed.",
         confirmLabel: "Yes, Mark Served",
       };
@@ -57,7 +62,7 @@ export default function SalesOrderQueue({
     const isLast = pendingItems.length === 1;
     return {
       title: "Mark Item as Served?",
-      message: `Mark ${target.item.name} ×${target.item.qty} on Order #${shortId(target.ticket)} as served?`,
+      message: `Mark ${target.item.name} ×${target.item.qty} for ${ticketName(target.ticket)} as served?`,
       detail: isLast ? "This is the last pending item, so the whole order moves to Transaction History." : "",
       confirmLabel: "Yes, Served",
     };
@@ -89,21 +94,28 @@ export default function SalesOrderQueue({
           {pagination.items.map((ticket) => {
             const pendingCount = ticket.items.filter((item) => !item.served).length;
             const ticketTotal = ticket.items.reduce((sum, item) => sum + item.price * item.qty, 0);
+            const billIsOpen = Boolean(ticket.billId) && openBillIds.includes(ticket.billId);
 
             return (
               <div key={ticket.id} className={`order-ticket-card ${ticket.status === "served" ? "served" : "pending"}`}>
                 <div className="order-ticket-header">
                   <div>
-                    <div className="order-ticket-title">Order #{shortId(ticket)}</div>
+                    <div className="order-ticket-title">{ticket.billLabel || `Order #${shortId(ticket)}`}</div>
                     <div className="order-ticket-meta">
-                      Sent {ticket.createdAt} • {ticket.date}
+                      {ticket.billLabel ? `Order #${shortId(ticket)} • ` : ""}Sent {ticket.createdAt} • {ticket.date}
                     </div>
                   </div>
 
                   <div className="order-ticket-actions">
+                    {ticket.billPaid && <span className="order-ticket-badge paid">Paid</span>}
                     <span className={`order-ticket-badge ${ticket.status}`}>
                       {ticket.status === "served" ? "All served" : `${pendingCount} pending`}
                     </span>
+                    {billIsOpen && onOpenBill && (
+                      <button type="button" className="order-ticket-btn order-ticket-btn--bill" onClick={() => onOpenBill(ticket.billId)}>
+                        <i className="bi bi-receipt"></i> Open Bill
+                      </button>
+                    )}
                     {ticket.status !== "served" && (
                       <button
                         type="button"

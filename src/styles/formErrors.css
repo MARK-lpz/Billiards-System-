@@ -1,0 +1,54 @@
+/* Field errors shared by the staff forms (FieldError.jsx, useFormErrors.js).
+   App.jsx loads this after the theme files, so the light rules win over
+   ".light .modal-body div", which would otherwise turn the message black. */
+
+.form-field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin-top: 6px;
+  color: #fda4af;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.form-field-error i {
+  margin-top: 1px;
+}
+
+.form-input-error,
+.form-input-error:focus {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15) !important;
+}
+
+/* A note that explains why a control is switched off (not an error in a field) */
+.form-blocked-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: #fcd34d;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* The message text sits in a span, which ".light .modal-body span" would turn black. */
+.light .form-field-error,
+.light .modal-body .form-field-error,
+.light .modal-body .form-field-error span {
+  color: #b91c1c !important;
+}
+
+.light .form-input-error,
+.light .form-input-error:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
+}
+
+.light .form-blocked-note,
+.light .modal-body .form-blocked-note,
+.light .modal-body .form-blocked-note span {
+  color: #92400e !important;
+}

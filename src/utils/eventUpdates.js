@@ -59,6 +59,25 @@ const endOfEventDay = (event) => {
   return day && !Number.isNaN(day.getTime()) ? day.getTime() : null;
 };
 
+/** True once the tournament's day is over (false when it has no date yet). */
+export const hasEventDayPassed = (event, now = Date.now()) => {
+  const dayEnd = endOfEventDay(event);
+  return dayEnd !== null && dayEnd < now;
+};
+
+// "Today", "Tomorrow" or "In 5 days", counted in calendar days ("" once past).
+export const describeDaysAway = (date, now = Date.now()) => {
+  const day = date ? new Date(`${date}T00:00:00`) : null;
+  if (!day || Number.isNaN(day.getTime())) return "";
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((day.getTime() - today.getTime()) / DAY_MS);
+  if (days < 0) return "";
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  return `In ${days} days`;
+};
+
 export const getEventNotices = (events = [], now = Date.now()) =>
   events
     .filter((event) => {
@@ -75,11 +94,29 @@ export const getEventNotices = (events = [], now = Date.now()) =>
     .map((event) => ({ event, type: statusOf(event) === "cancelled" ? "cancelled" : "rescheduled" }))
     .sort((first, second) => String(first.event.date || "9999").localeCompare(String(second.event.date || "9999")));
 
+const bySchedule = (first, second) =>
+  `${first.date || "9999"}T${first.time || ""}`.localeCompare(`${second.date || "9999"}T${second.time || ""}`);
+
 export const getOpenEvents = (events = [], now = Date.now()) =>
   events
     .filter((event) => ["upcoming", "active"].includes(statusOf(event)))
-    .filter((event) => {
-      const dayEnd = endOfEventDay(event);
-      return dayEnd === null || dayEnd >= now;
-    })
-    .sort((first, second) => String(first.date || "9999").localeCompare(String(second.date || "9999")));
+    .filter((event) => !hasEventDayPassed(event, now))
+    .sort(bySchedule);
+
+/**
+ * The staff's view of the schedule: what is still to come (soonest first), what
+ * is over (latest first; a tournament whose day has passed counts even if it was
+ * never marked completed), and what was cancelled (latest first), kept apart so
+ * a cancelled tournament never sits among the ones still to be played.
+ */
+export const groupStaffEvents = (events = [], now = Date.now()) => {
+  const cancelled = events.filter((event) => statusOf(event) === "cancelled");
+  const upcoming = getOpenEvents(events, now);
+  const upcomingIds = new Set(upcoming.map((event) => event.id));
+  const past = events.filter((event) => statusOf(event) !== "cancelled" && !upcomingIds.has(event.id));
+  return {
+    upcoming,
+    past: [...past].sort((first, second) => bySchedule(second, first)),
+    cancelled: [...cancelled].sort((first, second) => bySchedule(second, first)),
+  };
+};

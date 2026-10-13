@@ -156,7 +156,7 @@
 }
 
 /* Red and blue text on navy, one shade lighter */
-.dark :is(.equipment-condition-damaged, .equipment-condition span, .inventory-stock.out, .pool-stat-red .pool-stat-value,
+.dark :is(.equipment-condition-damaged, .equipment-condition-damaged span, .inventory-stock.out, .pool-stat-red .pool-stat-value,
   .reports-table-low-stock, .product-low-badge, .pool-table-actions .btn-outline-danger, .inventory-badge-danger,
   .events-badge-cancelled, .reports-badge-low, .equipment-badge-repair) {
   color: #f87171 !important;

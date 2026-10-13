@@ -1,6 +1,20 @@
 import { numberFieldValue, readNumberField } from "../../utils/numberField";
+import FieldError from "../Global/FieldError";
+import useFormErrors from "../Global/useFormErrors";
 
-export default function PoolTableModal({ form, setForm, editId, onClose, onSave }) {
+const FIELDS = ["name", "rate", "durationMinutes"];
+
+/** Add / Edit Table. `errors` comes from getPoolTableErrors (formValidation.js). */
+export default function PoolTableModal({ form, setForm, editId, errors = {}, onClose, onSave }) {
+  const { errorFor, touch, canSave } = useFormErrors(errors);
+  const fieldProps = (field) => ({
+    id: `pool-table-${field}`,
+    onBlur: () => touch(field),
+    "aria-invalid": Boolean(errorFor(field)),
+    "aria-describedby": errorFor(field) ? `pool-table-${field}-error` : undefined,
+    className: `form-control${errorFor(field) ? " form-input-error" : ""}`,
+  });
+
   return (
     <>
       <div className="modal show d-block" tabIndex="-1">
@@ -15,42 +29,47 @@ export default function PoolTableModal({ form, setForm, editId, onClose, onSave 
             </div>
             <div className="modal-body">
               <div className="mb-3">
-                <label className="form-label">Table Name</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  value={form.name} 
-                  onChange={e => setForm({ ...form, name: e.target.value })} 
+                <label className="form-label" htmlFor="pool-table-name">Table Name</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Table 10"
+                  maxLength={40}
+                  {...fieldProps("name")}
                 />
+                <FieldError id="pool-table-name-error" message={errorFor("name")} />
               </div>
               <div className="mb-3">
-                <label className="form-label">Hourly Rate (₱)</label>
-                <input 
-                  type="number" 
-                  className="form-control" 
-                  value={numberFieldValue(form.rate)} 
-                  onChange={e => setForm({ ...form, rate: readNumberField(e) })}
-                  min="0"
-                  placeholder="0"
-                />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Default Session Minutes</label>
+                <label className="form-label" htmlFor="pool-table-rate">Hourly Rate (₱)</label>
                 <input
                   type="number"
-                  className="form-control"
+                  value={numberFieldValue(form.rate)}
+                  onChange={e => setForm({ ...form, rate: readNumberField(e) })}
+                  min="0"
+                  step="0.01"
+                  placeholder="0"
+                  {...fieldProps("rate")}
+                />
+                <FieldError id="pool-table-rate-error" message={errorFor("rate")} />
+              </div>
+              <div className="mb-3">
+                <label className="form-label" htmlFor="pool-table-durationMinutes">Default Session Minutes</label>
+                <input
+                  type="number"
                   value={numberFieldValue(form.durationMinutes)}
                   onChange={e => setForm({ ...form, durationMinutes: readNumberField(e) })}
                   min="15"
                   step="15"
                   placeholder="60"
+                  {...fieldProps("durationMinutes")}
                 />
+                <FieldError id="pool-table-durationMinutes-error" message={errorFor("durationMinutes")} />
               </div>
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-              <button type="button" className="btn btn-success" onClick={onSave}>
+              <button type="button" className="btn btn-success" onClick={() => canSave(FIELDS, "pool-table-") && onSave()}>
                 <i className="bi bi-check-circle me-2"></i>
                 Save
               </button>

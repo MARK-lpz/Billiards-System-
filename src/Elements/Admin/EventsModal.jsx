@@ -1,6 +1,12 @@
+import { useState } from "react";
 import { numberFieldValue, readNumberField } from "../../utils/numberField";
 import { MAX_EVENT_REASON_LENGTH, formatEventWhen } from "../../utils/eventUpdates";
 import { getTodayDate } from "../../utils/reservations";
+import FieldError from "../Global/FieldError";
+import useFormErrors from "../Global/useFormErrors";
+import EventMediaField from "./EventMediaField";
+
+const FIELDS = ["name", "prize", "entryFee", "tables"];
 
 export default function EventsModal({
   form,
@@ -9,9 +15,24 @@ export default function EventsModal({
   isEdit = false,
   scheduleChange = null,
   scheduleError = "",
+  // From getEventErrors (formValidation.js): name, prize, entryFee, tables.
+  errors = {},
   onClose,
   onSave,
 }) {
+  const { errorFor, touch, canSave } = useFormErrors(errors);
+  // Promo files still uploading; Save waits for them.
+  const [uploads, setUploads] = useState([]);
+  const uploading = uploads.filter((upload) => upload.status !== "error").length;
+  const setMedia = (update) => setForm((previous) => ({ ...previous, media: update(previous.media || []) }));
+  const fieldProps = (field) => ({
+    id: `event-${field}`,
+    onBlur: () => touch(field),
+    "aria-invalid": Boolean(errorFor(field)),
+    "aria-describedby": errorFor(field) ? `event-${field}-error` : undefined,
+    className: `form-control${errorFor(field) ? " form-input-error" : ""}`,
+  });
+
   return (
     <>
       <div className="modal show d-block" tabIndex="-1">
@@ -32,14 +53,16 @@ export default function EventsModal({
             <div className="modal-body">
               {/* Event Name */}
               <div className="mb-3">
-                <label className="form-label">Event Name</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  value={form.name} 
-                  onChange={e => setForm({ ...form, name: e.target.value })} 
+                <label className="form-label" htmlFor="event-name">Event Name</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Monthly 8-Ball Tournament"
+                  maxLength={100}
+                  {...fieldProps("name")}
                 />
+                <FieldError id="event-name-error" message={errorFor("name")} />
               </div>
 
               {/* Game Type - NEW */}
@@ -123,34 +146,46 @@ export default function EventsModal({
 
               {/* Prize Pool */}
               <div className="mb-3">
-                <label className="form-label">Prize Pool (₱)</label>
-                <input 
-                  type="number" 
-                  className="form-control" 
-                  value={numberFieldValue(form.prize)} 
+                <label className="form-label" htmlFor="event-prize">Prize Pool (₱)</label>
+                <input
+                  type="number"
+                  value={numberFieldValue(form.prize)}
                   onChange={e => setForm({ ...form, prize: readNumberField(e) })}
                   min="0"
+                  step="0.01"
                   placeholder="0"
+                  {...fieldProps("prize")}
                 />
+                <FieldError id="event-prize-error" message={errorFor("prize")} />
               </div>
 
               <div className="mb-3">
-                <label className="form-label">Entry Fee (₱)</label>
+                <label className="form-label" htmlFor="event-entryFee">Entry Fee (₱)</label>
                 <input
                   type="number"
-                  className="form-control"
                   value={numberFieldValue(form.entryFee)}
                   onChange={e => setForm({ ...form, entryFee: readNumberField(e) })}
                   min="0"
+                  step="0.01"
                   placeholder="0"
+                  {...fieldProps("entryFee")}
                 />
-                <small className="form-text text-muted">Players pay this through GCash when they register. Leave at 0 for a free tournament.</small>
+                {errorFor("entryFee") ? (
+                  <FieldError id="event-entryFee-error" message={errorFor("entryFee")} />
+                ) : (
+                  <small className="form-text text-muted">Players pay this through GCash when they register. Leave at 0 for a free tournament.</small>
+                )}
+              </div>
+
+              {/* Pictures and videos for the website */}
+              <div className="mb-3">
+                <EventMediaField media={form.media || []} setMedia={setMedia} uploads={uploads} setUploads={setUploads} />
               </div>
 
               {/* Table Assignment */}
               <div className="mb-3">
                 <label className="form-label">Assign Tables</label>
-                <div className="d-flex flex-wrap gap-3">
+                <div className="d-flex flex-wrap gap-3" id="event-tables" tabIndex={-1}>
                   {tables.length > 0 ? (
                     tables.map((table) => {
                       const tableId = typeof table === 'object' ? table.id || table.name || table : table;
@@ -177,6 +212,8 @@ export default function EventsModal({
                     <div className="text-muted small">No tables available</div>
                   )}
                 </div>
+                {/* Shown as soon as a clash is picked: the table buttons have no blur step. */}
+                <FieldError id="event-tables-error" message={errors.tables} />
               </div>
             </div>
             
@@ -191,11 +228,12 @@ export default function EventsModal({
               <button
                 type="button"
                 className="btn btn-success"
-                onClick={onSave}
-                disabled={Boolean(scheduleError)}
+                onClick={() => canSave(FIELDS, "event-") && onSave()}
+                disabled={Boolean(scheduleError) || uploading > 0}
+                title={uploading > 0 ? "Wait for the pictures and videos to finish uploading" : undefined}
               >
                 <i className="bi bi-check-circle me-2"></i>
-                {isEdit ? "Save Changes" : "Create Event"}
+                {uploading > 0 ? `Uploading ${uploading}…` : isEdit ? "Save Changes" : "Create Event"}
               </button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { formatEventWhen, wasRescheduled } from "../../utils/eventUpdates";
+import { eventMediaUrl, getEventMedia } from "../../utils/eventMedia";
 
 const formatAssignedTables = (assignedTables = [], tables = []) => {
   const labels = (assignedTables || [])
@@ -61,6 +62,28 @@ export default function EventCard({ event, tables = [], onEdit, onMarkComplete, 
             </div>
           </div>
         </div>
+
+        {/* Promo pictures and videos on the website; the first is the cover */}
+        {getEventMedia(event).length > 0 && (
+          <div className="events-media-strip">
+            <div className="events-participants-label">
+              Promo media · {getEventMedia(event).length}
+            </div>
+            <div className="events-media-thumbs">
+              {getEventMedia(event).map((item, index) => (
+                <span key={item.id} className={`events-media-thumb ${index === 0 ? "is-cover" : ""}`}>
+                  {item.type === "video" ? (
+                    <video src={eventMediaUrl(item)} muted playsInline preload="metadata" aria-label={`Video ${index + 1}`} />
+                  ) : (
+                    <img src={eventMediaUrl(item)} alt={`Picture ${index + 1}`} loading="lazy" />
+                  )}
+                  {item.type === "video" && <i className="bi bi-play-circle-fill" aria-hidden="true"></i>}
+                  {index === 0 && <small>Cover</small>}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Participants List */}
         {event.participants.length > 0 && (

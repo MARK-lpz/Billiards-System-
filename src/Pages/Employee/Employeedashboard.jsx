@@ -18,10 +18,12 @@ import SalesPOS from "./SalesPos";
 import ReservationDesk from "./ReservationDesk";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../../Elements/Global/useNotifications";
-import { findTableReservation, formatHoursLabel } from "../../utils/reservations";
+import { findTableReservation, formatHoursLabel, getExtensionBlock } from "../../utils/reservations";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
 import { formatPeso, getPlayedMinutes, getSessionTotal } from "../../utils/tableSession";
 import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
+import { getCheckInBlock, hasTableReservation } from "../../utils/tableHolds";
+import useClock from "../../Elements/Global/useClock";
 
 const getCurrentTimestamp = () => Date.now();
 
@@ -30,11 +32,11 @@ export default function EmployeeDashboard({
   onReload,
   tables,
   setTables,
+  logs = [],
   setLogs,
   products,
   setProducts,
   equipment,
-  setEquipment,
   transactions,
   setTransactions,
   tableCharges = [],
@@ -76,15 +78,21 @@ export default function EmployeeDashboard({
     }, 300);
   };
 
+  // Reserved covers tables held now and those booked for later, which stay
+  // Available (and count there too) until their booking comes due.
+  const clock = useClock();
+  const isReservedTable = (table) => hasTableReservation(table, reservations, new Date(clock));
   const stats = {
     available: tables.filter((t) => t.status === "available").length,
     occupied: tables.filter((t) => t.status === "occupied").length,
-    reserved: tables.filter((t) => t.status === "reserved").length,
+    reserved: tables.filter(isReservedTable).length,
     total: tables.length,
   };
 
   const filtered = [...tables].filter(
-    (table) => statusFilter === "all" || table.status === statusFilter
+    (table) =>
+      statusFilter === "all" ||
+      (statusFilter === "reserved" ? isReservedTable(table) : table.status === statusFilter)
   ).sort((left, right) => Number(left.id) - Number(right.id));
 
   const getTableLabel = (table) => table?.name || `T${table?.id}`;
@@ -135,6 +143,13 @@ export default function EmployeeDashboard({
   const handleCheckIn = (id) => {
     const table = tables.find((t) => t.id === id);
     if (!table) return;
+
+    // The button is off when blocked, but the page may have sat open past the grace period.
+    const block = getCheckInBlock({ table, reservations, now: new Date(getCurrentTimestamp()) });
+    if (block) {
+      showToast({ tone: "error", icon: "bi-calendar-x", title: `Can't check in at ${getTableLabel(table)}`, message: block });
+      return;
+    }
 
     const bookedMinutes = Number(findTableReservation(table, reservations)?.durationMinutes);
     const customer = table.customer || "Reserved Customer";
@@ -225,6 +240,12 @@ export default function EmployeeDashboard({
 
     const extension = Number(minutes);
     if (!Number.isInteger(extension) || extension < 1) return;
+    // More time must end before the table's next booking.
+    const extensionBlock = getExtensionBlock({ table, reservations, minutes: extension });
+    if (extensionBlock) {
+      showToast({ tone: "error", icon: "bi-calendar-x", title: "Time not added", message: extensionBlock });
+      return;
+    }
 
     updateTable(id, {
       durationMinutes: Number(table.durationMinutes || 60) + extension,
@@ -320,9 +341,9 @@ export default function EmployeeDashboard({
           <QuickActions
             tables={tables}
             setTables={setTables}
+            logs={logs}
             setLogs={setLogs}
             equipment={equipment}
-            setEquipment={setEquipment}
           />
         );
 
@@ -341,6 +362,7 @@ export default function EmployeeDashboard({
                 <PoolTableCard
                   key={table.id}
                   table={table}
+                  reservations={reservations}
                   onWalkIn={() => setWalkInTableId(table.id)}
                   onEndSession={() => handleEndSession(table.id)}
                   onCheckIn={() => handleCheckIn(table.id)}
@@ -387,7 +409,8 @@ export default function EmployeeDashboard({
     }
   };
 
-  const selfHeaded = ["sales", "quick-actions", "reservations"];
+  // These pages draw their own header (Tournaments: a bell just for player registrations).
+  const selfHeaded = ["sales", "quick-actions", "reservations", "tournaments"];
 
   const pageMeta = {
     "Pool Tables": {
@@ -412,7 +435,7 @@ export default function EmployeeDashboard({
     <>
       <LoadingBar loading={loading} />
       {/* Shown on every page, so a finished table is noticed even from the POS. */}
-      <TimeUpAlert tables={tables} onAddTime={handleAddTime} onEndSession={endSession} />
+      <TimeUpAlert tables={tables} reservations={reservations} onAddTime={handleAddTime} onEndSession={endSession} />
       {/* "Open POS" on a bill's note; hidden when already there. */}
       <Toast
         actions={{

@@ -6,7 +6,11 @@ import {
   addMinutesToTime,
   formatReservationDate,
   formatReservationTime,
+  getExtensionBlock,
 } from "../../utils/reservations";
+import { getTimeAdjustmentError } from "../../utils/formValidation";
+import { getCheckInBlock, getUpcomingBookings } from "../../utils/tableHolds";
+import useClock from "../Global/useClock";
 
 // The pop-up is drawn at the app's theme wrapper, not inside the card: the card
 // lifts on hover with a CSS transform, which would drag a fixed pop-up along with
@@ -26,7 +30,9 @@ export default function PoolTableCard({
   onAddTime,
   onUndoTime,
   onEdit,
-  onDelete 
+  onDelete,
+  // Used to stop Add Time from running into the table's next booking.
+  reservations = [],
 }) {
   const isOccupied = table.status === "occupied";
   const isReserved = table.status === "reserved";
@@ -45,6 +51,23 @@ export default function PoolTableCard({
   const [extensionMinutes, setExtensionMinutes] = useState("30");
   const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
   const [showTimePresets, setShowTimePresets] = useState(false);
+  // The clock Check In and the booking note are judged by.
+  const clock = useClock();
+  const today = new Date(clock).toLocaleDateString("en-CA");
+
+  // Not on another day, and not once a no-show's grace period has run out.
+  const checkInBlock = isReserved ? getCheckInBlock({ table, reservations, now: new Date(clock) }) : "";
+
+  // Bookings later on this table. It stays open (or in use) until the first one
+  // comes due; a Reserved table shows the ones after the guest it is held for.
+  const laterBookings = getUpcomingBookings(table, reservations, new Date(clock)).filter(
+    (booking) => !isReserved || String(booking.id) !== String(table.reservationId)
+  );
+  const nextBooking = laterBookings[0] || null;
+  const describeWhen = (booking) =>
+    booking.date === today
+      ? `today, ${formatReservationTime(booking.time)}`
+      : `${formatReservationDate(booking.date)}, ${formatReservationTime(booking.time)}`;
 
   useEffect(() => {
     if (!table.startTime || !isOccupied) return;
@@ -75,7 +98,13 @@ export default function PoolTableCard({
 
   const plannedSeconds = Math.max(0, Number(table.durationMinutes || 60) * 60);
   const adjustmentMinutes = Number(extensionMinutes);
-  const isValidAdjustment = Number.isInteger(adjustmentMinutes) && adjustmentMinutes > 0;
+  const adjustmentError = getTimeAdjustmentError(extensionMinutes);
+  const isValidAdjustment = !adjustmentError;
+  // Only checked for a valid number: more time must end before the next booking.
+  const extensionBlock = isValidAdjustment
+    ? getExtensionBlock({ table, reservations, minutes: adjustmentMinutes })
+    : "";
+  const addedSoFar = Number(table.addedMinutes || 0);
   const elapsedSeconds = table.startTime
     ? Math.min(plannedSeconds || Infinity, Math.max(0, Math.floor((now - table.startTime) / 1000)))
     : 0;
@@ -171,6 +200,33 @@ export default function PoolTableCard({
                 Expires {formatReservationTime(addMinutesToTime(table.reservationTime, RESERVATION_GRACE_MINUTES))} if not checked in
               </div>
             )}
+            {checkInBlock && (
+              <div className="pool-table-checkin-block" role="note">
+                <i className="bi bi-lock-fill" aria-hidden="true"></i>
+                {checkInBlock}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {nextBooking && (
+        <div className="pool-table-upcoming">
+          <i className="bi bi-calendar-event" aria-hidden="true"></i>
+          <div>
+            <div>
+              {isReserved ? "Next booking" : "Booked"}: {nextBooking.customerName} · {describeWhen(nextBooking)}
+            </div>
+            {isAvailable && nextBooking.holdsFrom && nextBooking.date === today && (
+              <div className="pool-table-upcoming-sub">
+                Open for walk-ins until {formatClock(nextBooking.holdsFrom.getTime())}
+              </div>
+            )}
+            {laterBookings.length > 1 && (
+              <div className="pool-table-upcoming-sub">
+                +{laterBookings.length - 1} more {laterBookings.length === 2 ? "booking" : "bookings"}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -205,7 +261,12 @@ export default function PoolTableCard({
 
           {isReserved && (
             <>
-              <button className="btn btn-sm btn-warning" onClick={onCheckIn}>
+              <button
+                className="btn btn-sm btn-warning"
+                onClick={onCheckIn}
+                disabled={Boolean(checkInBlock)}
+                title={checkInBlock || undefined}
+              >
                 <i className="bi bi-check-circle me-1"></i>
                 Check In
               </button>
@@ -298,12 +359,26 @@ export default function PoolTableCard({
                     </div>
                   )}
                 </div>
-                <p className="pool-time-modal-note">Choose a preset or enter the number of minutes to add or undo.</p>
+                {adjustmentError ? (
+                  <div className="form-field-error" role="alert">
+                    <i className="bi bi-exclamation-circle" aria-hidden="true"></i>
+                    <span>{adjustmentError}</span>
+                  </div>
+                ) : extensionBlock ? (
+                  <div className="form-blocked-note" role="status">
+                    <i className="bi bi-calendar-x" aria-hidden="true"></i>
+                    <span>{extensionBlock}</span>
+                  </div>
+                ) : addedSoFar > 0 && adjustmentMinutes > addedSoFar ? (
+                  <p className="pool-time-modal-note">Undo removes at most the {addedSoFar} minutes added so far.</p>
+                ) : (
+                  <p className="pool-time-modal-note">Choose a preset or enter the number of minutes to add or undo.</p>
+                )}
                 <div className="pool-time-modal-actions">
                   <button
                     type="button"
                     className="btn pool-time-add-button"
-                    disabled={!isValidAdjustment}
+                    disabled={!isValidAdjustment || Boolean(extensionBlock)}
                     onClick={() => {
                       onAddTime(adjustmentMinutes);
                       setIsTimeModalOpen(false);
@@ -315,7 +390,7 @@ export default function PoolTableCard({
                   <button
                     type="button"
                     className="btn pool-time-undo-button"
-                    disabled={!isValidAdjustment || !Number(table.addedMinutes || 0)}
+                    disabled={!isValidAdjustment || !addedSoFar}
                     onClick={() => {
                       onUndoTime(adjustmentMinutes);
                       setIsTimeModalOpen(false);

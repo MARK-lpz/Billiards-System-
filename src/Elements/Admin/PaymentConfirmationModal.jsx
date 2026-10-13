@@ -12,10 +12,14 @@ import {
 
 const verifiedTimestamp = () => new Date().toISOString();
 
+// More change than this is almost surely a typo in the cash received.
+const MAX_CHANGE = 10000;
+
 export default function PaymentConfirmationModal({
   cart,
   total,
   method,
+  billLabel = "",
   usedReferences = [],
   onCancel,
   onConfirm,
@@ -34,7 +38,18 @@ export default function PaymentConfirmationModal({
     })}`;
 
   const receivedAmount = useMemo(() => Number(cashReceived), [cashReceived]);
-  const cashIsValid = Number.isFinite(receivedAmount) && receivedAmount >= total;
+  // A slip of the keyboard (an extra zero) should not go through as a huge change.
+  const cashError =
+    String(cashReceived).trim() === "" || !Number.isFinite(receivedAmount)
+      ? "Enter the cash received."
+      : receivedAmount < total
+        ? "The cash received must cover the total amount."
+        : Math.abs(receivedAmount * 100 - Math.round(receivedAmount * 100)) > 1e-6
+          ? "Use at most 2 decimal places (centavos)."
+          : receivedAmount - total > MAX_CHANGE
+            ? `That leaves ${fmtPeso(receivedAmount - total)} in change. Check the amount received.`
+            : "";
+  const cashIsValid = !cashError;
   const change = cashIsValid ? receivedAmount - total : 0;
 
   const referenceCheck = useMemo(
@@ -106,7 +121,13 @@ export default function PaymentConfirmationModal({
 
             <div className="modal-body">
               <p className="payment-confirmation-copy">
-                Confirm the order and payment method before completing this sale.
+                {billLabel ? (
+                  <>
+                    Paying <strong>{billLabel}</strong> only. Other open bills stay as they are.
+                  </>
+                ) : (
+                  "Confirm the order and payment method before completing this sale."
+                )}
               </p>
               <div className="payment-review-summary">
                 {cart.map((item) => (
@@ -191,9 +212,7 @@ export default function PaymentConfirmationModal({
                         autoFocus
                       />
                     </div>
-                    {!cashIsValid && (
-                      <p className="payment-field-error">The cash received must cover the total amount.</p>
-                    )}
+                    {cashError && <p className="payment-field-error" role="alert">{cashError}</p>}
                     <div className="payment-change-row">
                       <span>Change</span>
                       <strong>{fmtPeso(change)}</strong>

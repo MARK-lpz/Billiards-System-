@@ -552,3 +552,156 @@
   margin-top: 2px;
   accent-color: #10b981;
 }
+
+/* How each booking was made: online (website) or walk-in (front desk) */
+.rd-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.rd-mode--online {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(96, 165, 250, 0.32);
+  color: #93c5fd;
+}
+
+.rd-mode--walkin {
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(52, 211, 153, 0.32);
+  color: #6ee7b7;
+}
+
+/* What is wrong with a booking, listed under its notes */
+.rd-table-notes {
+  max-width: 280px;
+}
+
+.rd-issues {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rd-issue {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.rd-issue i {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.rd-issue--error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.rd-issue--warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fcd34d;
+}
+
+.rd-table tbody tr.rd-row--error > td:first-child {
+  box-shadow: inset 3px 0 0 #ef4444;
+}
+
+.rd-table tbody tr.rd-row--warning > td:first-child {
+  box-shadow: inset 3px 0 0 #f59e0b;
+}
+
+/* Under the actions: why the guest cannot be seated yet */
+.rd-seat-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  max-width: 260px;
+  margin-top: 6px;
+  color: #cbd5e1;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.rd-filter-btn > i {
+  margin-right: 5px;
+}
+
+.rd-page .rd-filter-btn.rd-filter-btn--alert:not(.active) {
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fca5a5 !important;
+}
+
+.light .rd-mode--online { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+.light .rd-mode--walkin { background: #d1fae5; border-color: #6ee7b7; color: #065f46; }
+.light .rd-issue--error { background: #fef2f2; color: #b91c1c; }
+.light .rd-issue--warning { background: #fffbeb; color: #92400e; }
+.light .rd-seat-note { color: #334155; }
+.light .rd-page .rd-filter-btn.rd-filter-btn--alert:not(.active) { border-color: #fca5a5; color: #b91c1c !important; }
+
+/* Filters on the left, Newest / Oldest on the right */
+.rd-queue-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rd-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rd-sort-label {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rd-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: transparent;
+  color: #d1d5db;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rd-sort-btn:hover { border-color: #10b981; color: #34d399; }
+
+.rd-sort-btn.is-active {
+  border-color: rgba(16, 185, 129, 0.55);
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+}
+
+.rd-queue-section .list-pagination { margin-top: 0; }
+
+.light .rd-sort-label { color: var(--text-muted); }
+.light .rd-sort-btn { border-color: var(--border); color: var(--text-secondary); }
+.light .rd-sort-btn:hover { border-color: #10b981; color: #047857; }
+.light .rd-sort-btn.is-active { border-color: #10b981; background: #ecfdf5; color: #047857; }

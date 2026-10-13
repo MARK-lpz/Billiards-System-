@@ -41,6 +41,7 @@ const ServedTicketCard = ({ ticket }) => {
         <span className="order-history-cashier">
           <i className="bi bi-bag-check me-2"></i>
           Served Order #{String(ticket.id).slice(-5)}
+          {ticket.billLabel ? ` · ${ticket.billLabel}` : ""}
         </span>
         <span className="order-history-total">{fmtPeso(ticketTotal)}</span>
       </div>
@@ -68,6 +69,7 @@ const TransactionCard = ({ tx, onViewReceipt }) => (
       <span className="order-history-cashier">
         <i className="bi bi-receipt me-2"></i>
         #{String(tx.id).slice(-5)}
+        {tx.billLabel ? ` · ${tx.billLabel}` : ""}
       </span>
 
       <span className="order-history-header-side">

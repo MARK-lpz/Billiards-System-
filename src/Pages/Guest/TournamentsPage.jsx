@@ -1,21 +1,22 @@
 import { useEffect, useState } from "react";
 import "../../styles/Guest/GuestLanding.css";
 import "../../styles/Guest/TournamentsPage.css";
-import { formatEventWhen, getDateTile, getEventNotices, getOpenEvents, wasRescheduled } from "../../utils/eventUpdates";
+import "../../styles/Guest/EventMedia.css";
+import EventMediaViewer from "../../Elements/Guest/EventMediaViewer";
+import { eventMediaUrl, getEventMedia } from "../../utils/eventMedia";
+import {
+  describeDaysAway,
+  formatEventWhen,
+  getDateTile,
+  getEventNotices,
+  getOpenEvents,
+  wasRescheduled,
+} from "../../utils/eventUpdates";
 
 const formatPrize = (amount) => `₱${Number(amount || 0).toLocaleString("en-PH")}`;
 
-// "Today", "Tomorrow" or "In 5 days", counted in calendar days.
-const describeDaysAway = (date, now) => {
-  const day = date ? new Date(`${date}T00:00:00`) : null;
-  if (!day || Number.isNaN(day.getTime())) return "";
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-  const days = Math.round((day.getTime() - today.getTime()) / 86400000);
-  if (days <= 0) return "Today";
-  if (days === 1) return "Tomorrow";
-  return `In ${days} days`;
-};
+// How many pictures and videos a tournament shows before "+N more".
+const STRIP_SIZE = 4;
 
 /**
  * The public list of tournaments: everything still open for registration, soonest
@@ -24,6 +25,8 @@ const describeDaysAway = (date, now) => {
 export default function TournamentsPage({ events = [], onGoBack, onRegister }) {
   // Refreshed every minute, so a tournament drops off once its day has passed.
   const [now, setNow] = useState(() => Date.now());
+  // The tournament whose pictures and videos are open, and which one is shown first.
+  const [viewing, setViewing] = useState(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -70,6 +73,7 @@ export default function TournamentsPage({ events = [], onGoBack, onRegister }) {
             const tile = getDateTile(event.date);
             const moved = wasRescheduled(event);
             const players = event.participants?.length || 0;
+            const media = getEventMedia(event);
 
             return (
               <article key={event.id} className={`tournament-row ${moved ? "is-rescheduled" : ""}`}>
@@ -121,6 +125,36 @@ export default function TournamentsPage({ events = [], onGoBack, onRegister }) {
                       {players} {players === 1 ? "player" : "players"} registered
                     </li>
                   </ul>
+
+                  {/* Promo pictures and videos; each opens the viewer */}
+                  {media.length > 0 && (
+                    <div className="tournament-media-strip" aria-label={`${event.name} pictures and videos`}>
+                      {media.slice(0, STRIP_SIZE).map((item, index) => {
+                        const more = index === STRIP_SIZE - 1 ? media.length - STRIP_SIZE : 0;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className={`tournament-media-thumb ${index === 0 ? "is-cover" : ""}`}
+                            onClick={(click) => setViewing({ eventId: event.id, startAt: index, opener: click.currentTarget })}
+                            aria-label={
+                              more > 0
+                                ? `See all ${media.length} pictures and videos`
+                                : `Open ${item.type === "video" ? "video" : "picture"} ${index + 1} of ${media.length}`
+                            }
+                          >
+                            {item.type === "video" ? (
+                              <video src={eventMediaUrl(item)} muted playsInline preload="metadata" aria-hidden="true" />
+                            ) : (
+                              <img src={eventMediaUrl(item)} alt="" loading="lazy" />
+                            )}
+                            {item.type === "video" && !more && <i className="bi bi-play-circle-fill" aria-hidden="true"></i>}
+                            {more > 0 && <span className="tournament-media-more">+{more}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <button type="button" className="guest-template-primary tournament-row-register" onClick={() => onRegister(event.id)}>
@@ -151,6 +185,19 @@ export default function TournamentsPage({ events = [], onGoBack, onRegister }) {
           ))}
         </section>
       )}
+
+      {viewing && (() => {
+        const event = events.find((entry) => entry.id === viewing.eventId);
+        return event ? (
+          <EventMediaViewer
+            title={event.name}
+            media={getEventMedia(event)}
+            startAt={viewing.startAt}
+            returnFocus={viewing.opener}
+            onClose={() => setViewing(null)}
+          />
+        ) : null;
+      })()}
 
       <footer className="guest-template-footer">
         <span className="guest-footer-mark">

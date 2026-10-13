@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Login from './Pages/login'
 import Dashboard from './Pages/Admin/AdminDashboard'
 import EmployeeDashboard from './Pages/Employee/Employeedashboard'
@@ -15,6 +15,8 @@ import './styles/globalThemeAdmin.css'
 import './styles/globalThemeEmployee.css'
 // Contrast fixes for both themes, after the theme files they correct.
 import './styles/themeReadability.css'
+// Field errors in the staff forms; after the theme files so its light colors win.
+import './styles/formErrors.css'
 // Last on purpose: the brand layer is meant to win over the page styles above.
 import './styles/brand.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
@@ -23,11 +25,14 @@ import { initialReservations } from './utils/reservations'
 import { fetchRemoteReservations } from './utils/reservationApi'
 import { fetchReservationSettings, updateReservationSettings } from './utils/reservationSettingsApi'
 import { fetchRemoteTables, saveRemoteTables } from './utils/tableApi'
+import { fetchRemoteEquipment, saveRemoteEquipment } from './utils/equipmentApi'
 import { createAuditEntry, normalizeAuditLogs } from './utils/audit'
 import { normalizeProductNumbers } from './utils/productNumbers'
 import { TABLE_CHARGES_STORAGE_KEY } from './utils/tableCharges'
+import { applyTableHolds } from './utils/tableHolds'
 import { clearSignedInUser, getSignedInUser } from './utils/session'
 import { fetchRemoteIssues } from './utils/issueApi'
+import { isExpiredReport } from './utils/issues'
 import { fetchRemoteEvents, saveRemoteEvents } from './utils/eventApi'
 
 const initialTables = [
@@ -56,6 +61,7 @@ const initialEquipment = [
     id: 1,
     name: "Cue Stick #1",
     type: "Cue Stick",
+    tableId: 1,
     condition: "good",
     previousMaintenance: "2026-02-01",
     lastMaintenance: "2026-03-01",
@@ -65,6 +71,7 @@ const initialEquipment = [
     id: 2,
     name: "Ball Set #1",
     type: "Ball Set",
+    tableId: 1,
     condition: "fair",
     previousMaintenance: "2026-01-15",
     lastMaintenance: "2026-02-15",
@@ -187,6 +194,11 @@ function App() {
     }
   })
   const [tableStatusLoaded, setTableStatusLoaded] = useState(false)
+  const [equipmentLoaded, setEquipmentLoaded] = useState(false)
+  // The equipment list as the server last had it, and whether a save is on its
+  // way, so a poll that crosses an admin's edit cannot put the old list back.
+  const remoteEquipmentJson = useRef('')
+  const equipmentSaving = useRef(false)
   const [eventsLoaded, setEventsLoaded] = useState(false)
 
   useEffect(() => {
@@ -280,6 +292,75 @@ function App() {
     })
   }, [isStaffApp, tableStatusLoaded, tables])
 
+  // Equipment is shared through the server, so the admin and every employee see
+  // the same items on the same tables. The first copy read is merged with this
+  // device's, so items registered before sharing began are kept (but not ones
+  // deleted since); after that the server's copy is taken as it is.
+  useEffect(() => {
+    if (!isStaffApp) return
+    let cancelled = false
+    let firstRead = true
+
+    const syncEquipment = async () => {
+      try {
+        const { equipment: remoteEquipment, removedIds } = await fetchRemoteEquipment()
+        if (cancelled || equipmentSaving.current) return
+
+        const mergeLocal = firstRead
+        firstRead = false
+        remoteEquipmentJson.current = JSON.stringify(remoteEquipment)
+        if (remoteEquipment.length || removedIds.length) {
+          setEquipment((current) => {
+            const knownIds = new Set([...remoteEquipment.map((item) => String(item.id)), ...removedIds])
+            const next = mergeLocal
+              ? [...remoteEquipment, ...current.filter((item) => !knownIds.has(String(item.id)))]
+              : remoteEquipment
+            return JSON.stringify(next) === JSON.stringify(current) ? current : next
+          })
+        }
+        setEquipmentLoaded(true)
+      } catch (error) {
+        console.warn('Unable to sync shared equipment', error)
+      }
+    }
+
+    syncEquipment()
+    const interval = setInterval(syncEquipment, 3000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [isStaffApp])
+
+  // Only the admin's screen saves equipment; employees read it.
+  useEffect(() => {
+    if (!isStaffApp || !equipmentLoaded || !isLoggedIn || userRole !== 'admin') return
+
+    const json = JSON.stringify(equipment)
+    if (json === remoteEquipmentJson.current) return
+
+    // Items the server had that this list no longer has were deleted here.
+    let removedIds = []
+    try {
+      const keptIds = new Set(equipment.map((item) => String(item.id)))
+      removedIds = JSON.parse(remoteEquipmentJson.current || '[]')
+        .map((item) => String(item.id))
+        .filter((id) => !keptIds.has(id))
+    } catch {
+      removedIds = []
+    }
+
+    equipmentSaving.current = true
+    saveRemoteEquipment(equipment, removedIds)
+      .then(() => {
+        remoteEquipmentJson.current = json
+      })
+      .catch((error) => console.warn('Unable to save shared equipment', error))
+      .finally(() => {
+        equipmentSaving.current = false
+      })
+  }, [isStaffApp, equipmentLoaded, isLoggedIn, userRole, equipment])
+
   useEffect(() => {
     try { localStorage.setItem('activityLogs', JSON.stringify(logs)) }
     catch (error) { console.warn('Unable to persist activity logs', error) }
@@ -317,6 +398,7 @@ function App() {
       try {
         const remoteIssues = await fetchRemoteIssues()
         if (cancelled) return
+        const now = Date.now()
 
         setLogs((currentLogs) => {
           const remoteIds = new Set(remoteIssues.map((issue) => String(issue.id)))
@@ -328,7 +410,8 @@ function App() {
               !remoteIssueKeys.has(issueSyncKey(entry))
           )
           const syncedIssues = remoteIssues.map((issue) => ({ ...issue, remoteIssue: true }))
-          return [...syncedIssues, ...localLogs]
+          // Resolved reports past their months as history leave this device too.
+          return [...syncedIssues, ...localLogs].filter((entry) => !isExpiredReport(entry, now))
         })
       } catch (error) {
         console.warn('Unable to sync shared employee issues', error)
@@ -343,41 +426,21 @@ function App() {
     }
   }, [])
 
+  // Ticks every 30 seconds so a table turns Reserved as its booking comes due,
+  // and frees up again when a no-show's grace period runs out.
+  const [holdClock, setHoldClock] = useState(0)
   useEffect(() => {
-    const activeReservationIds = new Set(
-      reservations
-        .filter((reservation) => ["approved", "reserved", "arrived", "seated"].includes(reservation.status))
-        .map((reservation) => String(reservation.id))
-    )
+    const timer = setInterval(() => setHoldClock((tick) => tick + 1), 30000)
+    return () => clearInterval(timer)
+  }, [])
 
-    setTables((currentTables) => {
-      let changed = false
-      const nextTables = currentTables.map((table) => {
-        if (
-          table.status !== "reserved" ||
-          !table.reservationId ||
-          activeReservationIds.has(String(table.reservationId))
-        ) {
-          return table
-        }
-
-        changed = true
-        return {
-          ...table,
-          status: "available",
-          startTime: null,
-          customer: "",
-          reservationId: null,
-          reservationDate: "",
-          reservationTime: "",
-        }
-      })
-
-      return changed ? nextTables : currentTables
-    })
-    // Tables too: a shared-status poll can bring back a stale "reserved" copy
-    // after the booking expired, and it must be freed again.
-  }, [reservations, tables])
+  // A booked table shows Reserved only from shortly before its booking until the
+  // guest checks in or the grace period ends (tableHolds.js), so a booking days
+  // away no longer keeps walk-ins off the table. Tables too: a shared-status
+  // poll can bring back a stale copy, which is corrected again.
+  useEffect(() => {
+    setTables((currentTables) => applyTableHolds(currentTables, reservations, new Date()))
+  }, [reservations, tables, holdClock])
 
   useEffect(() => {
     let cancelled = false
@@ -740,6 +803,7 @@ function App() {
             onReload={handleReload}
             tables={tables}
             setTables={setTables}
+            logs={logs}
             setLogs={setLogs}
             products={products}
             setProducts={setProducts}

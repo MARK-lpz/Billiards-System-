@@ -11,12 +11,16 @@ import { registerRemoteTournamentParticipant } from "../../utils/eventApi";
 import GcashPayment from "../../Elements/Guest/GcashPayment";
 import { validateReference } from "../../utils/paymentReference";
 import { sendCustomerConfirmation } from "../../utils/customerMessageApi";
-import { formatEventWhen, getEventNotices } from "../../utils/eventUpdates";
+import { formatEventWhen, getEventNotices, getOpenEvents } from "../../utils/eventUpdates";
+import { getAgeError, getPersonNameError } from "../../utils/formValidation";
 
 // Read when the form opens and on submit, never while rendering.
 const getCurrentTimestamp = () => Date.now();
 
 const isOpenForRegistration = (event) => ["upcoming", "active"].includes(String(event?.status || "").toLowerCase());
+
+// "Juan Cruz (Team Cue)" and "juan cruz" are the same player.
+const playerKey = (label) => String(label || "").replace(/\s*\(.*\)\s*$/, "").trim().toLowerCase();
 
 export default function TournamentForm({ events = [], setEvents, onGoBack, initialEventId = null }) {
   const [form, setForm] = useState(() => ({
@@ -41,7 +45,8 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
   const [openedAt] = useState(getCurrentTimestamp);
   // Players who come to register for a cancelled or moved tournament are told here.
   const notices = getEventNotices(events, openedAt);
-  const availableEvents = events.filter(isOpenForRegistration);
+  // Open ones only, and not past their day: a finished tournament takes no players.
+  const availableEvents = getOpenEvents(events, openedAt);
   const selectedEvent = availableEvents.find((event) => String(event.id) === String(form.eventId)) || null;
   const contactIsValid = isValidSmsNumber(form.contact);
   const entryFee = Number(selectedEvent?.entryFee || 0);
@@ -49,6 +54,18 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
   const paymentCheck = validateReference(form.paymentReference || "");
   const paymentSettled = !paymentRequired || paymentCheck.isValid;
   const contactWarning = getSmsWarning(form.contact);
+  const playerName = [form.firstName, form.lastName].map((part) => part.trim()).filter(Boolean).join(" ");
+  const alreadyRegistered =
+    Boolean(selectedEvent && playerName) &&
+    (selectedEvent.participants || []).some((participant) => playerKey(participant) === playerKey(playerName));
+  // Each typed field is checked as soon as it has something in it.
+  const fieldError =
+    (form.firstName && getPersonNameError(form.firstName, "first name")) ||
+    (form.lastName && getPersonNameError(form.lastName, "last name")) ||
+    (form.age !== "" && getAgeError(form.age)) ||
+    (form.teamName.trim().length > 40 && "Keep the team name to 40 characters or fewer.") ||
+    (alreadyRegistered && `${playerName} is already registered for ${selectedEvent.name}.`) ||
+    "";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -61,7 +78,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedEvent || !contactIsValid) return;
+    if (!selectedEvent || !contactIsValid || fieldError) return;
 
     if (paymentRequired && !paymentCheck.isValid) {
       setSubmitError(
@@ -72,8 +89,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
 
     setSubmitError("");
     try {
-      const playerName = [form.firstName, form.lastName].filter(Boolean).join(" ").trim();
-      const playerLabel = form.teamName?.trim() ? `${playerName} (${form.teamName.trim()})` : playerName;
+      const playerLabel= form.teamName?.trim() ? `${playerName} (${form.teamName.trim()})` : playerName;
       const updatedEvent = await registerRemoteTournamentParticipant({
         eventId: selectedEvent.id,
         participant: playerLabel,
@@ -138,7 +154,8 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
   };
 
   const requiredFields = ["firstName", "lastName", "contact", "age", "eventId", "gameType", "format", "skillLevel"];
-  const isComplete = requiredFields.every((k) => form[k] !== "") && contactIsValid && paymentSettled;
+  const isComplete =
+    requiredFields.every((k) => String(form[k]).trim() !== "") && contactIsValid && paymentSettled && !fieldError;
 
   return (
     <div className="tournament-container">
@@ -232,7 +249,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
               {!isComplete && (
                 <p className="required-text">
                   <i className="bi bi-info-circle" style={{ marginRight: 6 }}></i>
-                  {contactWarning || "Please fill in all required fields"}
+                  {fieldError || contactWarning || "Please fill in all required fields"}
                 </p>
               )}
               {submitError && <p className="required-text">{submitError}</p>}

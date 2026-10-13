@@ -242,6 +242,46 @@ export const getWalkInLimit = ({ table, reservations = [], now = new Date() }) =
   };
 };
 
+/**
+ * How many minutes can still be added to a running session before it runs into
+ * the table's next booking: { maxMinutes, nextBooking } (Infinity and null when
+ * nothing is booked after it). The session's own booking (seated) is not counted.
+ */
+export const getExtensionLimit = ({ table, reservations = [] }) => {
+  const start = Number(table?.startTime);
+  if (!start) return { maxMinutes: Infinity, nextBooking: null };
+
+  const sessionEnd = start + getDurationMinutes(table) * 60 * 1000;
+  const next = reservations
+    .filter(
+      (reservation) =>
+        reservation &&
+        ACTIVE_STATUSES.has(reservation.status) &&
+        reservation.status !== "seated" &&
+        String(reservation.id) !== String(table.reservationId) &&
+        Number(reservation.tableId ?? reservation.table) === Number(table.id)
+    )
+    .map((reservation) => ({ reservation, range: getCandidateRange(reservation) }))
+    .filter((entry) => entry.range && entry.range.end.getTime() > sessionEnd)
+    .sort((first, second) => first.range.start - second.range.start)[0];
+
+  if (!next) return { maxMinutes: Infinity, nextBooking: null };
+  return {
+    maxMinutes: Math.max(0, Math.floor((next.range.start.getTime() - sessionEnd) / 60000)),
+    nextBooking: { customer: next.reservation.customerName, label: formatTime(next.range.start) },
+  };
+};
+
+/** Why `minutes` cannot be added to a running session because of its next booking, or "". */
+export const getExtensionBlock = ({ table, reservations = [], minutes }) => {
+  const { maxMinutes, nextBooking } = getExtensionLimit({ table, reservations });
+  if (!nextBooking || Number(minutes) <= maxMinutes) return "";
+  const name = table?.name || "This table";
+  return maxMinutes > 0
+    ? `${name} is booked at ${nextBooking.label} (${nextBooking.customer}), so at most ${maxMinutes} more minutes can be added.`
+    : `${name} is booked at ${nextBooking.label} (${nextBooking.customer}), so no more time can be added. Move the customer to another table to keep playing.`;
+};
+
 /** True once a booking's last minute is over, so it can no longer be approved. */
 export const hasReservationEnded = (reservation, now = new Date()) => {
   const range = reservation ? getCandidateRange(reservation) : null;
@@ -592,3 +632,6 @@ export const getReservationScheduleError = (date, time, now = new Date()) => {
   if (!time) return "";
   return getReservationValidationMessage(date, time, now);
 };
+
+// For per-booking checks (reservationIssues.js), which judge each booking by the same rules.
+export { ACTIVE_STATUSES, getCandidateRange as getReservationRange, getOccupiedTableRange, formatTime as formatTimeOfDay };

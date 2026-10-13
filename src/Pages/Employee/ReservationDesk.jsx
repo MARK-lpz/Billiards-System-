@@ -1,5 +1,5 @@
 // ReservationDesk.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import "../../styles/Employee/ReservationDesk.css";
 import ReservationStats from "../../Elements/Employee/ReservationStats";
 import ReservationQueue from "../../Elements/Employee/ReservationQueue";
@@ -14,6 +14,13 @@ import {
   getReservationValidationMessage,
   hasReservationConflict,
 } from "../../utils/reservations";
+import {
+  getCustomerNameError,
+  getPartySizeError,
+  getReservationIssues,
+  isBookingTable,
+  isGuestPlaying,
+} from "../../utils/reservationIssues";
 import { isValidSmsNumber } from "../../utils/phone";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../../Elements/Global/useNotifications";
@@ -28,40 +35,6 @@ const todayStr = () => new Date().toLocaleDateString("en-CA");
 const createId = () => Date.now() + Math.floor(Math.random() * 1000);
 const HISTORY_STATUSES = new Set(["completed", "cancelled", "rejected", "expired"]);
 
-const normalizeTableName = (name) =>
-  String(name || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
-
-const getTableNumber = (name) => {
-  const match = normalizeTableName(name).match(/table\s*(\d+)$/i);
-  return match ? Number(match[1]) : null;
-};
-
-const isGuestPlaying = (table, booking) =>
-  table?.status === "occupied" &&
-  String(table.customer || "").trim().toLowerCase() === String(booking.customerName || "").trim().toLowerCase();
-
-// Why a booking's guest cannot be seated at its table now, or "" when they can.
-// Seating takes the table over, so one in use would lose its session and bill.
-const getSeatingBlock = (table, booking) => {
-  if (!table || ["available", "reserved"].includes(table.status)) return "";
-
-  const tableName = table.name || booking.tableName;
-  if (table.status === "occupied") {
-    return `${tableName} is still occupied by ${table.customer || "another customer"}. End that session first, or seat ${booking.customerName} at another table.`;
-  }
-  if (table.status === "maintenance") return `${tableName} is under maintenance and cannot be used yet.`;
-  return `${tableName} is still being cleaned. Set it back to available in Actions first.`;
-};
-
-const isBookingTable = (table, booking) =>
-  String(table.id) === String(booking.tableId ?? booking.table) ||
-  normalizeTableName(table.name) === normalizeTableName(booking.tableName) ||
-  (getTableNumber(table.name) !== null &&
-    getTableNumber(table.name) === getTableNumber(booking.tableName));
-
 export default function ReservationDesk({
   tables = [],
   setTables,
@@ -72,6 +45,9 @@ export default function ReservationDesk({
   setLogs,
 }) {
   const { addNotification, queueAdminNotification, showToast } = useNotifications();
+  // Problems are shown in the app, not in the browser's own alert box.
+  const showError = (title, message) =>
+    showToast({ tone: "error", icon: "bi-exclamation-octagon-fill", title, message });
   const [reservationFilter, setReservationFilter] = useState("all");
   const [activeModal, setActiveModal] = useState(null);
   // The online booking whose GCash payment is being checked.
@@ -138,6 +114,10 @@ export default function ReservationDesk({
     if (reservationFilter === "history") {
       return reservations.filter((booking) => HISTORY_STATUSES.has(booking.status));
     }
+    // ReservationQueue narrows this to the bookings with a problem.
+    if (reservationFilter === "issues") {
+      return reservations.filter((booking) => !HISTORY_STATUSES.has(booking.status));
+    }
     return reservations.filter((booking) => booking.status === reservationFilter);
   }, [reservationFilter, reservations]);
 
@@ -167,37 +147,7 @@ export default function ReservationDesk({
     );
   };
 
-  useEffect(() => {
-    setTables((previousTables) => {
-      let changed = false;
-      const nextTables = previousTables.map((table) => {
-        const booking = reservations.find(
-          (entry) =>
-            ["approved", "reserved", "arrived"].includes(entry.status) &&
-            isBookingTable(table, entry)
-        );
-
-        if (!booking || !["available", "reserved"].includes(table.status)) {
-          return table;
-        }
-
-        const nextTable = {
-          ...table,
-          status: "reserved",
-          customer: booking.customerName,
-          reservationDate: booking.date,
-          reservationTime: booking.time,
-        };
-
-        if (JSON.stringify(nextTable) !== JSON.stringify(table)) changed = true;
-        return nextTable;
-      });
-
-      return changed ? nextTables : previousTables;
-    });
-  }, [reservations, setTables]);
-
-  const closeModal = () => setActiveModal(null);
+const closeModal = () => setActiveModal(null);
 
   const handleWalkInSubmit = (e) => {
     e.preventDefault();
@@ -228,8 +178,20 @@ export default function ReservationDesk({
     const tableId = Number(reservationForm.tableId);
     if (!reservationForm.customerName.trim() || !tableId) return;
 
+    const nameError = getCustomerNameError(reservationForm.customerName);
+    if (nameError) {
+      showError("Check the customer name", nameError);
+      return;
+    }
+
     if (!isValidSmsNumber(reservationForm.phone)) {
-      window.alert("Please enter the customer's mobile number in 09XXXXXXXXX format.");
+      showError("Check the mobile number", "Please enter the customer's mobile number in 09XXXXXXXXX format.");
+      return;
+    }
+
+    const partySizeError = getPartySizeError(reservationForm.partySize);
+    if (partySizeError) {
+      showError("Check the party size", partySizeError);
       return;
     }
 
@@ -238,12 +200,12 @@ export default function ReservationDesk({
       reservationForm.time
     );
     if (reservationValidationMessage) {
-      window.alert(reservationValidationMessage);
+      showError("Check the date and time", reservationValidationMessage);
       return;
     }
 
     if (reservationTableError) {
-      window.alert(reservationTableError);
+      showError("Choose another table", reservationTableError);
       return;
     }
 
@@ -255,7 +217,7 @@ export default function ReservationDesk({
 
     if (reservationForm.date && reservationForm.time && hasReservationConflict(reservations, candidate)) {
       const tableName = tables.find((entry) => entry.id === tableId)?.name || `Table ${tableId}`;
-      window.alert(`${tableName} is already reserved for ${reservationForm.date} at ${reservationForm.time}.`);
+      showError("Table already booked", `${tableName} is already reserved for ${reservationForm.date} at ${reservationForm.time}.`);
       return;
     }
 
@@ -264,7 +226,7 @@ export default function ReservationDesk({
       id: createId(),
       customerName: reservationForm.customerName.trim(),
       phone: reservationForm.phone.trim(),
-      partySize: Number(reservationForm.partySize) || 1,
+      partySize: Number(reservationForm.partySize),
       date: reservationForm.date,
       time: reservationForm.time,
       tableId,
@@ -314,7 +276,7 @@ export default function ReservationDesk({
 
       closeModal();
     } catch (error) {
-      window.alert(error.message || "Unable to save the reservation.");
+      showError("Reservation not saved", error.message || "Unable to save the reservation.");
     }
   };
 
@@ -325,7 +287,7 @@ export default function ReservationDesk({
     try {
       await updateRemoteReservation(nextBooking);
     } catch (error) {
-      window.alert(error.message || "Unable to update this reservation.");
+      showError("Reservation not updated", error.message || "Unable to update this reservation.");
       return false;
     }
 
@@ -351,7 +313,7 @@ export default function ReservationDesk({
     const current = reservations.find((entry) => entry.id === booking.id);
     if (current?.status === "pending") return current;
 
-    window.alert("This reservation was already handled, so nothing was changed.");
+    showError("Already handled", "This reservation was already handled, so nothing was changed.");
     setPaymentCheckTarget(null);
     return null;
   };
@@ -419,9 +381,14 @@ export default function ReservationDesk({
     // If the guest was already checked in from the table card, only the booking is updated.
     const bookingTable = tables.find((entry) => isBookingTable(entry, booking));
     const alreadyPlaying = nextStatus === "seated" && isGuestPlaying(bookingTable, booking);
-    const seatingBlock = nextStatus === "seated" && !alreadyPlaying ? getSeatingBlock(bookingTable, booking) : "";
+    // Checked again on click: the buttons are off when blocked, but the page may
+    // have sat open while the table or the clock moved on.
+    const seatingBlock =
+      nextStatus === "seated" && !alreadyPlaying
+        ? getReservationIssues({ booking, tables, reservations, now: new Date() }).seatBlock
+        : "";
     if (seatingBlock) {
-      window.alert(seatingBlock);
+      showError(`Can't seat ${booking.customerName} yet`, seatingBlock);
       return;
     }
 
@@ -429,7 +396,8 @@ export default function ReservationDesk({
     if (nextStatus === "arrived") {
       const arrival = getArrivalWindow(booking);
       if (!arrival.open) {
-        window.alert(
+        showError(
+          "Not in the check-in window",
           `${booking.customerName} can be marked arrived only from the reserved time until ${RESERVATION_GRACE_MINUTES} minutes after it. ${arrival.note}.`
         );
         return;
@@ -541,6 +509,7 @@ export default function ReservationDesk({
       <ReservationQueue
         reservations={visibleReservations}
         allReservations={reservations}
+        tables={tables}
         reservationFilter={reservationFilter}
         setReservationFilter={setReservationFilter}
         onBookingStatus={handleBookingStatus}

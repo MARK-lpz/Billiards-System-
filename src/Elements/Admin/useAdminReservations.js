@@ -145,47 +145,16 @@ export default function useAdminReservations({
     const tableId = Number(reservation.tableId ?? reservation.table);
     if (!tableId) return;
 
-    if (nextStatus === "approved") {
-      reserveTable(tableId, reservation);
-      return;
-    }
+    // An approved booking marks its table Reserved only once it is due, which
+    // App.jsx does for every table (tableHolds.js).
+    if (nextStatus === "approved") return;
 
-    if (previousStatus === "approved" && ["rejected", "completed", "pending", "expired"].includes(nextStatus)) {
+    if (previousStatus === "approved"&& ["rejected", "completed", "pending", "expired"].includes(nextStatus)) {
       releaseTable(tableId, reservation, nextStatus);
     }
   };
 
-  const reserveTable = (tableId, reservation) => {
-    if (!setTables) return;
-
-    setTables((prev) => {
-      const matchingTable = prev.find((table) => isReservationTable(table, tableId, reservation));
-      const reservationDetails = {
-        status: "reserved",
-        startTime: null,
-        customer: reservation.customerName || reservation.customer || "",
-        reservationId: reservation.id,
-        reservationDate: reservation.date || "",
-        reservationTime: reservation.time || "",
-      };
-
-      if (!matchingTable) {
-        console.warn(`Unable to find ${reservation.tableName || `table ${tableId}`} in the configured pool tables.`);
-        return prev;
-      }
-
-      // Only a free or reserved table is marked, as the sync below also does: one
-      // that is occupied, being cleaned or under maintenance keeps its state
-      // (marking it reserved wiped a running session and its bill).
-      return prev.map((table) =>
-        isReservationTable(table, tableId, reservation) && ["available", "reserved"].includes(table.status)
-          ? { ...table, ...reservationDetails }
-          : table
-      );
-    });
-  };
-
-  const releaseTable = (tableId, reservation, nextStatus) => {
+const releaseTable = (tableId, reservation, nextStatus) => {
     if (!setTables) return;
 
     // A guest still playing when their booking is completed has finished their
@@ -388,7 +357,7 @@ export default function useAdminReservations({
 
     const approvedReservations = reservations.filter((reservation) => reservation.status === "approved");
 
-    setTables((prev) => syncApprovedReservationsToTables(prev, approvedReservations));
+    setTables((prev) => removeGeneratedTableCards(prev, approvedReservations));
   }, [reservations, setTables]);
 
   return {
@@ -474,8 +443,9 @@ const buildReservationAudit = (reservation, previousStatus, nextStatus) => {
   };
 };
 
-const syncApprovedReservationsToTables = (tables, approvedReservations) => {
-  let changed = false;
+// Older versions added an extra table card for a booking whose table name did not
+// match; those copies are removed. Marking tables Reserved is done in App.jsx.
+const removeGeneratedTableCards = (tables, approvedReservations) => {
   const generatedTableCards = new Set();
 
   approvedReservations.forEach((reservation) => {
@@ -490,41 +460,5 @@ const syncApprovedReservationsToTables = (tables, approvedReservations) => {
     });
   });
 
-  const nextTables = tables.filter((table) => !generatedTableCards.has(table));
-  changed = generatedTableCards.size > 0;
-
-  approvedReservations.forEach((reservation) => {
-    const tableId = Number(reservation.tableId ?? reservation.table);
-    const index = nextTables.findIndex((table) => isReservationTable(table, tableId, reservation));
-    const reservationDetails = {
-      status: "reserved",
-      startTime: null,
-      customer: reservation.customerName || reservation.customer || "",
-      reservationId: reservation.id,
-      reservationDate: reservation.date || "",
-      reservationTime: reservation.time || "",
-    };
-
-    if (index === -1) {
-      console.warn(`Unable to find ${reservation.tableName || `table ${tableId}`} in the configured pool tables.`);
-      return;
-    }
-
-    const table = nextTables[index];
-    if (!["available", "reserved"].includes(table.status)) return;
-
-    const hasSameReservation =
-      table.status === "reserved" &&
-      table.reservationId === reservationDetails.reservationId &&
-      table.customer === reservationDetails.customer &&
-      table.reservationDate === reservationDetails.reservationDate &&
-      table.reservationTime === reservationDetails.reservationTime;
-
-    if (hasSameReservation) return;
-
-    nextTables[index] = { ...table, ...reservationDetails };
-    changed = true;
-  });
-
-  return changed ? nextTables : tables;
+  return generatedTableCards.size ? tables.filter((table) => !generatedTableCards.has(table)) : tables;
 };

@@ -10,7 +10,7 @@ import Menu from "../../Elements/Global/Menu";
 import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
 import Toast from "../../Elements/Global/Toast";
 import { useNotifications } from "../../Elements/Global/useNotifications";
-import { formatHoursLabel } from "../../utils/reservations";
+import { formatHoursLabel, getExtensionBlock } from "../../utils/reservations";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
 import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
 
@@ -91,6 +91,12 @@ export default function Dashboard({
   // Pool Tables, so it cannot rely on that page's own handlers.
   const addTableTime = (id, minutes) => {
     const table = tables.find((entry) => entry.id === id);
+    // More time must end before the table's next booking.
+    const extensionBlock = getExtensionBlock({ table, reservations, minutes });
+    if (extensionBlock) {
+      showToast({ tone: "error", icon: "bi-calendar-x", title: "Time not added", message: extensionBlock });
+      return;
+    }
     setTables((previous) =>
       previous.map((entry) =>
         entry.id === id
@@ -197,15 +203,17 @@ export default function Dashboard({
         />;
       
       case 'events':
-        return <Events 
+        return <Events
           events={events}
           setEvents={setEvents}
           tables={tables}
+          reservations={reservations}
         />;
       
       case 'equipment':
         return <Equipment 
           equipment={equipment}
+          tables={tables}
           setEquipment={setEquipment}
           logs={logs}
           setLogs={setLogs}
@@ -273,7 +281,7 @@ export default function Dashboard({
   return (
     <>
       <LoadingBar loading={loading} />
-      <TimeUpAlert tables={tables} onAddTime={addTableTime} onEndSession={endTableSession} />
+      <TimeUpAlert tables={tables} reservations={reservations} onAddTime={addTableTime} onEndSession={endTableSession} />
       {/* "Open POS" on a bill's note; hidden when already there. */}
       <Toast
         actions={{

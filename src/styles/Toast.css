@@ -80,6 +80,10 @@
   color: #ffffff;
 }
 
+/* A refused action: red edge and icon instead of green */
+.app-toast--error { border-left-color: #f87171; }
+.app-toast--error .app-toast-icon { color: #f87171; }
+
 .light .app-toast {
   border-color: var(--border);
   border-left-color: #047857;
@@ -89,6 +93,8 @@
 }
 
 .light .app-toast-icon { color: #047857; }
+.light .app-toast--error { border-left-color: #dc2626; }
+.light .app-toast--error .app-toast-icon { color: #dc2626; }
 .light .app-toast-title { color: var(--text-primary); }
 .light .app-toast-message { color: var(--text-secondary); }
 

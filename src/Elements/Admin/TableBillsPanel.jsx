@@ -1,5 +1,6 @@
 import { formatHoursLabel } from "../../utils/reservations";
 import { formatClockTime } from "../../utils/tableCharges";
+import { findChargeBill, getChargeTarget } from "../../utils/posBills";
 
 const fmtPeso = (value) =>
   `₱${Number(value || 0).toLocaleString("en-PH", {
@@ -8,10 +9,11 @@ const fmtPeso = (value) =>
   })}`;
 
 /**
- * Ended table sessions waiting to be paid. Staff add one to the running bill so
- * the customer pays table time and food in one payment, on one receipt.
+ * Ended table sessions waiting to be paid. Staff add one to a bill so the
+ * customer pays table time and food in one payment, on one receipt. Each goes
+ * to its own table's bill, never onto another table's.
  */
-export default function TableBillsPanel({ charges = [], cart = [], onAddToBill }) {
+export default function TableBillsPanel({ charges = [], bills = [], activeBill = null, onAddToBill }) {
   return (
     <div className="table-bills-panel">
       <div className="table-bills-header">
@@ -29,10 +31,16 @@ export default function TableBillsPanel({ charges = [], cart = [], onAddToBill }
       ) : (
         <div className="table-bills-list">
           {charges.map((charge) => {
-            const onBill = cart.some((item) => item.chargeId === charge.id);
+            const chargeBill = findChargeBill(bills, charge.id);
+            const target = chargeBill ? null : getChargeTarget({ charge, bills, activeBill });
+            const destination = chargeBill
+              ? `On ${chargeBill.label}`
+              : target
+                ? `Adds to ${target.label}`
+                : `Opens a new bill for ${charge.tableName}`;
 
             return (
-              <div key={charge.id} className={`table-bill-card ${onBill ? "on-bill" : ""}`}>
+              <div key={charge.id} className={`table-bill-card ${chargeBill ? "on-bill" : ""}`}>
                 <div className="table-bill-main">
                   <div className="table-bill-title">
                     <strong>{charge.tableName}</strong>
@@ -47,6 +55,10 @@ export default function TableBillsPanel({ charges = [], cart = [], onAddToBill }
                       {fmtPeso(charge.prepaid.amount)} already paid online · only the added time is due
                     </div>
                   )}
+                  <div className="table-bill-destination">
+                    <i className={`bi ${chargeBill ? "bi-check2-circle" : "bi-arrow-return-right"}`}></i>
+                    {destination}
+                  </div>
                 </div>
 
                 <div className="table-bill-side">
@@ -55,10 +67,10 @@ export default function TableBillsPanel({ charges = [], cart = [], onAddToBill }
                     type="button"
                     className="table-bill-btn"
                     onClick={() => onAddToBill(charge)}
-                    disabled={onBill}
+                    disabled={Boolean(chargeBill)}
                   >
-                    <i className={`bi ${onBill ? "bi-check2" : "bi-plus-lg"}`}></i>
-                    {onBill ? "On Bill" : "Add to Bill"}
+                    <i className={`bi ${chargeBill ? "bi-check2" : "bi-plus-lg"}`}></i>
+                    {chargeBill ? "On Bill" : "Add to Bill"}
                   </button>
                 </div>
               </div>

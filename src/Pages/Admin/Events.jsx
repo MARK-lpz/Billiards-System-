@@ -13,6 +13,7 @@ import {
   getEventScheduleError,
   getScheduleChange,
 } from "../../utils/eventUpdates";
+import { getEventErrors } from "../../utils/formValidation";
 
 // When staff cancelled or moved an event, as shown to players on the website.
 const getCurrentIsoTime = () => new Date().toISOString();
@@ -53,7 +54,7 @@ const formatEventStart = (event) => {
   });
 };
 
-export default function Events({ events, setEvents, tables }) {
+export default function Events({ events, setEvents, tables, reservations = [] }) {
   const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
@@ -71,7 +72,8 @@ export default function Events({ events, setEvents, tables }) {
     entryFee: 0,
     status: "upcoming",
     gameType: "8-ball",
-    tables: []
+    tables: [],
+    media: [],
   });
 
   const resolveAssignedTables = (assignedTables = []) =>
@@ -88,12 +90,15 @@ export default function Events({ events, setEvents, tables }) {
   // An edit that keeps the event's date and time is fine even once it has
   // passed; a new event, or a new date or time, must still be ahead.
   const scheduleError = !form.id || scheduleChange ? getEventScheduleError(form.date, form.time) : "";
+  // Name, money and tables: a tournament holds its tables all day, so they must be free that day.
+  const eventErrors = modal ? getEventErrors({ form, events, tables, reservations }) : {};
 
   const save = () => {
     if (scheduleError) {
       window.alert(scheduleError);
       return;
     }
+    if (Object.keys(eventErrors).length) return;
 
     const normalizedTables = resolveAssignedTables(form.tables);
     // A new date or time is published as a reschedule, so players see both.
@@ -105,13 +110,15 @@ export default function Events({ events, setEvents, tables }) {
         }
       : null;
 
+    // Stored clean: a trimmed name and numbers, whatever the inputs held.
+    const cleaned = { ...form, name: form.name.trim(), prize: Number(form.prize) || 0, entryFee: Number(form.entryFee) || 0 };
     setEvents((prev) => {
       if (form.id) {
         return prev.map((event) =>
           event.id === form.id
             ? {
                 ...event,
-                ...form,
+                ...cleaned,
                 tables: normalizedTables,
                 participants: event.participants || [],
                 rescheduleReason: event.rescheduleReason || "",
@@ -125,7 +132,7 @@ export default function Events({ events, setEvents, tables }) {
         ...prev,
         {
           id: Date.now(),
-          ...form,
+          ...cleaned,
           participants: [],
           tables: normalizedTables,
         },
@@ -133,8 +140,8 @@ export default function Events({ events, setEvents, tables }) {
     });
     addNotification({
       message: rescheduleDetails
-        ? `${form.name} rescheduled to ${formatEventWhen(form.date, form.time)}. The website now shows the new schedule.`
-        : `${form.name} event ${form.id ? "updated" : "created"}.`,
+        ? `${cleaned.name} rescheduled to ${formatEventWhen(form.date, form.time)}. The website now shows the new schedule.`
+        : `${cleaned.name} event ${form.id ? "updated" : "created"}.`,
     });
     setModal(null);
   };
@@ -206,6 +213,7 @@ export default function Events({ events, setEvents, tables }) {
       status: event.status || "upcoming",
       gameType: event.gameType || "8-ball",
       tables: event.tables || [],
+      media: event.media || [],
       rescheduleReason: "",
     });
     setModal("form");
@@ -239,7 +247,7 @@ export default function Events({ events, setEvents, tables }) {
         <button 
           className="btn btn-success events-add-btn" 
           onClick={() => { 
-            setForm({ name: "", date: "", time: "", prize: 0, entryFee: 0, status: "upcoming", gameType: "8-ball", tables: [] }); 
+            setForm({ name: "", date: "", time: "", prize: 0, entryFee: 0, status: "upcoming", gameType: "8-ball", tables: [], media: [] }); 
             setModal("form"); 
           }}
         >
@@ -362,6 +370,7 @@ export default function Events({ events, setEvents, tables }) {
           isEdit={Boolean(form.id)}
           scheduleChange={scheduleChange}
           scheduleError={scheduleError}
+          errors={eventErrors}
           onClose={() => setModal(null)}
           onSave={save}
         />

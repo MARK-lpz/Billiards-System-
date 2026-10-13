@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatHoursLabel } from "../../utils/reservations";
+import { formatHoursLabel, getExtensionLimit } from "../../utils/reservations";
 import { formatPeso, getSessionEnd, getSessionTotal } from "../../utils/tableSession";
 
 const clock = (ms) =>
@@ -13,7 +13,7 @@ const alertKey = (table) => `${table.id}:${table.startTime}:${table.durationMinu
  * The session is not ended for them: the table stays occupied until they add
  * time or end it here, so a customer who wants more time can simply get it.
  */
-export default function TimeUpAlert({ tables = [], onAddTime, onEndSession }) {
+export default function TimeUpAlert({ tables = [], reservations = [], onAddTime, onEndSession }) {
   const [now, setNow] = useState(() => Date.now());
   // Alerts closed with "Later"; the card still shows the timer has stopped.
   const [dismissed, setDismissed] = useState([]);
@@ -47,6 +47,8 @@ export default function TimeUpAlert({ tables = [], onAddTime, onEndSession }) {
   const tableName = table.name || `Table ${table.id}`;
   const customer = table.customer || "The customer";
   const otherCount = finished.length - 1;
+  // More time must end before the table's next booking.
+  const { maxMinutes, nextBooking } = getExtensionLimit({ table, reservations });
 
   return (
     <>
@@ -74,14 +76,23 @@ export default function TimeUpAlert({ tables = [], onAddTime, onEndSession }) {
                 The table stays occupied until you add time or end the session.
                 {otherCount > 0 && ` ${otherCount} more ${otherCount === 1 ? "table has" : "tables have"} also run out.`}
               </p>
+              {nextBooking && maxMinutes < 60 && (
+                <p className="form-blocked-note" role="status">
+                  <i className="bi bi-calendar-x" aria-hidden="true"></i>
+                  <span>
+                    {tableName} is booked at {nextBooking.label} ({nextBooking.customer}).{" "}
+                    {maxMinutes > 0 ? `At most ${maxMinutes} more minutes can be added.` : "No more time can be added."}
+                  </span>
+                </p>
+              )}
             </div>
 
             <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={() => onAddTime(table.id, 30)}>
+              <button type="button" className="btn btn-secondary" onClick={() => onAddTime(table.id, 30)} disabled={maxMinutes < 30}>
                 <i className="bi bi-plus-circle"></i>
                 30 min
               </button>
-              <button type="button" className="btn btn-secondary" onClick={() => onAddTime(table.id, 60)}>
+              <button type="button" className="btn btn-secondary" onClick={() => onAddTime(table.id, 60)} disabled={maxMinutes < 60}>
                 <i className="bi bi-plus-circle"></i>
                 1 hour
               </button>

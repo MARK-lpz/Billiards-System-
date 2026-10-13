@@ -4,7 +4,7 @@
   const getCategoryColor = (category) => {
     const colors = {
       Beverage: ["#60a5fa", "#1d4ed8"],
-      Food: ["#10b981", "#047857"],
+      Food: ["#10b981", "#065f46"],
       Equipment: ["#fbbf24", "#b45309"],
     };
     return colors[category] || ["#9ca3af", "#475569"];

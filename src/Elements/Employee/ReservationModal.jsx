@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
 import { RESERVATION_CUTOFF_TIME, getReservationScheduleError, getTodayDate } from "../../utils/reservations";
+import { MAX_PARTY_SIZE, getCustomerNameError, getPartySizeError } from "../../utils/reservationIssues";
 
 export default function ReservationModal({
   mode,
@@ -21,6 +22,9 @@ export default function ReservationModal({
   // Required: every booking must have a number to reach the customer, and the
   // server refuses bookings without one.
   const phoneIsValid = isValidSmsNumber(reservationForm.phone);
+  // Checked once something is typed, so an empty form does not open full of red.
+  const nameError = reservationForm.customerName ? getCustomerNameError(reservationForm.customerName) : "";
+  const partySizeError = getPartySizeError(reservationForm.partySize);
   // Shown as soon as a past date is picked, not only when Save is pressed.
   const scheduleError = getReservationScheduleError(reservationForm.date, reservationForm.time);
   // A table picked before the date or time changed may no longer be offered;
@@ -115,6 +119,8 @@ export default function ReservationModal({
                   <input
                     className="rd-input"
                     placeholder="Customer name"
+                    aria-invalid={Boolean(nameError)}
+                    maxLength={50}
                     value={reservationForm.customerName}
                     onChange={(e) =>
                       setReservationForm((prev) => ({
@@ -123,6 +129,7 @@ export default function ReservationModal({
                       }))
                     }
                   />
+                  {nameError && <p className="rd-field-warning" role="alert">{nameError}</p>}
 
                   <input
                     className="rd-input"
@@ -174,7 +181,10 @@ export default function ReservationModal({
                     className="rd-input"
                     type="number"
                     min="1"
+                    max={MAX_PARTY_SIZE}
+                    step="1"
                     placeholder="Party size"
+                    aria-invalid={Boolean(partySizeError)}
                     value={reservationForm.partySize}
                     onChange={(e) =>
                       setReservationForm((prev) => ({
@@ -183,6 +193,7 @@ export default function ReservationModal({
                       }))
                     }
                   />
+                  {partySizeError && <p className="rd-field-warning" role="alert">{partySizeError}</p>}
 
                   <select
                     className="rd-select"
@@ -216,7 +227,9 @@ export default function ReservationModal({
                     type="submit"
                     disabled={
                       !reservationForm.customerName.trim() ||
+                      Boolean(nameError) ||
                       !phoneIsValid ||
+                      Boolean(partySizeError) ||
                       !reservationForm.date ||
                       !reservationForm.time ||
                       Boolean(scheduleError) ||

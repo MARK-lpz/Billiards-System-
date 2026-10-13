@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import "../../styles/Guest/GuestLanding.css";
+import "../../styles/Guest/EventMedia.css";
+import { eventMediaUrl, getEventCover } from "../../utils/eventMedia";
 import { RESERVATION_CLOSED_HOURS_MESSAGE, isOutsideReservationHours } from "../../utils/reservations";
 import { formatEventWhen, getDateTile, getEventNotices, getOpenEvents, wasRescheduled } from "../../utils/eventUpdates";
 
@@ -7,18 +9,28 @@ import { formatEventWhen, getDateTile, getEventNotices, getOpenEvents, wasResche
 const isOnlineReservationClosed = () => isOutsideReservationHours();
 
 // The showcase at the top of the page: one picture, shown with each slide's words.
-const slides = [
+// Open tournaments with a promo picture or video come first (see promoSlides).
+const brandSlides = [
   {
+    key: "brand-1",
     title: "Play. Compete. Unwind.",
     copy: "Break & Chill is your place for casual games, serious practice, and tournament play.",
     position: "center",
   },
   {
+    key: "brand-2",
     title: "Your Next Game Starts Here",
     copy: "Enjoy a focused billiards space built for players, teams, and friendly competition.",
     position: "bottom",
   },
 ];
+
+// At most this many tournaments get a slide, soonest first.
+const PROMO_SLIDE_LIMIT = 5;
+
+// Visitors who ask for less motion get promo videos paused, with their controls.
+const prefersReducedMotion =
+  typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
 // The showcase moves to the next slide on its own after this long.
 const SLIDE_INTERVAL = 5000;
@@ -26,6 +38,9 @@ const SLIDE_INTERVAL = 5000;
 const registrationQrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=520x520&data=https%3A%2F%2Fbreakandchill.com%2F&bgcolor=ffffff&color=0b0d0c&margin=12&format=png";
 
 const formatPrize = (amount) => `₱${Number(amount || 0).toLocaleString("en-PH")}`;
+
+// "9-ball" reads "9-Ball", "straight-pool" reads "Straight-Pool".
+const formatGameType = (type) => String(type || "").replace(/(^|[\s-])([a-z])/g, (match, gap, letter) => gap + letter.toUpperCase());
 
 // How an online booking goes, each step on a numbered ball in that ball's color.
 const bookingSteps = [
@@ -69,17 +84,28 @@ export default function GuestLanding({
     return () => window.clearInterval(interval);
   }, []);
 
+  // Each open tournament with a promo picture or video gets its own slide.
+  const promoSlides = getOpenEvents(events, now)
+    .map((event) => ({ event, cover: getEventCover(event) }))
+    .filter(({ cover }) => cover)
+    .slice(0, PROMO_SLIDE_LIMIT)
+    .map(({ event, cover }) => ({ key: `event-${event.id}`, title: event.name, event, cover }));
+  const slides = [...promoSlides, ...brandSlides];
+  const slideCount = slides.length;
+  // A tournament that drops off can leave the index past the end.
+  const shownSlide = Math.min(activeSlide, slideCount - 1);
+
   // Moves on by itself. Any slide change (by hand too) restarts the wait, so a
   // picked slide gets its full time. Visitors who ask for less motion are not
   // moved; they still have the arrows and bars.
   useEffect(() => {
-    if (showcasePaused || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return undefined;
+    if (showcasePaused || prefersReducedMotion) return undefined;
     const timer = window.setTimeout(() => {
-      setActiveSlide((current) => (current + 1) % slides.length);
+      setActiveSlide((current) => (Math.min(current, slideCount - 1) + 1) % slideCount);
     }, SLIDE_INTERVAL);
 
     return () => window.clearTimeout(timer);
-  }, [activeSlide, showcasePaused]);
+  }, [activeSlide, showcasePaused, slideCount]);
 
   // Cancelled and rescheduled tournaments are announced; open ones can be joined.
   const notices = getEventNotices(events, now);
@@ -90,7 +116,7 @@ export default function GuestLanding({
   ].sort((first, second) => String(first.event.date || "9999").localeCompare(String(second.event.date || "9999")));
 
   const changeSlide = (direction) => {
-    setActiveSlide((current) => (current + direction + slides.length) % slides.length);
+    setActiveSlide((current) => (Math.min(current, slideCount - 1) + direction + slideCount) % slideCount);
   };
 
   return (
@@ -165,19 +191,74 @@ export default function GuestLanding({
         >
           <div
             className="guest-carousel-track"
-            style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+            style={{ transform: `translateX(-${shownSlide * 100}%)` }}
             aria-live={showcasePaused ? "polite" : "off"}
           >
-            {slides.map((slide, index) => (
-              <div key={slide.title} className="guest-carousel-slide" aria-hidden={index !== activeSlide}>
-                <img src="/guest-billiards-hero.png" alt="" style={{ objectPosition: slide.position }} />
-                <div className="guest-carousel-caption">
-                  <p>BREAK &amp; CHILL BILLIARD HALL</p>
-                  {index === activeSlide ? <h1>{slide.title}</h1> : <h2>{slide.title}</h2>}
-                  <span>{slide.copy}</span>
+            {slides.map((slide, index) => {
+              const active = index === shownSlide;
+              const Heading = active ? "h1" : "h2";
+
+              if (slide.event) {
+                const { event, cover } = slide;
+                return (
+                  <div key={slide.key} className="guest-carousel-slide guest-promo-slide" aria-hidden={!active} inert={!active}>
+                    {cover.type === "image" && <img className="guest-promo-backdrop" src={eventMediaUrl(cover)} alt="" />}
+                    <div className="guest-promo">
+                      <div className="guest-promo-copy">
+                        <p>
+                          <i className="bi bi-trophy-fill" aria-hidden="true"></i> Tournament ·{" "}
+                          {formatEventWhen(event.date, event.time)}
+                        </p>
+                        <Heading>{event.name}</Heading>
+                        <span>
+                          Prize pool {formatPrize(event.prize)} ·{" "}
+                          {Number(event.entryFee) > 0 ? `Entry ${formatPrize(event.entryFee)}` : "Free entry"}
+                          {event.gameType ? ` · ${formatGameType(event.gameType)}` : ""}
+                        </span>
+                        <div className="guest-promo-actions">
+                          <button type="button" className="guest-template-primary" onClick={() => onOpenTournamentForm(event.id)}>
+                            Register
+                            <i className="bi bi-arrow-right"></i>
+                          </button>
+                          <button type="button" className="guest-template-secondary" onClick={onOpenTournaments}>
+                            Details
+                          </button>
+                        </div>
+                      </div>
+                      <div className="guest-promo-media">
+                        {cover.type === "video" ? (
+                          active && (
+                            <video
+                              src={eventMediaUrl(cover)}
+                              muted
+                              loop
+                              playsInline
+                              autoPlay={!prefersReducedMotion}
+                              controls={prefersReducedMotion}
+                              preload="metadata"
+                              aria-label={`${event.name} video`}
+                            />
+                          )
+                        ) : (
+                          <img src={eventMediaUrl(cover)} alt={`${event.name} poster`} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={slide.key} className="guest-carousel-slide" aria-hidden={!active} inert={!active}>
+                  <img src="/guest-billiards-hero.png" alt="" style={{ objectPosition: slide.position }} />
+                  <div className="guest-carousel-caption">
+                    <p>BREAK &amp; CHILL BILLIARD HALL</p>
+                    <Heading>{slide.title}</Heading>
+                    <span>{slide.copy}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <button type="button" className="guest-carousel-control guest-carousel-control-prev" onClick={() => changeSlide(-1)} aria-label="Previous slide">
             <i className="bi bi-chevron-left" aria-hidden="true"></i>
@@ -188,12 +269,12 @@ export default function GuestLanding({
           <div className="guest-carousel-indicators">
             {slides.map((slide, index) => (
               <button
-                key={slide.title}
+                key={slide.key}
                 type="button"
-                className={index === activeSlide ? "is-active" : ""}
+                className={index === shownSlide ? "is-active" : ""}
                 onClick={() => setActiveSlide(index)}
                 aria-label={`Show ${slide.title}`}
-                aria-current={index === activeSlide ? "true" : undefined}
+                aria-current={index === shownSlide ? "true" : undefined}
               />
             ))}
           </div>

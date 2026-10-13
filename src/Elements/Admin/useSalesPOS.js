@@ -3,6 +3,15 @@ import { nowStr, readStorage, todayStr } from "./salesPosConfig";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../Global/useNotifications";
 import { toTableChargeLine } from "../../utils/tableCharges";
+import { buildBillLabel, createBill, findChargeBill, getChargeTarget } from "../../utils/posBills";
+
+// One shared empty list, so "no bill picked" does not hand out a new array every render.
+const NO_ITEMS = [];
+
+// The single running bill from before bills were split per table.
+const LEGACY_BILL_ID = "bill-legacy";
+
+const newBillId = () => `bill-${Date.now()}`;
 
 const isCompletedTicket = (ticket) =>
   ticket.status === "served" || ticket.items.every((item) => item.served);
@@ -14,8 +23,36 @@ const toServedTicket = (ticket) => ({
   items: ticket.items.map((item) => ({ ...item, served: true })),
 });
 
-const getPendingTickets = (storageKeyPrefix) =>
-  readStorage(`${storageKeyPrefix}:tickets`, []).filter((ticket) => !isCompletedTicket(ticket));
+const getLegacyBill = (storageKeyPrefix) => {
+  if (readStorage(`${storageKeyPrefix}:bills`, null)) return null;
+
+  const cart = readStorage(`${storageKeyPrefix}:cart`, []);
+  return cart.length ? { ...createBill({ id: LEGACY_BILL_ID }), cart } : null;
+};
+
+const getOpenBills = (storageKeyPrefix) => {
+  const legacyBill = getLegacyBill(storageKeyPrefix);
+  return legacyBill ? [legacyBill] : readStorage(`${storageKeyPrefix}:bills`, []);
+};
+
+const getActiveBillId = (storageKeyPrefix) =>
+  getLegacyBill(storageKeyPrefix) ? LEGACY_BILL_ID : readStorage(`${storageKeyPrefix}:active-bill`, null);
+
+// Tickets from before bills were split go with the old single bill: its own
+// ticket when it had one, or else every waiting ticket, as it was searched then.
+const getPendingTickets = (storageKeyPrefix) => {
+  const tickets = readStorage(`${storageKeyPrefix}:tickets`, []).filter((ticket) => !isCompletedTicket(ticket));
+  const legacyBill = getLegacyBill(storageKeyPrefix);
+  if (!legacyBill) return tickets;
+
+  const legacyTicketId = readStorage(`${storageKeyPrefix}:active-ticket`, null);
+  const hasOwnTicket = tickets.some((ticket) => ticket.id === legacyTicketId);
+  return tickets.map((ticket) =>
+    ticket.billId || (hasOwnTicket && ticket.id !== legacyTicketId)
+      ? ticket
+      : { ...ticket, billId: LEGACY_BILL_ID, billLabel: legacyBill.label }
+  );
+};
 
 const getServedTickets = (storageKeyPrefix) => {
   const savedTickets = readStorage(`${storageKeyPrefix}:served-tickets`, []);
@@ -28,6 +65,8 @@ const getServedTickets = (storageKeyPrefix) => {
   return [...migratedTickets, ...savedTickets];
 };
 
+const sumBill = (cart) => Number(cart.reduce((sum, item) => sum + item.price * item.qty, 0).toFixed(2));
+
 export default function useSalesPOS({
   products,
   setProducts,
@@ -39,7 +78,11 @@ export default function useSalesPOS({
   storageKeyPrefix,
 }) {
   const { addNotification } = useNotifications();
-  const [cart, setCart] = useState(() => readStorage(`${storageKeyPrefix}:cart`, []));
+  // Every open bill, one per table or walk-in customer, each with its own items.
+  const [bills, setBills] = useState(() => getOpenBills(storageKeyPrefix));
+  // The bill being rung up. None is picked after a payment, so the next item
+  // tapped starts a new bill instead of landing on another table's.
+  const [activeBillId, setActiveBillId] = useState(() => getActiveBillId(storageKeyPrefix));
   const [method, setMethod] = useState(() => readStorage(`${storageKeyPrefix}:method`, "cash"));
   const [receipt, setReceipt] = useState(null);
   const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
@@ -48,21 +91,44 @@ export default function useSalesPOS({
   const [tab, setTab] = useState("billing");
   const [orderTickets, setOrderTickets] = useState(() => getPendingTickets(storageKeyPrefix));
   const [servedOrderTickets, setServedOrderTickets] = useState(() => getServedTickets(storageKeyPrefix));
-  // The order ticket of the bill being rung up, which new items are added to.
-  const [activeTicketId, setActiveTicketId] = useState(() => readStorage(`${storageKeyPrefix}:active-ticket`, null));
   const [stockAlert, setStockAlert] = useState(null);
 
   useEffect(() => {
     try {
-      localStorage.setItem(`${storageKeyPrefix}:cart`, JSON.stringify(cart));
+      localStorage.setItem(`${storageKeyPrefix}:bills`, JSON.stringify(bills));
+      localStorage.setItem(`${storageKeyPrefix}:active-bill`, JSON.stringify(activeBillId));
       localStorage.setItem(`${storageKeyPrefix}:method`, JSON.stringify(method));
       localStorage.setItem(`${storageKeyPrefix}:tickets`, JSON.stringify(orderTickets));
       localStorage.setItem(`${storageKeyPrefix}:served-tickets`, JSON.stringify(servedOrderTickets));
-      localStorage.setItem(`${storageKeyPrefix}:active-ticket`, JSON.stringify(activeTicketId));
+      // The single bill's keys, now carried by the open bills above.
+      localStorage.removeItem(`${storageKeyPrefix}:cart`);
+      localStorage.removeItem(`${storageKeyPrefix}:active-ticket`);
     } catch (error) {
       console.warn("Unable to persist POS state", error);
     }
-  }, [cart, method, orderTickets, servedOrderTickets, activeTicketId, storageKeyPrefix]);
+  }, [bills, activeBillId, method, orderTickets, servedOrderTickets, storageKeyPrefix]);
+
+  const activeBill = bills.find((bill) => bill.id === activeBillId) || null;
+  const cart = activeBill ? activeBill.cart : NO_ITEMS;
+
+  const updateBillCart = (billId, update) =>
+    setBills((prev) =>
+      prev.map((bill) =>
+        bill.id === billId ? { ...bill, cart: typeof update === "function" ? update(bill.cart) : update } : bill
+      )
+    );
+  const setCart = (update) => updateBillCart(activeBillId, update);
+
+  const openNewBill = ({ table = null, customer = "" } = {}) => {
+    const bill = createBill({ id: newBillId(), table, customer, bills, openedAt: nowStr() });
+    setBills((prev) => [...prev, bill]);
+    setActiveBillId(bill.id);
+    setStockAlert(null);
+    return bill;
+  };
+
+  // Tapping an item with no bill picked starts a walk-in bill, as the one bill did before.
+  const ensureActiveBill = () => activeBill || openNewBill();
 
   const cats = ["All", ...new Set(products.map((product) => product.category).filter(Boolean))];
   const filteredProducts = products.filter((product) => {
@@ -83,9 +149,9 @@ export default function useSalesPOS({
   const unpaidChargeIds = new Set(unpaidTableCharges.map((charge) => charge.id));
   const isStaleTableLine = (item) => item.isTableCharge && !unpaidChargeIds.has(item.chargeId);
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const subtotal = sumBill(cart);
   const discAmt = 0;
-  const total = Number(subtotal.toFixed(2));
+  const total = subtotal;
 
   const pendingItemsCount = orderTickets.reduce(
     (sum, ticket) => sum + ticket.items.filter((item) => !item.served).length,
@@ -94,6 +160,30 @@ export default function useSalesPOS({
   const servedItemsCount = servedOrderTickets.reduce(
     (sum, ticket) => sum + ticket.items.reduce((itemTotal, item) => itemTotal + item.qty, 0),
     0
+  );
+
+  /** How many items on a bill are still waiting to be served. */
+  const getBillWaitingQty = (billId) =>
+    orderTickets
+      .filter((ticket) => ticket.billId === billId)
+      .flatMap((ticket) => ticket.items)
+      .filter((line) => !line.served)
+      .reduce((sum, line) => sum + line.qty, 0);
+
+  const openBills = bills.map((bill) => ({
+    id: bill.id,
+    label: bill.label,
+    tableId: bill.tableId,
+    total: sumBill(bill.cart),
+    lineCount: bill.cart.length,
+    waitingQty: getBillWaitingQty(bill.id),
+  }));
+  const openBillsTotal = Number(openBills.reduce((sum, bill) => sum + bill.total, 0).toFixed(2));
+
+  const billWaitingQty = activeBill ? getBillWaitingQty(activeBill.id) : 0;
+  const billServedQty = Math.max(
+    0,
+    inventoryCartItems.reduce((sum, item) => sum + (item.syncedQty || 0), 0) - billWaitingQty
   );
 
   const getMaxAllowedQty = (productId, syncedQty = 0) => {
@@ -112,14 +202,14 @@ export default function useSalesPOS({
     );
   };
 
-  // Everything added to one running bill goes on one order ticket, so the queue
-  // shows one receipt per order instead of a ticket for every item tapped. A new
-  // ticket starts once the bill is paid or its ticket has been fully served.
-  const queueInventoryItems = (itemsToQueue) => {
-    if (!itemsToQueue.length) return;
+  // Everything added to one bill goes on one order ticket, named after the bill,
+  // so the queue shows one order per table instead of a ticket for every item
+  // tapped. A new ticket starts once the bill's ticket has been fully served.
+  const queueInventoryItems = (itemsToQueue, bill = activeBill) => {
+    if (!itemsToQueue.length || !bill) return;
 
     const stamp = Date.now();
-    const openTicket = orderTickets.find((ticket) => ticket.id === activeTicketId);
+    const openTicket = orderTickets.find((ticket) => ticket.billId === bill.id);
     const ticketId = openTicket ? openTicket.id : stamp;
     const toLine = (item) => ({
       id: `${item.id}-${stamp}`,
@@ -134,7 +224,15 @@ export default function useSalesPOS({
     setOrderTickets((prev) => {
       const current = prev.find((ticket) => ticket.id === ticketId);
       if (!current) {
-        const newTicket = { id: ticketId, createdAt: nowStr(), date: todayStr(), status: "pending", items: itemsToQueue.map(toLine) };
+        const newTicket = {
+          id: ticketId,
+          billId: bill.id,
+          billLabel: bill.label,
+          createdAt: nowStr(),
+          date: todayStr(),
+          status: "pending",
+          items: itemsToQueue.map(toLine),
+        };
         return [newTicket, ...prev];
       }
 
@@ -149,8 +247,7 @@ export default function useSalesPOS({
 
       return prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, items, status: "pending" } : ticket));
     });
-    setActiveTicketId(ticketId);
-    setCart((prev) =>
+    updateBillCart(bill.id, (prev) =>
       prev.map((item) => {
         const queued = itemsToQueue.find((entry) => entry.id === item.id);
         return queued ? { ...item, syncedQty: (item.syncedQty || 0) + queued.unsyncedQty } : item;
@@ -158,11 +255,9 @@ export default function useSalesPOS({
     );
   };
 
-  // The bill's own ticket when it has one, so taking an item off this bill never
-  // cancels another customer's order. Bills from before tickets were grouped
-  // have no ticket of their own, so every ticket is searched for them.
-  const isBillTicket = (ticket) =>
-    orderTickets.some((entry) => entry.id === activeTicketId) ? ticket.id === activeTicketId : true;
+  // Only this bill's tickets, so taking an item off one table's bill never
+  // cancels another table's order.
+  const isBillTicket = (ticket) => ticket.billId === activeBillId;
 
   /** How many of a product on this bill are still waiting to be served. */
   const getQueuedQty = (productId) =>
@@ -222,11 +317,52 @@ export default function useSalesPOS({
     return restoredQty;
   };
 
+  const switchBill = (billId) => {
+    setActiveBillId(billId);
+    setStockAlert(null);
+    setPaymentReviewOpen(false);
+  };
+
+  // A bill can be closed only once nothing is left on it; one with items is paid instead.
+  const closeBill = (billId) => {
+    const bill = bills.find((entry) => entry.id === billId);
+    if (!bill || bill.cart.length) return false;
+
+    setBills((prev) => prev.filter((entry) => entry.id !== billId));
+    if (activeBillId === billId) setActiveBillId(null);
+    return true;
+  };
+
+  /** Changes who a bill is for. Its waiting orders take the new name too. */
+  const updateBillDetails = (billId, { table = null, customer = "" }) => {
+    const bill = bills.find((entry) => entry.id === billId);
+    if (!bill) return;
+
+    const tableName = table ? table.name || `Table ${table.id}` : "";
+    const label = buildBillLabel({ tableName, customer, bills, excludeId: billId });
+    setBills((prev) =>
+      prev.map((entry) =>
+        entry.id === billId
+          ? { ...entry, tableId: table ? table.id : null, tableName, customer: customer.trim(), label }
+          : entry
+      )
+    );
+    setOrderTickets((prev) => prev.map((ticket) => (ticket.billId === billId ? { ...ticket, billLabel: label } : ticket)));
+  };
+
   const addTableChargeToBill = (charge) => {
-    if (!unpaidChargeIds.has(charge.id) || cart.some((item) => item.chargeId === charge.id)) return;
+    if (!unpaidChargeIds.has(charge.id) || findChargeBill(bills, charge.id)) return;
+
+    const bill =
+      getChargeTarget({ charge, bills, activeBill }) ||
+      openNewBill({
+        table: { id: charge.tableId, name: charge.tableName },
+        customer: charge.customer === "Walk-in" ? "" : charge.customer,
+      });
 
     setStockAlert(null);
-    setCart((prev) => [...prev, toTableChargeLine(charge)]);
+    setActiveBillId(bill.id);
+    updateBillCart(bill.id, (prev) => [...prev, toTableChargeLine(charge)]);
   };
 
   // Takes off any table already paid at the other counter. Returns the bill
@@ -266,9 +402,10 @@ export default function useSalesPOS({
       return;
     }
 
+    const bill = ensureActiveBill();
     setStockAlert(null);
 
-    setCart((prev) => {
+    updateBillCart(bill.id, (prev) => {
       if (existing) {
         return prev.map((item) => (item.id === product.id ? { ...item, qty: item.qty + 1 } : item));
       }
@@ -276,7 +413,7 @@ export default function useSalesPOS({
       return [...prev, { ...product, qty: 1, syncedQty: 0, inventoryItem: true, isExtra: false }];
     });
 
-    queueInventoryItems([{ ...(existing || product), unsyncedQty: 1 }]);
+    queueInventoryItems([{ ...(existing || product), unsyncedQty: 1 }], bill);
   };
 
   // `allowServed` is passed only after staff confirm taking an already served
@@ -392,7 +529,7 @@ export default function useSalesPOS({
       setPaymentReviewOpen(false);
       return;
     }
-    if (!cart.length) {
+    if (!activeBill || !cart.length) {
       setPaymentReviewOpen(false);
       return;
     }
@@ -421,8 +558,9 @@ export default function useSalesPOS({
       })),
       // The full session details, so the receipt can show time in, time out and hours.
       tableCharges: billCharges,
-      tableName: billCharges.map((charge) => charge.tableName).join(", "),
-      customerName: customers.join(", "),
+      billLabel: activeBill.label,
+      tableName: billCharges.map((charge) => charge.tableName).join(", ") || activeBill.tableName,
+      customerName: customers.join(", ") || activeBill.customer,
       extraCharges: [],
       subtotal,
       discLabel: "No Discount",
@@ -443,8 +581,8 @@ export default function useSalesPOS({
       type: "sale",
       staff: cashierLabel,
       action: "Processed sale",
-      detail: `${cart.length} line items${
-        billCharges.length ? ` (incl. ${tx.tableName} table time)` : ""
+      detail: `${activeBill.label}: ${cart.length} line items${
+        billCharges.length ? ` (incl. ${billCharges.map((charge) => charge.tableName).join(", ")} table time)` : ""
       } paid via ${method} for ₱${total.toFixed(2)}`,
       entity: "payment",
       payment: {
@@ -458,18 +596,23 @@ export default function useSalesPOS({
       customer: null,
     });
     addNotification({
-      message: `${cashierLabel} processed a ${method === "cash" ? "cash" : "GCash"} sale for ₱${total.toFixed(2)}.`,
+      message: `${cashierLabel} processed a ${method === "cash" ? "cash" : "GCash"} sale for ₱${total.toFixed(2)} (${activeBill.label}).`,
     });
     setReceipt(tx);
-    setCart([]);
-    // The bill is closed, so the next customer's items start a new ticket.
-    setActiveTicketId(null);
+    // Only this bill is closed. The other tables' bills stay open, and any of this
+    // bill's food not yet served stays in the queue, marked as paid.
+    setOrderTickets((prev) => prev.map((ticket) => (ticket.billId === activeBill.id ? { ...ticket, billPaid: true } : ticket)));
+    setBills((prev) => prev.filter((bill) => bill.id !== activeBill.id));
+    setActiveBillId(null);
     setMethod("cash");
     setPaymentReviewOpen(false);
   };
 
   return {
     cart,
+    activeBill,
+    openBills,
+    openBillsTotal,
     method,
     receipt,
     paymentReviewOpen,
@@ -487,13 +630,20 @@ export default function useSalesPOS({
     unsyncedCount,
     pendingItemsCount,
     servedItemsCount,
+    billWaitingQty,
+    billServedQty,
     stockAlert,
+    bills,
     setReceipt,
     setPaymentReviewOpen,
     setSearch,
     setCatFilter,
     setTab,
     setMethod,
+    openNewBill,
+    switchBill,
+    closeBill,
+    updateBillDetails,
     addToCart,
     addTableChargeToBill,
     updateQty,

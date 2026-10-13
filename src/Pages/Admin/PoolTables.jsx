@@ -6,13 +6,36 @@ import PoolTableModal from "../../Elements/Admin/PoolTableModal";
 import WalkInModal from "../../Elements/Admin/WalkInModal";
 import EndSessionModal from "../../Elements/Admin/EndSessionModal";
 import CancelReservationModal from "../../Elements/Admin/CancelReservationModal";
+import ConfirmDialog from "../../Elements/Global/ConfirmDialog";
 import { useNotifications } from "../../Elements/Global/useNotifications";
-import { findTableReservation, formatHoursLabel } from "../../utils/reservations";
+import { findTableReservation, formatHoursLabel, getExtensionBlock, getTodayDate } from "../../utils/reservations";
+import { getPoolTableErrors } from "../../utils/formValidation";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
 import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
+import { getCheckInBlock, hasTableReservation } from "../../utils/tableHolds";
+import useClock from "../../Elements/Global/useClock";
 
 // Read only from click handlers, never while rendering.
 const getCurrentTimestamp = () => Date.now();
+
+const UPCOMING_BOOKING = new Set(["pending", "approved", "reserved", "arrived"]);
+
+// Why a table cannot be deleted now, or "": deleting it would lose a running
+// session and its bill, or leave bookings pointing at a table that is gone.
+const getDeleteBlock = (table, reservations, today) => {
+  const name = table.name || "This table";
+  if (table.status === "occupied") return `Someone is playing on ${name}. End the session first.`;
+  const upcoming = reservations.filter(
+    (reservation) =>
+      UPCOMING_BOOKING.has(reservation.status) &&
+      Number(reservation.tableId ?? reservation.table) === Number(table.id) &&
+      String(reservation.date || "") >= today
+  ).length;
+  if (upcoming || table.status === "reserved") {
+    return `${name} has ${upcoming > 1 ? `${upcoming} upcoming bookings` : "an upcoming booking"}. Move or cancel ${upcoming > 1 ? "them" : "it"} in Reservations first.`;
+  }
+  return "";
+};
 
 export default function PoolTables({ tables, setTables, reservations = [], setReservations, tableCharges = [], setTableCharges }) {
   const { addNotification, showToast } = useNotifications();
@@ -27,6 +50,10 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
   const [cancelTableId, setCancelTableId] = useState(null);
   const cancelTable = tables.find(t => t.id === cancelTableId && t.status === "reserved") || null;
   const [statusFilter, setStatusFilter] = useState("all");
+  // Deleting cannot be undone, so the trash button only arms this confirmation.
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  // What is wrong with the open Add / Edit Table form, if anything.
+  const tableErrors = modal === "form" ? getPoolTableErrors({ form, tables, editId }) : {};
 
   // The session runs as long as the customer said they would stay.
   const startWalkIn = ({ customer, minutes }) => {
@@ -67,7 +94,13 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
 
   const checkIn = (id) => {
     const table = tables.find(t => t.id === id);
-    // A reserved guest plays the hours they booked, not the table's default.
+    // The button is off when blocked, but the page may have sat open past the grace period.
+    const block = getCheckInBlock({ table, reservations, now: new Date() });
+    if (block) {
+      showToast({ tone: "error", icon: "bi-calendar-x", title: `Can't check in at ${table?.name || "this table"}`, message: block });
+      return;
+    }
+// A reserved guest plays the hours they booked, not the table's default.
     const bookedMinutes = Number(findTableReservation(table, reservations)?.durationMinutes);
     setTables(prev => prev.map(t => 
       t.id === id
@@ -110,6 +143,12 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
     if (!Number.isInteger(extension) || extension < 1) return;
 
     const table = tables.find(t => t.id === id);
+    // More time must end before the table's next booking.
+    const extensionBlock = getExtensionBlock({ table, reservations, minutes: extension });
+    if (extensionBlock) {
+      showToast({ tone: "error", icon: "bi-calendar-x", title: "Time not added", message: extensionBlock });
+      return;
+    }
     setTables(prev => prev.map(t =>
       t.id === id
         ? { ...t, durationMinutes: Number(t.durationMinutes || 60) + extension, addedMinutes: Number(t.addedMinutes || 0) + extension }
@@ -143,10 +182,22 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
     });
   };
 
-  const deleteTable = (id) => {
-    if (window.confirm("Delete this table?")) {
-      setTables(prev => prev.filter(t => t.id !== id));
+  const requestDelete = (id) => {
+    const table = tables.find(t => t.id === id);
+    if (!table) return;
+    const block = getDeleteBlock(table, reservations, getTodayDate());
+    if (block) {
+      showToast({ tone: "error", icon: "bi-exclamation-octagon", title: `${table.name || "Table"} cannot be deleted`, message: block });
+      return;
     }
+    setDeleteTarget(table);
+  };
+
+  // Takes the table as an argument for the React Compiler reason noted in Inventory.jsx.
+  const deleteTable = (table) => {
+    setTables(prev => prev.filter(t => t.id !== table.id));
+    addNotification({ message: `${table.name || "Table"} was deleted.` });
+    setDeleteTarget(null);
   };
 
   const openWalkInModal = (tableId) => {
@@ -167,18 +218,20 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
   };
 
   const saveTable = () => {
+    if (Object.keys(tableErrors).length) return;
+    // Stored clean: a trimmed name and numbers, whatever the inputs held.
+    const cleaned = { name: form.name.trim(), rate: Number(form.rate), durationMinutes: Number(form.durationMinutes) };
     if (editId) {
       setTables(prev => prev.map(t => 
-        t.id === editId ? { ...t, ...form, durationMinutes: Number(form.durationMinutes || 60) } : t
+        t.id === editId ? { ...t, ...cleaned } : t
       ));
     } else {
       setTables(prev => [...prev, { 
         id: Date.now(), 
-        ...form, 
+        ...cleaned, 
         status: "available", 
         startTime: null, 
         customer: "",
-        durationMinutes: Number(form.durationMinutes || 60),
         addedMinutes: 0,
       }]);
     }
@@ -187,22 +240,29 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
     setForm({ name: "", rate: 15, durationMinutes: 60 });
   };
 
+  // Reserved covers tables held now and those booked for later, which stay
+  // Available (and count there too) until their booking comes due.
+  const clock = useClock();
+  const isReservedTable = (table) => hasTableReservation(table, reservations, new Date(clock));
   const stats = {
     available: tables.filter(t => t.status === "available").length,
     occupied: tables.filter(t => t.status === "occupied").length,
-    reserved: tables.filter(t => t.status === "reserved").length,
+    reserved: tables.filter(isReservedTable).length,
     total: tables.length,
   };
 
   const visibleTables = [...(statusFilter === "all"
     ? tables
-    : tables.filter((table) => table.status === statusFilter)
+    : statusFilter === "reserved"
+      ? tables.filter(isReservedTable)
+      : tables.filter((table) => table.status === statusFilter)
   )].sort((left, right) => Number(left.id) - Number(right.id));
 
   const renderTableCard = (table) => (
     <PoolTableCard
       key={table.id}
       table={table}
+      reservations={reservations}
       onWalkIn={() => openWalkInModal(table.id)}
       onEndSession={() => requestEndSession(table.id)}
       onCheckIn={() => checkIn(table.id)}
@@ -210,7 +270,7 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
       onAddTime={(minutes) => addTime(table.id, minutes)}
       onUndoTime={(minutes) => undoTime(table.id, minutes)}
       onEdit={() => openEditModal(table)}
-      onDelete={() => deleteTable(table.id)}
+      onDelete={() => requestDelete(table.id)}
     />
   );
 
@@ -254,8 +314,21 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
           form={form}
           setForm={setForm}
           editId={editId}
+          errors={tableErrors}
           onClose={() => setModal(null)}
           onSave={saveTable}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDialog
+          title="Delete this table?"
+          message={<><strong>{deleteTarget.name}</strong> will be removed from Pool Tables, the dashboards and the booking pages.</>}
+          detail="This cannot be undone. Past sales and bills that mention it are kept."
+          confirmLabel="Yes, Delete Table"
+          cancelLabel="Keep Table"
+          onConfirm={() => deleteTable(deleteTarget)}
+          onClose={() => setDeleteTarget(null)}
         />
       )}
 

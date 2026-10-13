@@ -10,6 +10,7 @@ import SalesTransactionHistory from "./SalesTransactionHistory";
 import useSalesPOS from "./useSalesPOS";
 
 export default function BaseSalesPOS({
+  tables = [],
   products,
   setProducts,
   transactions,
@@ -41,6 +42,12 @@ export default function BaseSalesPOS({
     [transactions]
   );
 
+  // From an order in the queue back to its table's bill.
+  const goToBill = (billId) => {
+    salesPos.switchBill(billId);
+    salesPos.setTab("billing");
+  };
+
   return (
     <div className="sales-pos-container">
       <div className="sales-pos-header">
@@ -51,8 +58,8 @@ export default function BaseSalesPOS({
       </div>
 
       <SalesSummary
-        total={salesPos.total}
-        cartCount={salesPos.cart.length}
+        openBillsCount={salesPos.openBills.length}
+        openBillsTotal={salesPos.openBillsTotal}
         unsyncedCount={salesPos.unsyncedCount}
         pendingItemsCount={salesPos.pendingItemsCount}
       />
@@ -71,11 +78,15 @@ export default function BaseSalesPOS({
           search={salesPos.search}
           filteredProducts={salesPos.filteredProducts}
           cart={salesPos.cart}
+          activeBill={salesPos.activeBill}
+          bills={salesPos.bills}
+          openBills={salesPos.openBills}
+          tables={tables}
           subtotal={salesPos.subtotal}
           total={salesPos.total}
           method={salesPos.method}
-          pendingCount={salesPos.pendingItemsCount}
-          servedCount={salesPos.servedItemsCount}
+          waitingCount={salesPos.billWaitingQty}
+          servedCount={salesPos.billServedQty}
           unsyncedCount={salesPos.unsyncedCount}
           stockAlert={salesPos.stockAlert}
           unpaidTableCharges={salesPos.unpaidTableCharges}
@@ -87,6 +98,10 @@ export default function BaseSalesPOS({
           getQueuedQty={salesPos.getQueuedQty}
           onSetMethod={salesPos.setMethod}
           onProcessPayment={salesPos.processPayment}
+          onOpenBill={salesPos.openNewBill}
+          onSwitchBill={salesPos.switchBill}
+          onCloseBill={salesPos.closeBill}
+          onUpdateBill={salesPos.updateBillDetails}
         />
       )}
 
@@ -97,6 +112,8 @@ export default function BaseSalesPOS({
           servedItemsCount={salesPos.servedItemsCount}
           onMarkTicketServed={salesPos.markTicketServed}
           onSetItemServed={salesPos.setItemServed}
+          openBillIds={salesPos.bills.map((bill) => bill.id)}
+          onOpenBill={goToBill}
         />
       )}
 
@@ -112,6 +129,7 @@ export default function BaseSalesPOS({
           cart={salesPos.cart}
           total={salesPos.total}
           method={salesPos.method}
+          billLabel={salesPos.activeBill?.label}
           usedReferences={usedReferences}
           onCancel={() => salesPos.setPaymentReviewOpen(false)}
           onConfirm={salesPos.confirmPayment}

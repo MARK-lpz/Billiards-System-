@@ -1,22 +1,23 @@
-﻿import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import "../../styles/Employee/QuickActions.css";
 import { createAuditEntry } from "../../utils/audit";
 import { createRemoteIssue } from "../../utils/issueApi";
+import { isOpenIssue } from "../../utils/issues";
 import { useNotifications } from "../../Elements/Global/useNotifications";
-
-const defaultBorrowForm = {
-  itemType: "Cue Stick",
-  itemCode: "",
-  borrower: "",
-  notes: "",
-};
-
-const defaultDamageForm = {
-  itemType: "Cue Stick",
-  itemCode: "",
-  issue: "",
-  notes: "",
-};
+import ReportIssueModal from "../../Elements/Employee/ReportIssueModal";
+import BorrowLogModal from "../../Elements/Employee/BorrowLogModal";
+import SpareEquipmentModal from "../../Elements/Employee/SpareEquipmentModal";
+import { BORROW_LOG_KEY, pruneBorrowLog, readBorrowLog } from "../../utils/borrowLog";
+import {
+  EQUIPMENT_STATUS_LABELS,
+  EQUIPMENT_TYPE_ICONS,
+  describeGap,
+  getEquipmentGaps,
+  getIssueEquipmentId,
+  getIssueTableId,
+  getSpareEquipment,
+  getTableEquipment,
+} from "../../utils/equipment";
 
 const tableStatusOptions = [
   {
@@ -42,6 +43,14 @@ const tableStatusOptions = [
   },
 ];
 
+// "Table 1 Cue Stick" reads as "Cue Stick" on Table 1's own card.
+const shortItemName = (name = "", tableName = "") => {
+  const prefix = `${tableName} `.toLowerCase();
+  return tableName && name.toLowerCase().startsWith(prefix) && name.length > prefix.length
+    ? name.slice(prefix.length)
+    : name;
+};
+
 const formatStatus = (status) =>
   ({
     available: "Ready for use",
@@ -55,43 +64,64 @@ const formatPesoRate = (value) => `₱${Number(value || 0)}/hr`;
 
 const createIssueId = () => `issue-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-export default function QuickActions({ tables = [], setTables, setLogs, equipment = [] }) {
-  const { addNotification } = useNotifications();
+const clockNow = () => new Date().toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" });
+const currentTime = () => Date.now();
+
+const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+// Why a table's status cannot be changed here, or "". A running session or a
+// booking would be wiped (timer, bill, reserved guest), so those are handled
+// where they belong: End Session on the table card, or the booking itself.
+const getStatusChangeBlock = (table) => {
+  if (table.status === "occupied") return "In play. End the session on Pool Tables first.";
+  if (table.status === "reserved") {
+    return `Reserved${table.customer ? ` for ${table.customer}` : ""}. Check in or cancel the booking first.`;
+  }
+  return "";
+};
+
+export default function QuickActions({ tables = [], setTables, logs = [], setLogs, equipment = [] }) {
+  const { addNotification, showToast } = useNotifications();
+  // "report" (with `reportPreset`), "borrow" or "spare".
   const [modal, setModal] = useState(null);
-  const [issueForm, setIssueForm] = useState({ type: "", description: "", tableNumber: "", equipmentId: "" });
-  const [borrowForm, setBorrowForm] = useState(defaultBorrowForm);
-  const [damageForm, setDamageForm] = useState(defaultDamageForm);
-  const [equipmentRecords, setEquipmentRecords] = useState([]);
-  const [submitted, setSubmitted] = useState(false);
-
-  const reservations = tables.filter((t) => t.status === "reserved" || t.status === "occupied");
-  const operationalTables = [...tables].sort((a, b) => a.id - b.id);
-  const tableStatusSummary = {
-    cleaning: tables.filter((table) => table.status === "cleaning").length,
-    maintenance: tables.filter((table) => table.status === "maintenance").length,
-    ready: tables.filter((table) => table.status === "available").length,
-  };
-
-  const closeModal = useCallback(() => {
-    setModal(null);
-    setSubmitted(false);
-    setIssueForm({ type: "", description: "", tableNumber: "", equipmentId: "" });
-    setBorrowForm(defaultBorrowForm);
-    setDamageForm(defaultDamageForm);
-  }, []);
+  const [reportPreset, setReportPreset] = useState({});
+  const [borrowRecords, setBorrowRecords] = useState(readBorrowLog);
 
   useEffect(() => {
-    if (!modal) return undefined;
+    try {
+      localStorage.setItem(BORROW_LOG_KEY, JSON.stringify(borrowRecords));
+    } catch (error) {
+      console.warn("Unable to keep the borrow log", error);
+    }
+  }, [borrowRecords]);
 
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        closeModal();
-      }
-    };
+  const operationalTables = [...tables].sort((a, b) => Number(a.id) - Number(b.id));
+  const spareEquipment = getSpareEquipment(equipment, tables);
+  const openIssues = logs.filter(isOpenIssue);
+  const issueContext = { tables, equipment };
+  const openIssuesFor = (tableId) =>
+    openIssues.filter((issue) => String(getIssueTableId(issue, issueContext)) === String(tableId));
+  const reportedItemIds = new Set(openIssues.map((issue) => String(getIssueEquipmentId(issue))));
+  const borrowedCount = borrowRecords.filter((record) => record.status === "borrowed").length;
+  // Spares out on loan right now, by name, and who has them.
+  const lentOut = new Map(
+    borrowRecords
+      .filter((record) => record.status === "borrowed")
+      .map((record) => [String(record.itemCode || "").trim().toLowerCase(), record.borrower])
+  );
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [modal, closeModal]);
+  const summary = {
+    ready: tables.filter((table) => table.status === "available").length,
+    cleaning: tables.filter((table) => table.status === "cleaning").length,
+    maintenance: tables.filter((table) => table.status === "maintenance").length,
+    reports: openIssues.length,
+  };
+
+  const openReport = (preset = {}) => {
+    setReportPreset(preset);
+    setModal("report");
+  };
+  const closeModal = () => setModal(null);
 
   const addLog = (action, detail, extra = {}) => {
     const entry = createAuditEntry({
@@ -114,154 +144,123 @@ export default function QuickActions({ tables = [], setTables, setLogs, equipmen
     return entry;
   };
 
-  const handleSubmitIssue = (e) => {
-    e.preventDefault();
-    const selectedTable = tables.find((table) => String(table.id) === String(issueForm.tableNumber));
-    const selectedEquipment = equipment.find((item) => String(item.id) === String(issueForm.equipmentId));
-    const issueTypeLabel =
-      {
-        equipment: "Equipment Malfunction",
-        table: "Table Damage",
-        lighting: "Lighting Problem",
-        customer: "Customer Complaint",
-        other: "Other",
-      }[issueForm.type] || "General Issue";
-    const issueId = createIssueId();
-    const blocksTable = Boolean(selectedTable) && issueForm.type !== "customer";
-    const nextTableStatus = blocksTable ? "maintenance" : selectedTable?.status;
+  const handleReport = ({ type, typeLabel, table, item, description, blocksTable }) => {
+    // A table someone is playing on stays occupied: taking it out of service now
+    // would hide the running session and its bill. Staff mark it after the session.
+    const takesTableOut = blocksTable && table.status !== "occupied";
+    const nextTableStatus = takesTableOut ? "maintenance" : table?.status;
 
     const issueEntry = addLog(
       "Reported issue",
-      `${issueTypeLabel}${selectedTable ? ` for ${selectedTable.name}` : ""}: ${issueForm.description.trim()}`,
+      `${typeLabel}${table ? ` for ${table.name}` : ""}${item ? ` (${item.name})` : ""}: ${description}`,
       {
-        id: issueId,
+        id: createIssueId(),
         type: "issue",
         entity: "issue",
-        severity: issueForm.type === "customer" ? "medium" : "high",
-        issueType: issueTypeLabel,
-        issueTable: selectedTable?.name || "",
-        issueEquipmentId: selectedEquipment?.id || null,
-        issueEquipmentName: selectedEquipment?.name || "",
-        issueDescription: issueForm.description.trim(),
+        severity: type === "customer" ? "medium" : "high",
+        issueType: typeLabel,
+        issueTable: table?.name || "",
+        issueTableId: table?.id ?? null,
+        issueEquipmentId: item?.id ?? null,
+        issueEquipmentName: item?.name || "",
+        issueDescription: description,
         issue: {
-          type: issueTypeLabel,
-          table: selectedTable?.name || "",
-          equipmentId: selectedEquipment?.id || null,
-          equipmentName: selectedEquipment?.name || "",
-          description: issueForm.description.trim(),
+          type: typeLabel,
+          table: table?.name || "",
+          tableId: table?.id ?? null,
+          equipmentId: item?.id ?? null,
+          equipmentName: item?.name || "",
+          description,
         },
-        tableBlocked: blocksTable,
-        table: selectedTable
-          ? {
-              id: selectedTable.id,
-              name: selectedTable.name,
-              previousStatus: selectedTable.status,
-              currentStatus: nextTableStatus,
-            }
+        tableBlocked: takesTableOut,
+        table: table
+          ? { id: table.id, name: table.name, previousStatus: table.status, currentStatus: nextTableStatus }
           : null,
       }
     );
-    if (blocksTable && setTables) {
+
+    if (takesTableOut && setTables) {
       setTables((previous) =>
-        previous.map((table) =>
-          table.id === selectedTable.id ? { ...table, status: "maintenance" } : table
-        )
+        previous.map((entry) => (entry.id === table.id ? { ...entry, status: "maintenance" } : entry))
       );
-      addNotification({
-        message: `${selectedTable.name} is now under maintenance and can no longer be reserved online.`,
-      });
+      addNotification({ message: `${table.name} is now under maintenance and can no longer be reserved online.` });
     }
 
     createRemoteIssue(issueEntry).catch((error) => {
       console.warn("Unable to send issue to the shared feed", error);
       addNotification({ message: "Issue saved locally, but could not reach the shared admin feed." });
     });
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setModal(null);
-      setIssueForm({ type: "", description: "", tableNumber: "", equipmentId: "" });
-    }, 2000);
+
+    closeModal();
+    showToast({
+      icon: "bi-send-check",
+      title: "Issue reported",
+      message: `${typeLabel}${item ? ` on ${item.name}` : table ? ` at ${table.name}` : ""} was sent to the admin.${
+        takesTableOut ? ` ${table.name} is now under maintenance.` : ""
+      }`,
+    });
   };
 
-  const handleBorrowSubmit = (e) => {
-    e.preventDefault();
-
-    const newRecord = {
-      id: Date.now(),
-      itemType: borrowForm.itemType,
-      itemCode: borrowForm.itemCode.trim() || "Uncoded item",
-      borrower: borrowForm.borrower.trim() || "Walk-in Player",
-      notes: borrowForm.notes.trim(),
-      status: "borrowed",
-      borrowedAt: new Date().toLocaleTimeString("en-PH", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-
-    setEquipmentRecords((prev) => [newRecord, ...prev]);
-    addLog("Borrowed equipment", `${newRecord.itemType} ${newRecord.itemCode} borrowed by ${newRecord.borrower}`, {
+  const handleBorrow = (details) => {
+    const now = currentTime();
+    const record = { id: now, ...details, status: "borrowed", borrowedAt: clockNow() };
+    setBorrowRecords((previous) => [record, ...pruneBorrowLog(previous, now)]);
+    addLog("Borrowed equipment", `${record.itemType} ${record.itemCode} borrowed by ${record.borrower}`, {
       type: "inventory",
       entity: "equipment",
-      customer: { previous: null, current: { name: newRecord.borrower } },
+      customer: { previous: null, current: { name: record.borrower } },
     });
-    setBorrowForm(defaultBorrowForm);
+    showToast({
+      icon: "bi-box-arrow-up-right",
+      title: "Borrow logged",
+      message: `${record.itemCode} is out with ${record.borrower}.`,
+    });
   };
 
-  const handleDamageSubmit = (e) => {
-    e.preventDefault();
+  // A damaged return goes on to Report Issue, so the admin hears about it.
+  const handleReturn = (id, { damaged = false } = {}) => {
+    const record = borrowRecords.find((entry) => entry.id === id);
+    if (!record || record.status !== "borrowed") return;
 
-    const damagedRecord = {
-      id: Date.now(),
-      itemType: damageForm.itemType,
-      itemCode: damageForm.itemCode.trim() || "Uncoded item",
-      borrower: "N/A",
-      notes: damageForm.notes.trim() || damageForm.issue.trim(),
-      status: "damaged",
-      loggedAt: new Date().toLocaleTimeString("en-PH", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      issue: damageForm.issue.trim(),
-    };
-
-    setEquipmentRecords((prev) => [damagedRecord, ...prev]);
-    addLog("Reported damaged equipment", `${damagedRecord.itemType} ${damagedRecord.itemCode} marked damaged`, {
-      type: "inventory",
-      entity: "equipment",
-      severity: "high",
-      issue: {
-        type: "Equipment Damage",
-        description: damagedRecord.issue || damagedRecord.notes,
-      },
-    });
-    setDamageForm(defaultDamageForm);
-  };
-
-  const handleReturn = (id) => {
-    const record = equipmentRecords.find((entry) => entry.id === id);
-    if (!record) return;
-
-    setEquipmentRecords((prev) =>
-      prev.map((entry) =>
-        entry.id === id
-          ? {
-              ...entry,
-              status: "returned",
-              returnedAt: new Date().toLocaleTimeString("en-PH", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-            }
-          : entry
+    const now = currentTime();
+    setBorrowRecords((previous) =>
+      pruneBorrowLog(
+        previous.map((entry) =>
+          entry.id === id
+            ? {
+                ...entry,
+                status: "returned",
+                returnedAt: clockNow(),
+                returnedOn: now,
+                returnCondition: damaged ? "damaged" : "good",
+              }
+            : entry
+        ),
+        now
       )
     );
+    addLog(
+      "Returned equipment",
+      `${record.itemType} ${record.itemCode} returned by ${record.borrower}${damaged ? " (damaged)" : ""}`,
+      {
+        type: "inventory",
+        entity: "equipment",
+        severity: damaged ? "medium" : "info",
+        customer: { previous: { name: record.borrower }, current: { name: record.borrower } },
+      }
+    );
 
-    addLog("Returned equipment", `${record.itemType} ${record.itemCode} returned by ${record.borrower}`, {
-      type: "inventory",
-      entity: "equipment",
-      customer: { previous: { name: record.borrower }, current: { name: record.borrower } },
+    if (!damaged) {
+      showToast({ icon: "bi-box-arrow-in-down-left", title: "Return logged", message: `${record.itemCode} is back at the counter.` });
+      return;
+    }
+    const item = equipment.find((entry) => record.itemId != null && String(entry.id) === String(record.itemId));
+    openReport(item ? { equipmentId: item.id, type: "equipment" } : { type: "equipment" });
+    showToast({
+      tone: "error",
+      icon: "bi-exclamation-triangle",
+      title: "Returned damaged",
+      message: `Describe what happened to ${record.itemCode} so the admin can fix it.`,
     });
   };
 
@@ -269,7 +268,7 @@ export default function QuickActions({ tables = [], setTables, setLogs, equipmen
     if (!setTables) return;
 
     const table = tables.find((entry) => entry.id === tableId);
-    if (!table || table.status === nextStatus) return;
+    if (!table || table.status === nextStatus || getStatusChangeBlock(table)) return;
 
     setTables((prev) =>
       prev.map((entry) =>
@@ -302,72 +301,116 @@ export default function QuickActions({ tables = [], setTables, setLogs, equipmen
     });
   };
 
+  // One line per item: its state, and a flag to report it (off once reported).
+  const renderItem = (item, table = null) => {
+    const tableId = table?.id ?? null;
+    const reported = reportedItemIds.has(String(item.id));
+    const lentTo = item.spare || !table ? lentOut.get(item.name.trim().toLowerCase()) : null;
+    const state = reported
+      ? { label: "Reported", tone: "reported" }
+      : lentTo
+        ? { label: `Lent to ${lentTo}`, tone: "lent" }
+        : item.status !== "active"
+        ? { label: EQUIPMENT_STATUS_LABELS[item.status] || item.status, tone: "out" }
+        : { label: item.condition || "good", tone: item.condition === "good" ? "good" : item.condition === "fair" ? "fair" : "out" };
+
+    return (
+      <li key={item.id} className="qa-item">
+        <i className={`bi ${EQUIPMENT_TYPE_ICONS[item.type] || "bi-box-seam"} qa-item-icon`} aria-hidden="true"></i>
+        <span className="qa-item-name" title={`${item.name} (${item.type})`}>
+          {shortItemName(item.name, table?.name)}
+        </span>
+        <span className={`qa-item-state qa-item-state--${state.tone}`}>{state.label}</span>
+        <button
+          type="button"
+          className="qa-item-report"
+          onClick={() => openReport({ tableId, equipmentId: item.id, type: "equipment" })}
+          disabled={reported}
+          aria-label={`Report a problem with ${item.name}`}
+          title={reported ? "Already reported; the admin has it." : "Report a problem with this item"}
+        >
+          <i className="bi bi-flag-fill"></i>
+        </button>
+      </li>
+    );
+  };
+
   return (
     <div className="qa-page">
-      <div>
-        <h1 className="qa-title">Actions</h1>
-        <p className="qa-subtitle">Employee tools for reservations, issues, equipment monitoring, and table readiness</p>
+      <div className="qa-page-header">
+        <div>
+          <h1 className="qa-title">Actions</h1>
+          <p className="qa-subtitle">Table readiness, each table&apos;s dedicated equipment, and issue reports</p>
+        </div>
+        <div className="qa-header-actions">
+          <button type="button" className="qa-action-btn qa-action-btn--primary" onClick={() => openReport()}>
+            <i className="bi bi-exclamation-diamond"></i>
+            Report Issue
+          </button>
+          <button type="button" className="qa-action-btn" onClick={() => setModal("borrow")}>
+            <i className="bi bi-arrow-left-right"></i>
+            Borrow / Return
+            {borrowedCount > 0 && <span className="qa-action-count">{borrowedCount} out</span>}
+          </button>
+          <button type="button" className="qa-action-btn" onClick={() => setModal("spare")}>
+            <i className="bi bi-box-seam"></i>
+            Spare Equipment
+            <span className="qa-action-count qa-action-count--muted">{spareEquipment.length}</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="qa-summary qa-summary--page">
+        <div className="qa-summary-pill qa-summary-pill--ready">
+          <span className="qa-summary-value">{summary.ready}</span>
+          <span className="qa-summary-label">Ready</span>
+        </div>
+        <div className="qa-summary-pill qa-summary-pill--cleaning">
+          <span className="qa-summary-value">{summary.cleaning}</span>
+          <span className="qa-summary-label">Cleaning</span>
+        </div>
+        <div className="qa-summary-pill qa-summary-pill--maintenance">
+          <span className="qa-summary-value">{summary.maintenance}</span>
+          <span className="qa-summary-label">Maintenance</span>
+        </div>
+        <div className="qa-summary-pill qa-summary-pill--reports">
+          <span className="qa-summary-value">{summary.reports}</span>
+          <span className="qa-summary-label">Open Reports</span>
+        </div>
       </div>
 
       <div className="qa-card">
-        <div className="qa-grid qa-grid--top">
-          <button className="qa-btn" onClick={() => setModal("report")}>
-            <i className="bi bi-clipboard-check qa-btn-icon"></i>
-            <span className="qa-btn-label">REPORT ISSUE</span>
-          </button>
-          <button className="qa-btn" onClick={() => setModal("schedule")}>
-            <i className="bi bi-calendar2-week qa-btn-icon"></i>
-            <span className="qa-btn-label">VIEW RESERVATIONS</span>
-          </button>
-          <button className="qa-btn" onClick={() => setModal("equipment")}>
-            <i className="bi bi-tools qa-btn-icon"></i>
-            <span className="qa-btn-label">EQUIPMENT MONITOR</span>
-          </button>
+        <div className="qa-module-header">
+          <div>
+            <div className="qa-module-title">Tables &amp; Equipment</div>
+            <p className="qa-module-subtitle">
+              Set each table&apos;s status, check the equipment dedicated to it, and report anything wrong.
+            </p>
+          </div>
         </div>
 
-        <div className="qa-module">
-          <div className="qa-module-header">
-            <div>
-              <div className="qa-module-title">Table Status Update</div>
-              <p className="qa-module-subtitle">
-                Operations can quickly mark each table as cleaning, under maintenance, or ready for use.
-              </p>
-            </div>
+        <div className="qa-table-grid">
+          {operationalTables.map((table) => {
+            const statusBlock = getStatusChangeBlock(table);
+            const items = getTableEquipment(equipment, table.id);
+            const gaps = getEquipmentGaps(items);
+            const reports = openIssuesFor(table.id);
 
-            <div className="qa-summary">
-              <div className="qa-summary-pill qa-summary-pill--cleaning">
-                <span className="qa-summary-value">{tableStatusSummary.cleaning}</span>
-                <span className="qa-summary-label">Cleaning</span>
-              </div>
-              <div className="qa-summary-pill qa-summary-pill--maintenance">
-                <span className="qa-summary-value">{tableStatusSummary.maintenance}</span>
-                <span className="qa-summary-label">Maintenance</span>
-              </div>
-              <div className="qa-summary-pill qa-summary-pill--ready">
-                <span className="qa-summary-value">{tableStatusSummary.ready}</span>
-                <span className="qa-summary-label">Ready</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="qa-table-grid">
-            {operationalTables.map((table) => (
+            return (
               <div key={table.id} className={`qa-table-card qa-table-card--${table.status}`}>
                 <div className="qa-table-card-top">
-                  <div>
-                    <div className="qa-table-name">{table.name || `Table ${table.id}`}</div>
-                    <div className="qa-table-meta">
-                      Rate: {formatPesoRate(table.rate)}
+                  <div className="qa-table-heading">
+                    <span className="qa-table-name">{table.name || `Table ${table.id}`}</span>
+                    <span className="qa-table-meta" title={table.customer || undefined}>
+                      {formatPesoRate(table.rate)}
                       {table.customer ? ` • ${table.customer}` : ""}
-                    </div>
+                    </span>
                   </div>
 
-                  <span className={`qa-badge qa-badge--${table.status}`}>
-                    {formatStatus(table.status)}
-                  </span>
+                  <span className={`qa-badge qa-badge--${table.status}`}>{formatStatus(table.status)}</span>
                 </div>
 
-                <div className="qa-status-actions">
+                <div className="qa-status-actions" role="group" aria-label={`Set ${table.name || `Table ${table.id}`} status`}>
                   {tableStatusOptions.map((option) => {
                     const isActive = table.status === option.value;
 
@@ -377,326 +420,100 @@ export default function QuickActions({ tables = [], setTables, setLogs, equipmen
                         type="button"
                         className={`qa-status-btn qa-status-btn--${option.tone} ${isActive ? "is-active" : ""}`}
                         onClick={() => handleTableStatusUpdate(table.id, option.value)}
-                        disabled={isActive}
-                        title={option.helper}
+                        disabled={isActive || Boolean(statusBlock)}
+                        aria-pressed={isActive}
+                        title={statusBlock || option.helper}
                       >
-                        <i className={option.icon}></i>
+                        <i className={option.icon} aria-hidden="true"></i>
                         <span>{option.label}</span>
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="qa-status-note">
-                  <i className="bi bi-info-circle"></i>
-                  <span>
-                    {table.status === "cleaning" || table.status === "maintenance"
-                      ? "Player assignment and active timers are cleared for operational handling."
-                      : "Table is available for the next reservation or walk-in session."}
-                  </span>
+                {statusBlock && (
+                  <div className="qa-status-note form-blocked-note">
+                    <i className="bi bi-lock"></i>
+                    <span>{statusBlock}</span>
+                  </div>
+                )}
+
+                <div className="qa-equipment-block">
+                  <div className="qa-equipment-block-head">
+                    <span>
+                      <i className="bi bi-tools" aria-hidden="true"></i>
+                      Equipment
+                    </span>
+                    {reports.length > 0 && (
+                      <span className="qa-open-reports">{plural(reports.length, "open report")}</span>
+                    )}
+                  </div>
+
+                  {items.length ? (
+                    <ul className="qa-item-list">{items.map((item) => renderItem(item, table))}</ul>
+                  ) : (
+                    <div className="qa-item-gap">
+                      <i className="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                      No equipment yet. Tell the admin.
+                    </div>
+                  )}
+
+                  {items.length > 0 &&
+                    gaps.map((gap) => (
+                      <div key={gap.type} className="qa-item-gap">
+                        <i className="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                        {describeGap(gap)}. Tell the admin.
+                      </div>
+                    ))}
                 </div>
+
+                <button
+                  type="button"
+                  className="qa-report-btn"
+                  onClick={() => openReport({ tableId: table.id })}
+                  title={`Report a problem at ${table.name || `Table ${table.id}`}`}
+                >
+                  <i className="bi bi-exclamation-diamond" aria-hidden="true"></i>
+                  Report Issue
+                </button>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
 
-      {modal && (
-        <>
-          <div className="modal-backdrop show" onClick={closeModal} />
+      {modal === "spare" && (
+        <SpareEquipmentModal
+          tables={operationalTables}
+          equipment={equipment}
+          renderItem={renderItem}
+          onBorrow={() => setModal("borrow")}
+          onClose={closeModal}
+        />
+      )}
 
-          <div className="modal show" style={{ display: "flex" }} onClick={closeModal}>
-            <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-content">
-                {modal === "report" && (
-                  <>
-                    <div className="modal-header">
-                      <h5 className="modal-title">
-                        <i className="bi bi-clipboard-check"></i> Report Issue
-                      </h5>
-                      <button className="btn-close" onClick={closeModal} />
-                    </div>
+      {modal === "report" && (
+        <ReportIssueModal
+          tables={operationalTables}
+          equipment={equipment}
+          openIssues={openIssues}
+          preset={reportPreset}
+          onSubmit={handleReport}
+          onClose={closeModal}
+        />
+      )}
 
-                    <div className="modal-body">
-                      {submitted ? (
-                        <div className="qa-success">
-                          <i className="bi bi-check-circle-fill qa-success-icon"></i>
-                          <p className="qa-success-text">Issue reported successfully!</p>
-                        </div>
-                      ) : (
-                        <form onSubmit={handleSubmitIssue}>
-                          <div className="mb-3">
-                            <label className="form-label">Issue Type</label>
-                            <select
-                              required
-                              className="form-select"
-                              value={issueForm.type}
-                              onChange={(e) => setIssueForm({ ...issueForm, type: e.target.value, equipmentId: "" })}
-                            >
-                              <option value="">Select issue type...</option>
-                              <option value="equipment">Equipment Malfunction</option>
-                              <option value="table">Table Damage</option>
-                              <option value="lighting">Lighting Problem</option>
-                              <option value="customer">Customer Complaint</option>
-                              <option value="other">Other</option>
-                            </select>
-                          </div>
-
-                          {issueForm.type === "equipment" && (
-                            <div className="mb-3">
-                              <label className="form-label">Affected Equipment</label>
-                              <select
-                                required
-                                className="form-select"
-                                value={issueForm.equipmentId}
-                                onChange={(e) => setIssueForm({ ...issueForm, equipmentId: e.target.value })}
-                              >
-                                <option value="">Select equipment...</option>
-                                {equipment.map((item) => (
-                                  <option key={item.id} value={item.id}>
-                                    {item.name} - {item.type}
-                                  </option>
-                                ))}
-                              </select>
-                              <small className="form-text text-muted">The report will be linked to this equipment for admin review.</small>
-                            </div>
-                          )}
-
-                          <div className="mb-3">
-                            <label className="form-label">Table Number</label>
-                            <select
-                              className="form-select"
-                              value={issueForm.tableNumber}
-                              onChange={(e) => setIssueForm({ ...issueForm, tableNumber: e.target.value })}
-                            >
-                              <option value="">Select table (optional)...</option>
-                              {operationalTables.map((table) => (
-                                <option key={table.id} value={table.id}>
-                                  {table.name || `Table ${table.id}`}
-                                </option>
-                              ))}
-                            </select>
-                            {issueForm.tableNumber && issueForm.type !== "customer" && (
-                              <small className="form-text qa-table-block-note">
-                                <i className="bi bi-exclamation-triangle-fill"></i> This table will be marked under
-                                maintenance and blocked from online reservations until staff set it back to ready.
-                              </small>
-                            )}
-                            {issueForm.tableNumber && issueForm.type === "customer" && (
-                              <small className="form-text text-muted">
-                                A customer complaint keeps the table bookable. Use Table Damage to take it out of service.
-                              </small>
-                            )}
-                          </div>
-
-                          <div className="mb-3">
-                            <label className="form-label">Description</label>
-                            <textarea
-                              required
-                              className="form-control"
-                              rows={4}
-                              placeholder="Describe the issue in detail..."
-                              value={issueForm.description}
-                              onChange={(e) => setIssueForm({ ...issueForm, description: e.target.value })}
-                            />
-                          </div>
-
-                          <div className="modal-footer" style={{ padding: "0", border: "none", marginTop: "8px" }}>
-                            <button type="button" className="btn btn-secondary" onClick={closeModal}>
-                              Cancel
-                            </button>
-                            <button type="submit" className="btn btn-success">
-                              Submit Report
-                            </button>
-                          </div>
-                        </form>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {modal === "schedule" && (
-                  <>
-                    <div className="modal-header">
-                      <h5 className="modal-title">
-                        <i className="bi bi-calendar2-week"></i> Player Reservations
-                      </h5>
-                      <button className="btn-close" onClick={closeModal} />
-                    </div>
-
-                    <div className="modal-body">
-                      {reservations.length === 0 ? (
-                        <div className="qa-empty">
-                          <i className="bi bi-calendar-x qa-empty-icon"></i>
-                          <p className="qa-empty-text">No current reservations or active sessions.</p>
-                        </div>
-                      ) : (
-                        <div className="qa-reservation-list">
-                          {reservations.map((t) => (
-                            <div key={t.id} className="qa-reservation-item">
-                              <div className="qa-reservation-info">
-                                <span className="qa-reservation-table">{t.name || `Table ${t.id}`}</span>
-                                <span className="qa-reservation-customer">{t.customer || "Walk-in"}</span>
-                              </div>
-                              <span className={`qa-badge qa-badge--${t.status}`}>
-                                {formatStatus(t.status)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="modal-footer">
-                      <button className="btn btn-secondary" onClick={closeModal}>Close</button>
-                    </div>
-                  </>
-                )}
-
-                {modal === "equipment" && (
-                  <>
-                    <div className="modal-header">
-                      <h5 className="modal-title">
-                        <i className="bi bi-tools"></i> Equipment Monitoring
-                      </h5>
-                      <button className="btn-close" onClick={closeModal} />
-                    </div>
-
-                    <div className="modal-body">
-                      <div className="qa-equipment-grid">
-                        <div className="qa-equipment-card">
-                          <div className="qa-equipment-heading">Track Borrowed Equipment</div>
-                          <form onSubmit={handleBorrowSubmit} className="qa-form-stack">
-                            <select
-                              className="form-select"
-                              value={borrowForm.itemType}
-                              onChange={(e) => setBorrowForm({ ...borrowForm, itemType: e.target.value })}
-                            >
-                              <option>Cue Stick</option>
-                              <option>Ball Set</option>
-                              <option>Bridge Stick</option>
-                              <option>Chalk</option>
-                            </select>
-                            <input
-                              className="form-control"
-                              placeholder="Item code or description"
-                              value={borrowForm.itemCode}
-                              onChange={(e) => setBorrowForm({ ...borrowForm, itemCode: e.target.value })}
-                            />
-                            <input
-                              className="form-control"
-                              placeholder="Borrower / player name"
-                              value={borrowForm.borrower}
-                              onChange={(e) => setBorrowForm({ ...borrowForm, borrower: e.target.value })}
-                            />
-                            <input
-                              className="form-control"
-                              placeholder="Notes (optional)"
-                              value={borrowForm.notes}
-                              onChange={(e) => setBorrowForm({ ...borrowForm, notes: e.target.value })}
-                            />
-                            <button type="submit" className="btn btn-success">
-                              Log Borrow
-                            </button>
-                          </form>
-                        </div>
-
-                        <div className="qa-equipment-card">
-                          <div className="qa-equipment-heading">Report Damaged Equipment</div>
-                          <form onSubmit={handleDamageSubmit} className="qa-form-stack">
-                            <select
-                              className="form-select"
-                              value={damageForm.itemType}
-                              onChange={(e) => setDamageForm({ ...damageForm, itemType: e.target.value })}
-                            >
-                              <option>Cue Stick</option>
-                              <option>Ball Set</option>
-                              <option>Bridge Stick</option>
-                              <option>Table Accessory</option>
-                            </select>
-                            <input
-                              className="form-control"
-                              placeholder="Item code or description"
-                              value={damageForm.itemCode}
-                              onChange={(e) => setDamageForm({ ...damageForm, itemCode: e.target.value })}
-                            />
-                            <input
-                              className="form-control"
-                              placeholder="Damage issue"
-                              value={damageForm.issue}
-                              onChange={(e) => setDamageForm({ ...damageForm, issue: e.target.value })}
-                            />
-                            <textarea
-                              className="form-control"
-                              rows={3}
-                              placeholder="Additional notes"
-                              value={damageForm.notes}
-                              onChange={(e) => setDamageForm({ ...damageForm, notes: e.target.value })}
-                            />
-                            <button type="submit" className="btn btn-danger">
-                              Report Damage
-                            </button>
-                          </form>
-                        </div>
-                      </div>
-
-                      <div className="qa-equipment-log">
-                        <div className="qa-equipment-heading">Borrow / Return Log</div>
-                        {equipmentRecords.length === 0 ? (
-                          <div className="qa-empty qa-empty--compact">
-                            <i className="bi bi-box-seam qa-empty-icon"></i>
-                            <p className="qa-empty-text">No equipment records yet.</p>
-                          </div>
-                        ) : (
-                          <div className="qa-equipment-list">
-                            {equipmentRecords.map((record) => (
-                              <div key={record.id} className="qa-equipment-item">
-                                <div className="qa-equipment-info">
-                                  <div className="qa-equipment-name">
-                                    {record.itemType} • {record.itemCode}
-                                  </div>
-                                  <div className="qa-equipment-meta">
-                                    {record.status === "borrowed"
-                                      ? `Borrowed by ${record.borrower} at ${record.borrowedAt}`
-                                      : record.status === "returned"
-                                        ? `Returned at ${record.returnedAt}`
-                                        : `Damage logged at ${record.loggedAt}`}
-                                  </div>
-                                  {record.notes ? (
-                                    <div className="qa-equipment-meta">{record.notes}</div>
-                                  ) : null}
-                                </div>
-
-                                <div className="qa-equipment-actions">
-                                  <span className={`qa-badge qa-badge--${record.status}`}>
-                                    {record.status}
-                                  </span>
-                                  {record.status === "borrowed" ? (
-                                    <button
-                                      type="button"
-                                      className="btn btn-primary btn-sm"
-                                      onClick={() => handleReturn(record.id)}
-                                    >
-                                      Log Return
-                                    </button>
-                                  ) : null}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="modal-footer">
-                      <button className="btn btn-secondary" onClick={closeModal}>Close</button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </>
+      {modal === "borrow" && (
+        <BorrowLogModal
+          records={borrowRecords}
+          equipment={equipment}
+          tables={tables}
+          reportedItemIds={reportedItemIds}
+          onBorrow={handleBorrow}
+          onReturn={handleReturn}
+          onReportIssue={() => openReport()}
+          onClose={closeModal}
+        />
       )}
     </div>
   );

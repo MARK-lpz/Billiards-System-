@@ -533,3 +533,264 @@
 .light .modal-body .events-reschedule-old { color: #64748b !important; }
 .light .modal-body .events-reschedule-new { color: #0f172a !important; }
 .light .modal-body .events-reschedule-hint { color: #475569 !important; }
+
+/* ── Promo pictures and videos: the upload field in the form ─────────────── */
+.event-media-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.event-media-head .form-label { margin-bottom: 0; }
+
+.event-media-count {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.event-media-hint {
+  margin: 4px 0 8px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.event-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.event-media-tile {
+  position: relative;
+  aspect-ratio: 1;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 9px;
+  background: #0f172a;
+}
+
+.event-media-tile.is-cover { border-color: #10b981; box-shadow: 0 0 0 1px #10b981; }
+
+.event-media-tile img,
+.event-media-tile video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.event-media-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 26px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.event-media-cover {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #047857;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.event-media-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.event-media-actions button,
+.event-media-error button {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.82);
+  color: #fde68a;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.event-media-actions button.is-remove { color: #ffffff; }
+.event-media-actions button:hover { background: rgba(15, 23, 42, 0.95); }
+.event-media-actions button.is-remove:hover { background: #b91c1c; }
+
+.event-media-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  gap: 4px;
+  padding: 18px 7px 7px;
+  background: linear-gradient(transparent, rgba(2, 6, 23, 0.9));
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.event-media-bar {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.event-media-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #34d399;
+  transition: width 0.2s ease;
+}
+
+.event-media-tile.is-preparing img,
+.event-media-tile.is-uploading img,
+.event-media-tile.is-preparing video,
+.event-media-tile.is-uploading video { opacity: 0.55; }
+
+.event-media-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 6px;
+  overflow-y: auto;
+  background: rgba(69, 10, 10, 0.92);
+  color: #fecaca;
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+.event-media-error span { flex: 1; overflow-wrap: anywhere; }
+.event-media-error button { flex: 0 0 auto; width: 20px; height: 20px; color: #ffffff; }
+
+.event-media-add {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  aspect-ratio: 1;
+  margin: 0;
+  padding: 8px;
+  border: 1px dashed rgba(52, 211, 153, 0.55);
+  border-radius: 9px;
+  background: rgba(16, 185, 129, 0.06);
+  color: #6ee7b7;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  cursor: pointer;
+}
+
+.event-media-add i { font-size: 22px; }
+.event-media-add:hover { background: rgba(16, 185, 129, 0.12); }
+.event-media-add:focus-within { outline: 2px solid #34d399; outline-offset: 2px; }
+
+.event-media-add input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.event-media-notice { margin-top: 8px; }
+
+/* On the event card: small thumbnails, the cover marked */
+.events-media-strip { margin-bottom: 16px; }
+
+.events-media-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.events-media-thumb {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: #0f172a;
+}
+
+.events-media-thumb.is-cover { border-color: #10b981; }
+
+.events-media-thumb img,
+.events-media-thumb video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.events-media-thumb i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffffff;
+  font-size: 18px;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+}
+
+.events-media-thumb small {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 1px 0;
+  background: rgba(4, 120, 87, 0.92);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Light theme: the modal rule turns every span dark, so the overlays keep their white text */
+.light .event-media-count { background: var(--bg-muted); color: var(--text-secondary) !important; }
+.light .modal-body .event-media-hint { color: var(--text-muted) !important; }
+.light .event-media-tile { border-color: var(--border); background: var(--bg-muted); }
+.light .event-media-tile.is-cover { border-color: #047857; box-shadow: 0 0 0 1px #047857; }
+.light .modal-body .event-media-cover,
+.light .modal-body .event-media-progress,
+.light .modal-body .event-media-progress span { color: #ffffff !important; }
+.light .modal-body .event-media-error,
+.light .modal-body .event-media-error span { color: #fecaca !important; }
+.light .event-media-add { border-color: #059669; background: #ecfdf5; color: #065f46; }
+.light .modal-body .event-media-add span { color: #065f46 !important; }
+.light .event-media-add:hover { background: #d1fae5; }
+.light .events-media-thumb { border-color: var(--border); background: var(--bg-muted); }
+.light .events-media-thumb.is-cover { border-color: #047857; }

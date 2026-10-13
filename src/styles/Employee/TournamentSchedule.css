@@ -1,13 +1,14 @@
 .tourna-shell {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
+/* ── Summary: upcoming count, players in them, and the next tournament ─────── */
 .tourna-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr);
+  gap: 12px;
 }
 
 .tourna-stat-card,
@@ -16,15 +17,16 @@
 .tourna-empty-card {
   background: rgba(15, 23, 42, 0.78);
   border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
 }
 
 .tourna-stat-card {
-  padding: 18px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+  min-width: 0;
 }
 
 .tourna-stat-label,
@@ -39,35 +41,156 @@
 
 .tourna-stat-card strong {
   color: #f8fafc;
-  font-size: 1.8rem;
+  font-size: 1.5rem;
+  line-height: 1.2;
 }
 
+.tourna-next {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tourna-stat-card .tourna-next strong {
+  overflow: hidden;
+  font-size: 1.05rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tourna-next small {
+  color: #cbd5e1;
+  font-size: 12.5px;
+}
+
+/* ── Tabs: Upcoming, Past, Cancelled ─────────────────────────────────────── */
+.tourna-tabs {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.tourna-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tourna-tab:hover { color: #f8fafc; }
+.tourna-tab.is-active { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; }
+.tourna-tab--cancelled.is-active { background: rgba(239, 68, 68, 0.16); color: #fca5a5; }
+
+.tourna-tab-count {
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  text-align: center;
+}
+
+/* ── List and details ────────────────────────────────────────────────────── */
 .tourna-layout {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(340px, 1.1fr);
-  gap: 18px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+  gap: 16px;
   align-items: start;
 }
 
 .tourna-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
+.tourna-list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 16px;
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+  border-radius: 16px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.tourna-list-empty i { font-size: 28px; }
+.tourna-list-empty p { margin: 0; font-size: 13px; }
+
 .tourna-card {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
   width: 100%;
-  padding: 18px;
+  padding: 12px 14px;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  transition: border-color 0.18s ease, background 0.18s ease;
 }
 
 .tourna-card:hover,
 .tourna-card.active {
   border-color: rgba(16, 185, 129, 0.45);
   background: rgba(16, 185, 129, 0.08);
-  transform: translateY(-2px);
+}
+
+.tourna-date-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: 12px;
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.tourna-date-tile span {
+  color: #fcd34d;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.tourna-date-tile strong {
+  color: #f8fafc;
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.tourna-card--completed .tourna-date-tile,
+.tourna-card--ended .tourna-date-tile,
+.tourna-card--cancelled .tourna-date-tile {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.tourna-card--completed .tourna-date-tile span,
+.tourna-card--ended .tourna-date-tile span,
+.tourna-card--cancelled .tourna-date-tile span {
+  color: #94a3b8;
+}
+
+.tourna-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
 .tourna-card-top,
@@ -76,24 +199,51 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .tourna-card-title {
-  margin-top: 14px;
+  min-width: 0;
+  overflow: hidden;
   color: #f8fafc;
-  font-size: 1.08rem;
+  font-size: 1rem;
   font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tourna-card-badges {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 6px;
 }
 
 .tourna-card-date {
-  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   color: #cbd5e1;
-  font-size: 13px;
+  font-size: 12.5px;
+}
+
+.is-struck {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.tourna-countdown {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.14);
+  color: #7dd3fc;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .tourna-card-meta {
-  margin-top: 14px;
   color: #94a3b8;
   font-size: 12px;
 }
@@ -107,12 +257,13 @@
 .tourna-badge {
   display: inline-flex;
   align-items: center;
-  padding: 6px 10px;
+  padding: 4px 9px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .tourna-badge.upcoming {
@@ -136,38 +287,78 @@
   color: #fcd34d;
 }
 
+.tourna-badge.ended {
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+}
+
+.tourna-badge.rescheduled {
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.1);
+  color: #fcd34d;
+}
+
 .light .tourna-badge.upcoming { background: #e0f2fe; color: #075985; }
 .light .tourna-badge.completed { background: #d1fae5; color: #065f46; }
 .light .tourna-badge.cancelled { background: #fee2e2; color: #b91c1c; }
 .light .tourna-badge.active { background: #fef3c7; color: #92400e; }
 
 .tourna-detail-card {
-  padding: 24px;
+  position: sticky;
+  top: 16px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .tourna-detail-head h2 {
   margin: 6px 0 0;
   color: #f8fafc;
-  font-size: 1.55rem;
+  font-size: 1.45rem;
+}
+
+.tourna-staff-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.tourna-staff-notice > i { flex-shrink: 0; margin-top: 1px; }
+
+.tourna-staff-notice--cancelled {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+}
+
+.tourna-staff-notice--moved {
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+  color: #fcd34d;
 }
 
 .tourna-detail-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .tourna-detail-item {
-  padding: 14px;
-  border-radius: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(148, 163, 184, 0.12);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .tourna-detail-item span,
@@ -175,6 +366,8 @@
   color: #94a3b8;
   margin: 0;
 }
+
+.tourna-detail-item span { font-size: 12.5px; }
 
 .tourna-detail-item strong {
   color: #f8fafc;
@@ -191,12 +384,12 @@
 .tourna-player-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .tourna-table-tag,
 .tourna-player-badge {
-  padding: 8px 12px;
+  padding: 6px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
@@ -232,12 +425,28 @@
   color: #94a3b8;
 }
 
-@media (max-width: 1024px) {
-  .tourna-stats,
-  .tourna-layout,
+@media (max-width: 1280px) {
   .tourna-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .tourna-layout {
     grid-template-columns: 1fr;
   }
+
+  .tourna-detail-card { position: static; }
+}
+
+@media (max-width: 768px) {
+  .tourna-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tourna-stat-card--next { grid-column: 1 / -1; }
+  .tourna-tabs { align-self: stretch; }
+  .tourna-tab { flex: 1; justify-content: center; padding: 7px 8px; }
+  .tourna-card-top { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .tourna-card-title { white-space: normal; }
+  .tourna-detail-grid { grid-template-columns: 1fr; }
 }
 
 /* Walk-in registration */
@@ -270,7 +479,7 @@
 .tourna-closed-note {
   display: flex;
   align-items: center;
-  margin: 14px 0 0;
+  margin: 0;
   padding: 10px 12px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 8px;
@@ -300,3 +509,152 @@
   font-size: 12px;
   font-weight: 600;
 }
+
+/* (Named apart from the guest form's .tourna-notice, which styles every page.) */
+
+/* Light theme for the parts above that the shared theme files do not cover */
+.light .tourna-next small { color: var(--text-secondary); }
+.light .tourna-tabs { background: var(--bg-card); border-color: var(--border); }
+.light .tourna-tab { color: var(--text-secondary); }
+.light .tourna-tab:hover { color: var(--text-primary); }
+.light .tourna-tab.is-active { background: #d1fae5; color: #065f46; }
+.light .tourna-tab--cancelled.is-active { background: #fee2e2; color: #991b1b; }
+.light .tourna-tab-count { background: rgba(15, 23, 42, 0.08); }
+.light .tourna-list-empty { border-color: var(--border-strong, #cbd5e1); color: var(--text-muted); }
+.light .tourna-date-tile { border-color: #fcd34d; background: #fffbeb; }
+.light .tourna-date-tile span { color: #92400e; }
+.light .tourna-date-tile strong { color: var(--text-primary); }
+.light .tourna-card--completed .tourna-date-tile,
+.light .tourna-card--ended .tourna-date-tile,
+.light .tourna-card--cancelled .tourna-date-tile { border-color: var(--border); background: var(--bg-subtle); }
+.light .tourna-card--completed .tourna-date-tile span,
+.light .tourna-card--ended .tourna-date-tile span,
+.light .tourna-card--cancelled .tourna-date-tile span { color: var(--text-muted); }
+.light .tourna-countdown { background: #e0f2fe; color: #075985; }
+.light .tourna-badge.ended { background: var(--bg-muted); color: var(--text-secondary); }
+.light .tourna-badge.rescheduled { border-color: #fcd34d; background: #fffbeb; color: #92400e; }
+.light .tourna-staff-notice--cancelled { border-color: #fca5a5; background: #fef2f2; color: #991b1b; }
+.light .tourna-staff-notice--moved { border-color: #fcd34d; background: #fffbeb; color: #92400e; }
+
+/* ── Player registrations: participant chips, the bell's list, and the pop-up ── */
+.tourna-player-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.tourna-player-badge:hover,
+.tourna-player-badge:focus-visible {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.tourna-player-badge.is-new { border-color: rgba(74, 222, 128, 0.45); }
+
+.tourna-player-new {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(74, 222, 128, 0.18);
+  color: #86efac;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.registration-dropdown { width: min(360px, calc(100vw - 32px)); }
+
+.notification-list .registration-item {
+  width: 100%;
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-list .registration-item:hover { background: rgba(255, 255, 255, 0.05); }
+.notification-list .registration-item.unread { background: rgba(74, 222, 128, 0.07); }
+
+.registration-item-icon {
+  margin-top: 2px;
+  color: #6ee7b7;
+  font-size: 15px;
+}
+
+.registration-item .notification-message,
+.registration-item .notification-time { display: block; }
+.registration-item .notification-message strong { color: #f8fafc; }
+
+.tourna-player-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.tourna-player-facts > div {
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tourna-player-facts dt {
+  margin-bottom: 2px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tourna-player-facts dd {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.tourna-player-facts a { color: #6ee7b7; }
+
+.tourna-player-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.tourna-player-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.tourna-player-note.is-warning { color: #fcd34d; }
+
+@media (max-width: 576px) {
+  .tourna-player-facts { grid-template-columns: 1fr; }
+}
+
+.light .tourna-player-badge:hover,
+.light .tourna-player-badge:focus-visible { border-color: #059669; }
+.light .tourna-player-badge.is-new { border-color: #34d399; }
+.light .tourna-player-new { background: #d1fae5; color: #065f46; }
+.light .notification-list .registration-item:hover { background: var(--bg-subtle); }
+.light .notification-list .registration-item.unread { background: #ecfdf5; }
+.light .registration-item-icon { color: #047857; }
+.light .registration-item .notification-message strong { color: var(--text-primary); }
+.light .tourna-player-facts > div { border-color: var(--border); background: var(--bg-subtle); }
+.light .tourna-player-facts dt { color: var(--text-muted); }
+.light .tourna-player-facts dd { color: var(--text-primary); }
+.light .tourna-player-facts a { color: #047857; }
+.light .tourna-player-modal .tourna-player-note { color: var(--text-muted) !important; }
+.light .tourna-player-modal .tourna-player-note.is-warning { color: #92400e !important; }
+.light .tourna-modal-subtitle { color: var(--text-muted); }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import ConfirmDialog from "../Global/ConfirmDialog";
 
@@ -8,10 +8,11 @@ const getModalRoot = () => document.querySelector("#root > .dark, #root > .light
 
 export default function CartPanel({
   cart,
+  activeBill = null,
   subtotal,
   total,
   method,
-  pendingCount,
+  waitingCount,
   servedCount,
   unsyncedCount,
   stockAlert,
@@ -19,7 +20,10 @@ export default function CartPanel({
   getQueuedQty = () => 0,
   onSetMethod,
   onProcessPayment,
+  onEditBill,
+  onCloseBill,
 }) {
+  // A quantity being typed, until it is applied (or left empty while typing).
   const [qtyDrafts, setQtyDrafts] = useState({});
   // An item about to come off the bill, waiting for staff to confirm.
   const [removeTarget, setRemoveTarget] = useState(null);
@@ -70,8 +74,8 @@ export default function CartPanel({
       title: nextQty === 0 ? "Remove from Bill?" : "Remove a Served Item?",
       message:
         nextQty === 0
-          ? `Remove ${item.name} ×${item.qty} from the running bill?`
-          : `Take ${removing} ${item.name} off the running bill?`,
+          ? `Remove ${item.name} ×${item.qty} from ${activeBill ? activeBill.label : "the running bill"}?`
+          : `Take ${removing} ${item.name} off ${activeBill ? activeBill.label : "the running bill"}?`,
       detail: [waitingNote, servedNote].filter(Boolean).join(" "),
     };
   };
@@ -84,28 +88,22 @@ export default function CartPanel({
       maximumFractionDigits: 2,
     })}`;
 
-  useEffect(() => {
-    setQtyDrafts((prev) =>
-      Object.fromEntries(
-        cart
-          .filter((item) => prev[item.id] !== undefined)
-          .map((item) => [item.id, prev[item.id]])
-      )
-    );
-  }, [cart]);
+  // Once applied, the draft is dropped so the box shows the bill's own quantity
+  // again; a kept draft went stale when + or − changed the quantity afterwards.
+  const clearDraft = (item) =>
+    setQtyDrafts((prev) => {
+      const next = { ...prev };
+      delete next[item.id];
+      return next;
+    });
 
   const commitQty = (item) => {
     const draft = qtyDrafts[item.id];
     if (draft === undefined) return;
 
     const parsedQty = Number.parseInt(draft, 10);
-    const appliedQty = onUpdateQty(item.id, Number.isNaN(parsedQty) ? item.qty : parsedQty);
-
-    setQtyDrafts((prev) => {
-      const next = { ...prev };
-      next[item.id] = String(appliedQty ?? item.qty);
-      return next;
-    });
+    onUpdateQty(item.id, Number.isNaN(parsedQty) ? item.qty : parsedQty);
+    clearDraft(item);
   };
 
   const handleQtyChange = (item, value) => {
@@ -117,8 +115,8 @@ export default function CartPanel({
     const parsedQty = Number.parseInt(value, 10);
     if (Number.isNaN(parsedQty)) return;
 
-    const appliedQty = onUpdateQty(item.id, parsedQty);
-    setQtyDrafts((prev) => ({ ...prev, [item.id]: String(appliedQty ?? item.qty) }));
+    onUpdateQty(item.id, parsedQty);
+    clearDraft(item);
   };
 
   return (
@@ -127,14 +125,28 @@ export default function CartPanel({
         <div className="card-body">
           <div className="cart-header">
             <i className="bi bi-cart3 me-2"></i>
-            Running Bill
+            <span className="cart-header-title">
+              <span className="cart-header-label">Running Bill</span>
+              <span className="cart-header-bill">{activeBill ? activeBill.label : "No bill picked"}</span>
+            </span>
             {cart.length > 0 && <span className="cart-count">{cart.length}</span>}
+            {activeBill && (
+              <button
+                type="button"
+                className="cart-bill-edit"
+                onClick={onEditBill}
+                aria-label={`Edit ${activeBill.label}`}
+                title="Change who this bill is for"
+              >
+                <i className="bi bi-pencil"></i>
+              </button>
+            )}
           </div>
 
           <div className="cart-service-strip">
             <div className="cart-service-pill">
-              <span className="cart-service-label">Pending</span>
-              <strong>{pendingCount}</strong>
+              <span className="cart-service-label">Waiting</span>
+              <strong>{waitingCount}</strong>
             </div>
             <div className="cart-service-pill">
               <span className="cart-service-label">Served</span>
@@ -149,7 +161,17 @@ export default function CartPanel({
           {cart.length === 0 ? (
             <div className="cart-empty">
               <i className="bi bi-cart3"></i>
-              <p>Build the running bill with inventory items and table services.</p>
+              {activeBill ? (
+                <>
+                  <p>Nothing on {activeBill.label} yet. Tap food or drinks to add them.</p>
+                  <button type="button" className="cart-close-bill-btn" onClick={() => onCloseBill(activeBill.id)}>
+                    <i className="bi bi-x-circle"></i>
+                    Close This Bill
+                  </button>
+                </>
+              ) : (
+                <p>Pick an open bill above, or tap an item to start a new walk-in bill.</p>
+              )}
             </div>
           ) : (
             <div className="cart-items">
@@ -289,7 +311,7 @@ export default function CartPanel({
 
             <button className="process-payment-btn" onClick={onProcessPayment} disabled={cart.length === 0}>
               <i className="bi bi-credit-card me-2"></i>
-              Send Total To Payment
+              {activeBill && cart.length ? `Pay ${activeBill.label}` : "Send Total To Payment"}
             </button>
           </div>
         </div>

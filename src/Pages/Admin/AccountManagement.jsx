@@ -3,6 +3,7 @@ import "../../styles/Admin/Audit.css";
 import AdminCredentialsManager from "../../Elements/Admin/AdminCredentialsManager";
 import { MIN_PASSWORD_LENGTH, isPasswordTooShort } from "../../utils/passwordRules";
 import { isValidSmsNumber, normalizeMobileNumber } from "../../utils/phone";
+import { getUsernameError } from "../../utils/formValidation";
 import AuditAccountManager from "../../Elements/Admin/AuditAccountManager";
 import PasswordResetHistory from "../../Elements/Admin/PasswordResetHistory";
 import { fetchPasswordResets } from "../../utils/passwordResetApi";
@@ -103,6 +104,13 @@ export default function AccountManagement({ setLogs }) {
       setMessage("Enter the mobile number in 09XXXXXXXXX format, or leave it blank.");
       return false;
     }
+    // Checked when new or changed, so an older name can still have its password reset.
+    const usernameError =
+      existingAccount && existingAccount.username === username ? "" : getUsernameError(username, accounts, form.id);
+    if (usernameError) {
+      setMessage(usernameError);
+      return false;
+    }
 
     const payload = {
       id: form.id,
@@ -115,21 +123,26 @@ export default function AccountManagement({ setLogs }) {
       fullName: existingAccount?.fullName || existingAccount?.full_name || "",
       phone: form.phone || "",
     };
-    let savedAccount = { ...payload, id: form.id || Date.now() };
-
+    // Only an account the server saved is listed: one kept in this browser alone
+    // could never sign in, since signing in checks the server.
+    let savedAccount;
     try {
       const response = await fetch("/api/users.php", {
         method: isUpdate ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Unable to save account.");
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        setMessage(data.message || "The account server refused the change. Nothing was saved.");
+        return false;
+      }
 
-      savedAccount = data.user || savedAccount;
+      savedAccount = data.user || { ...payload, id: form.id };
       setMessage("Account saved to database.");
-    } catch (error) {
-      setMessage(`${error.message || "Account saved locally."} Local account list updated.`);
+    } catch {
+      setMessage("Could not reach the account server, so nothing was saved. Check the connection and try again.");
+      return false;
     }
 
     updateAccountList(savedAccount);
