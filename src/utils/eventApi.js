@@ -1,3 +1,5 @@
+import { apiFetch, refusalError } from "./apiFetch";
+
 const EVENT_API_URL = import.meta.env.VITE_EVENT_API_URL || (
   !import.meta.env.DEV && window.location.hostname.endsWith("breakandchill.com")
     ? "https://app.breakandchill.com/api/events.php"
@@ -5,32 +7,38 @@ const EVENT_API_URL = import.meta.env.VITE_EVENT_API_URL || (
 );
 
 const parseResponse = async (response, fallbackMessage) => {
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok || !data.success) {
-    throw new Error(data.message || fallbackMessage);
+    throw refusalError(response, data, fallbackMessage);
   }
 
   return data;
 };
 
+// The tournaments and each one's version (see useServerList.js).
 export const fetchRemoteEvents = async () => {
-  const response = await fetch(EVENT_API_URL);
+  const response = await apiFetch(EVENT_API_URL);
   const data = await parseResponse(response, "Unable to load tournaments.");
-  return Array.isArray(data.events) ? data.events : [];
+  return {
+    items: Array.isArray(data.events) ? data.events : [],
+    versions: data.versions && typeof data.versions === "object" ? data.versions : {},
+  };
 };
 
-export const saveRemoteEvents = async (events) => {
-  const response = await fetch(EVENT_API_URL, {
+// Only the tournaments changed here: { upsert, remove, confirmRemoval }.
+export const saveRemoteEventChanges = async (changes) => {
+  const response = await apiFetch(EVENT_API_URL, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ events }),
+    body: JSON.stringify(changes),
   });
-  await parseResponse(response, "Unable to save tournaments.");
+  const data = await parseResponse(response, "Unable to save tournaments.");
+  return { versions: data.versions || {} };
 };
 
 export const registerRemoteTournamentParticipant = async ({ eventId, participant }) => {
-  const response = await fetch(EVENT_API_URL, {
+  const response = await apiFetch(EVENT_API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ eventId, participant }),

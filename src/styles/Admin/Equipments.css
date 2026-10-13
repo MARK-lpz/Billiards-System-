@@ -1676,3 +1676,47 @@
 .light .equipment-replace-note i { color: #1d4ed8; }
 .light .equipment-history-action--deleted { background: #fee2e2; color: #991b1b; }
 .light .equipment-history-action--replaced { background: #d1fae5; color: #065f46; }
+
+/* By Table, filtered: spares off any table that match, with a jump to their tab */
+.equipment-unassigned-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-bottom: 14px;
+  padding: 9px 14px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 10px;
+  background: rgba(96, 165, 250, 0.08);
+  color: #bfdbfe;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.equipment-unassigned-note i { color: #60a5fa; }
+.equipment-unassigned-note span { flex: 1; min-width: 180px; }
+
+.equipment-unassigned-note button {
+  padding: 5px 12px;
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  border-radius: 999px;
+  background: transparent;
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.equipment-unassigned-note button:hover { background: rgba(96, 165, 250, 0.16); }
+.equipment-unassigned-note button:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+
+/* Four view tabs share the row on phones */
+@media (max-width: 768px) {
+  .equipment-view-toggle { width: 100%; flex-wrap: wrap; }
+  .equipment-view-tab { flex: 1 1 auto; justify-content: center; }
+}
+
+.light .equipment-unassigned-note { border-color: #93c5fd; background: #eff6ff; color: #1e3a8a; }
+.light .equipment-unassigned-note i { color: #1d4ed8; }
+.light .equipment-unassigned-note button { border-color: #93c5fd; color: #1d4ed8; }
+.light .equipment-unassigned-note button:hover { background: #dbeafe; }

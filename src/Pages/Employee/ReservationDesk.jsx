@@ -35,7 +35,10 @@ const todayStr = () => new Date().toLocaleDateString("en-CA");
 const createId = () => Date.now() + Math.floor(Math.random() * 1000);
 const HISTORY_STATUSES = new Set(["completed", "cancelled", "rejected", "expired"]);
 
+// `focusReservationId`: a booking opened from the employee's bell. A pending
+// online one opens its payment check; any other is shown, marked, in the list.
 export default function ReservationDesk({
+  focusReservationId = null,
   tables = [],
   setTables,
   reservations = [],
@@ -48,10 +51,15 @@ export default function ReservationDesk({
   // Problems are shown in the app, not in the browser's own alert box.
   const showError = (title, message) =>
     showToast({ tone: "error", icon: "bi-exclamation-octagon-fill", title, message });
-  const [reservationFilter, setReservationFilter] = useState("all");
+  const focusBooking =
+    focusReservationId === null ? null : reservations.find((booking) => String(booking.id) === String(focusReservationId)) || null;
+  const focusNeedsCheck = focusBooking?.status === "pending" && focusBooking.source === "online";
+  const [reservationFilter, setReservationFilter] = useState(() =>
+    focusBooking && HISTORY_STATUSES.has(focusBooking.status) ? "history" : "all"
+  );
   const [activeModal, setActiveModal] = useState(null);
   // The online booking whose GCash payment is being checked.
-  const [paymentCheckTarget, setPaymentCheckTarget] = useState(null);
+  const [paymentCheckTarget, setPaymentCheckTarget] = useState(() => (focusNeedsCheck ? focusBooking : null));
   const [paymentCheckBusy, setPaymentCheckBusy] = useState(false);
   const [walkInForm, setWalkInForm] = useState({ customerName: "", tableId: "" });
   const [reservationForm, setReservationForm] = useState({
@@ -506,6 +514,13 @@ const closeModal = () => setActiveModal(null);
 
       <ReservationStats summary={summary} />
 
+      {focusReservationId !== null && !focusBooking && (
+        <p className="rd-focus-missing" role="status">
+          <i className="bi bi-info-circle" aria-hidden="true"></i>
+          That online reservation is no longer in the list. It may have been removed; the latest bookings are below.
+        </p>
+      )}
+
       <ReservationQueue
         reservations={visibleReservations}
         allReservations={reservations}
@@ -514,6 +529,7 @@ const closeModal = () => setActiveModal(null);
         setReservationFilter={setReservationFilter}
         onBookingStatus={handleBookingStatus}
         onCheckPayment={setPaymentCheckTarget}
+        highlightId={focusBooking ? focusBooking.id : null}
       />
 
       {paymentCheckTarget && (

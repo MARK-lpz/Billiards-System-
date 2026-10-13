@@ -10,7 +10,9 @@ import { getNextProductNumber, normalizeProductNumbers } from "../../utils/produ
 import { getProductErrors, getRestockError } from "../../utils/inventoryValidation";
 import { getTodayDate } from "../../utils/reservations";
 
-export default function Inventory({ products, setProducts }) {
+// `focusProductId`: a product opened from the admin's bell, shown marked (under
+// Low Stock while it is still low).
+export default function Inventory({ products, setProducts, focusProductId = null }) {
   const { addNotification } = useNotifications();
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({
@@ -23,7 +25,11 @@ export default function Inventory({ products, setProducts }) {
     unit: "pcs"
   });
   const [editId, setEditId] = useState(null);
-  const [filter, setFilter] = useState("all");
+  const focusProduct =
+    focusProductId === null ? null : products.find((product) => String(product.id) === String(focusProductId)) || null;
+  const [filter, setFilter] = useState(() =>
+    focusProduct && Number(focusProduct.stock) <= Number(focusProduct.minStock) ? "low-stock" : "all"
+  );
   // Deleting cannot be undone, so the trash button only arms this confirmation.
   const [deleteTarget, setDeleteTarget] = useState(null);
   // Adding a product or restocking asks once more before it changes the stock.
@@ -202,6 +208,13 @@ export default function Inventory({ products, setProducts }) {
 
       <InventoryStats stats={stats} />
 
+      {focusProductId !== null && !focusProduct && (
+        <p className="inventory-focus-missing" role="status">
+          <i className="bi bi-info-circle" aria-hidden="true"></i>
+          That product is no longer in the inventory. It may have been deleted.
+        </p>
+      )}
+
       {/* Filter Tabs */}
       <div className="inventory-filters mb-4">
         {categories.map(cat => (
@@ -220,6 +233,7 @@ export default function Inventory({ products, setProducts }) {
         onEdit={openEditModal}
         onDelete={requestDelete}
         onRestock={openRestockModal}
+        highlightId={focusProduct ? focusProduct.id : null}
       />
 
       {/* Add/Edit Modal */}

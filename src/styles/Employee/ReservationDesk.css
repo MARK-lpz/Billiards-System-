@@ -705,3 +705,31 @@
 .light .rd-sort-btn { border-color: var(--border); color: var(--text-secondary); }
 .light .rd-sort-btn:hover { border-color: #10b981; color: #047857; }
 .light .rd-sort-btn.is-active { border-color: #10b981; background: #ecfdf5; color: #047857; }
+
+/* The booking opened from the bell: marked until the desk moves on */
+.rd-table tbody tr.rd-row--focus {
+  background: rgba(96, 165, 250, 0.12);
+  outline: 2px solid #60a5fa;
+  outline-offset: -2px;
+}
+
+/* Opened from the bell, but the booking is gone */
+.rd-focus-missing {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 10px;
+  background: rgba(96, 165, 250, 0.08);
+  color: #bfdbfe;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rd-focus-missing i { color: #60a5fa; margin-top: 1px; }
+
+.light .rd-table tbody tr.rd-row--focus { background: #eff6ff !important; outline-color: #2563eb; }
+.light .rd-focus-missing { border-color: #93c5fd; background: #eff6ff; color: #1e3a8a; }
+.light .rd-focus-missing i { color: #1d4ed8; }

@@ -8,6 +8,7 @@ import { useNotifications } from "../../Elements/Global/useNotifications";
 import useClock from "../../Elements/Global/useClock";
 import { resolveRemoteIssue } from "../../utils/issueApi";
 import { saveEquipmentHistory } from "../../utils/equipmentApi";
+import { confirmRemoval } from "../../utils/listSync";
 import { getSignedInUser } from "../../utils/session";
 import ReportHistory from "../../Elements/Admin/ReportHistory";
 import {
@@ -89,8 +90,8 @@ export default function Equipment({
   const [form, setForm] = useState(emptyEquipmentForm);
   const [editId, setEditId] = useState(null);
   const [issueModal, setIssueModal] = useState(null);
-  // "tables": equipment and open reports, table by table. "history": resolved reports.
-  // "removed": equipment deleted or replaced.
+  // "tables": equipment and open reports, table by table. "spares": spares given to no table.
+  // "history": resolved reports. "removed": equipment deleted or replaced.
   const [view, setView] = useState("tables");
   // null shows everything; a status, or "reports" for tables with an open report.
   const [filter, setFilter] = useState(null);
@@ -279,11 +280,18 @@ export default function Equipment({
     const cleaned = { ...form, name: form.name.trim(), tableId: table ? table.id : null, spare };
     const where = table ? (spare ? ` as a spare for ${table.name}` : ` for ${table.name}`) : " as an unassigned spare";
     if (editId) {
+      // Taken off its table, it leaves By Table, so say on screen where it went.
+      const wasOnTable = Boolean(getEquipmentTable(equipment.find((item) => item.id === editId), tables));
       setEquipment((prev) => prev.map((item) => (item.id === editId ? { ...item, ...cleaned } : item)));
-      addNotification({ message: `${cleaned.name} equipment details updated.` });
+      if (wasOnTable && !table) {
+        announce("Moved to Unassigned", `${cleaned.name} is now an unassigned spare, listed under the Unassigned tab.`);
+      } else {
+        addNotification({ message: `${cleaned.name} equipment details updated.` });
+      }
     } else {
       setEquipment((prev) => [...prev, { ...cleaned, id: Date.now() }]);
-      addNotification({ message: `${cleaned.name} registered${where}.` });
+      if (table) addNotification({ message: `${cleaned.name} registered${where}.` });
+      else announce("Spare Registered", `${cleaned.name} registered${where}, listed under the Unassigned tab.`);
     }
     setModal(null);
     setEditId(null);
@@ -363,6 +371,8 @@ export default function Equipment({
     const ids = new Set(items.map((item) => String(item.id)));
     const single = items.length === 1 ? items[0] : null;
     const standIn = useSpareId ? equipment.find((entry) => String(entry.id) === String(useSpareId)) || null : null;
+    // Deleted on purpose here, so the server takes several at once (see listSync.js).
+    confirmRemoval("equipment", [...ids]);
     setEquipment((prev) =>
       prev
         .filter((entry) => !ids.has(String(entry.id)))
@@ -418,9 +428,22 @@ export default function Equipment({
     );
   };
 
+  // Spares given to no table have a tab of their own.
+  const unassignedSpares = getUnassignedSpares(equipment, tables);
+  const unassignedIds = new Set(unassignedSpares.map((item) => String(item.id)));
+  const spareSection = {
+    key: "spare",
+    table: null,
+    title: "Unassigned Spares",
+    items: unassignedSpares,
+    spares: [],
+    issues: [],
+    shownItems: unassignedSpares,
+    shownSpares: [],
+  };
+
   // One section per table with its dedicated equipment, its spares and open
-  // reports, then the unassigned spares, then reports tied to no table (a
-  // general complaint, say).
+  // reports, then reports tied to no table (a general complaint, say).
   const sections = [
     ...[...tables]
       .sort((first, second) => Number(first.id) - Number(second.id))
@@ -432,14 +455,6 @@ export default function Equipment({
         spares: getTableSpares(equipment, table.id),
         issues: reportedIssues.filter((issue) => String(getIssueTableId(issue, issueContext)) === String(table.id)),
       })),
-    {
-      key: "spare",
-      table: null,
-      title: "Unassigned Spares",
-      items: getUnassignedSpares(equipment, tables),
-      spares: [],
-      issues: [],
-    },
     {
       key: "general",
       table: null,
@@ -467,11 +482,19 @@ export default function Equipment({
 
   const toggleFilter = (next) => setFilter((previous) => (previous === next ? null : next));
 
-  // Select mode works on the broken items on show (after the filter).
-  const removableCount = equipment.filter(isRemovableEquipment).length;
-  const selectableItems = visibleSections
-    .flatMap((section) => [...section.shownItems, ...section.shownSpares])
-    .filter(isRemovableEquipment);
+  // The filter is for By Table; spares off any table that match it are pointed to.
+  const unassignedMatches = filter && filter !== "reports" ? byFilter(unassignedSpares).length : 0;
+
+  // Select mode works on the broken items on show in this tab (after the filter).
+  const equipmentView = view === "tables" || view === "spares";
+  const viewEquipment =
+    view === "spares" ? unassignedSpares : equipment.filter((item) => !unassignedIds.has(String(item.id)));
+  const removableCount = viewEquipment.filter(isRemovableEquipment).length;
+  const selectableItems = (
+    view === "spares"
+      ? unassignedSpares
+      : visibleSections.flatMap((section) => [...section.shownItems, ...section.shownSpares])
+  ).filter(isRemovableEquipment);
   const selectedItems = equipment.filter((item) => selectedIds.has(String(item.id)) && isRemovableEquipment(item));
 
   const showView = (next) => {
@@ -485,6 +508,7 @@ export default function Equipment({
     { key: "replacement", tone: "yellow", value: stats.replacement, label: "For Replacement" },
     { key: "reports", tone: "blue", value: reportedIssues.length, label: "Open Reports" },
   ];
+  const filterLabel = (summaryCards.find((card) => card.key === filter)?.label || "").toLowerCase();
 
   const renderReport = (issue) => {
     const summary = getIssueSummary(issue);
@@ -798,6 +822,17 @@ export default function Equipment({
             <button
               type="button"
               role="tab"
+              aria-selected={view === "spares"}
+              className={`equipment-view-tab ${view === "spares" ? "active" : ""}`}
+              onClick={() => showView("spares")}
+            >
+              <i className="bi bi-box-seam me-2"></i>
+              Unassigned
+              <span>{unassignedSpares.length}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
               aria-selected={view === "history"}
               className={`equipment-view-tab ${view === "history" ? "active" : ""}`}
               onClick={() => showView("history")}
@@ -818,7 +853,7 @@ export default function Equipment({
               {removedTotal !== null && <span>{removedTotal}</span>}
             </button>
           </div>
-          {view === "tables" && (selecting || removableCount > 0) && (
+          {equipmentView && (selecting || removableCount > 0) && (
             <button
               type="button"
               className={`equipment-select-btn ${selecting ? "active" : ""}`}
@@ -870,56 +905,73 @@ export default function Equipment({
             </div>
           )}
 
-          {selecting && (
-            <div className="equipment-select-bar" role="region" aria-label="Select broken equipment">
-              <strong>
-                {selectedItems.length ? `${plural(selectedItems.length, "item")} selected` : "Tick the broken items to delete"}
-              </strong>
-              <button
-                type="button"
-                className="equipment-select-link"
-                onClick={() => setSelectedIds(new Set(selectableItems.map((item) => String(item.id))))}
-                disabled={!selectableItems.length}
-              >
-                Select all broken ({selectableItems.length})
-              </button>
-              {selectedItems.length > 0 && (
-                <button type="button" className="equipment-select-link" onClick={() => setSelectedIds(new Set())}>
-                  Clear
-                </button>
-              )}
-              <span className="equipment-select-bar-gap" aria-hidden="true"></span>
-              <button type="button" className="equipment-select-cancel" onClick={leaveSelectMode}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="equipment-select-delete"
-                onClick={() => setDeleteTargets(selectedItems)}
-                disabled={!selectedItems.length}
-              >
-                <i className="bi bi-trash3"></i>
-                Delete{selectedItems.length ? ` ${selectedItems.length}` : ""}
-              </button>
-            </div>
-          )}
-
-          {visibleSections.length ? (
-            <div className="equipment-sections">{visibleSections.map(renderSection)}</div>
-          ) : (
-            <div className="equipment-empty-state">
-              <i className="bi bi-funnel" aria-hidden="true"></i>
-              <strong>Nothing matches this filter</strong>
+          {unassignedMatches > 0 && (
+            <div className="equipment-unassigned-note" role="note">
+              <i className="bi bi-box-seam" aria-hidden="true"></i>
               <span>
-                {filter === "reports"
-                  ? "No open reports. Reports employees send show up under their table."
-                  : `No equipment is ${(summaryCards.find((card) => card.key === filter)?.label || "").toLowerCase()}.`}{" "}
-                Tap the card again to show everything.
+                {plural(unassignedMatches, "unassigned spare")} {unassignedMatches === 1 ? "is" : "are"} also{" "}
+                {filterLabel}.
               </span>
+              <button type="button" onClick={() => showView("spares")}>
+                Show in Unassigned
+              </button>
             </div>
           )}
         </>
       )}
+
+      {equipmentView && selecting && (
+        <div className="equipment-select-bar" role="region" aria-label="Select broken equipment">
+          <strong>
+            {selectedItems.length ? `${plural(selectedItems.length, "item")} selected` : "Tick the broken items to delete"}
+          </strong>
+          <button
+            type="button"
+            className="equipment-select-link"
+            onClick={() => setSelectedIds(new Set(selectableItems.map((item) => String(item.id))))}
+            disabled={!selectableItems.length}
+          >
+            Select all broken ({selectableItems.length})
+          </button>
+          {selectedItems.length > 0 && (
+            <button type="button" className="equipment-select-link" onClick={() => setSelectedIds(new Set())}>
+              Clear
+            </button>
+          )}
+          <span className="equipment-select-bar-gap" aria-hidden="true"></span>
+          <button type="button" className="equipment-select-cancel" onClick={leaveSelectMode}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="equipment-select-delete"
+            onClick={() => setDeleteTargets(selectedItems)}
+            disabled={!selectedItems.length}
+          >
+            <i className="bi bi-trash3"></i>
+            Delete{selectedItems.length ? ` ${selectedItems.length}` : ""}
+          </button>
+        </div>
+      )}
+
+      {view === "tables" &&
+        (visibleSections.length ? (
+          <div className="equipment-sections">{visibleSections.map(renderSection)}</div>
+        ) : (
+          <div className="equipment-empty-state">
+            <i className="bi bi-funnel" aria-hidden="true"></i>
+            <strong>Nothing matches this filter</strong>
+            <span>
+              {filter === "reports"
+                ? "No open reports. Reports employees send show up under their table."
+                : `No equipment${unassignedMatches ? " at the tables" : ""} is ${filterLabel}.`}{" "}
+              Tap the card again to show everything.
+            </span>
+          </div>
+        ))}
+
+      {/* Spares given to no table, with Add Spare */}
+      {view === "spares" && <div className="equipment-sections">{renderSection(spareSection)}</div>}
 
       {/* Resolved reports, a page at a time, grouped by when they were resolved */}
       {view === "history" && (

@@ -9,6 +9,7 @@ import PasswordResetHistory from "../../Elements/Admin/PasswordResetHistory";
 import { fetchPasswordResets } from "../../utils/passwordResetApi";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../../Elements/Global/useNotifications";
+import { apiFetch } from "../../utils/apiFetch";
 
 const emptyCredentialForm = { id: null, username: "", phone: "", password: "" };
 
@@ -56,7 +57,7 @@ export default function AccountManagement({ setLogs }) {
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/api/users.php")
+    apiFetch("/api/users.php")
       .then((response) => (response.ok ? response.json() : Promise.reject(response)))
       .then((data) => {
         if (!cancelled && Array.isArray(data.users)) {
@@ -127,7 +128,7 @@ export default function AccountManagement({ setLogs }) {
     // could never sign in, since signing in checks the server.
     let savedAccount;
     try {
-      const response = await fetch("/api/users.php", {
+      const response = await apiFetch("/api/users.php", {
         method: isUpdate ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

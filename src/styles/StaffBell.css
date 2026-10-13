@@ -1,0 +1,138 @@
+/* The staff bells (employee: online reservations and tournament players; admin:
+   low stock), each notice opening its module */
+.staff-bell {
+  width: min(380px, calc(100vw - 32px));
+  max-height: 460px;
+}
+
+.staff-bell .notification-list { max-height: 390px; }
+
+/* Phones: across the screen, under the bell (top set from where the bell is).
+   As .dropdown-menu.x so Menu.css's .dropdown-menu, loaded later on some pages, cannot undo it. */
+.dropdown-menu.staff-bell--docked {
+  position: fixed;
+  right: 16px;
+  left: 16px;
+  width: auto;
+}
+
+.staff-bell-section {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 16px 6px;
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.staff-bell-count {
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(74, 222, 128, 0.16);
+  color: #86efac;
+  font-size: 10.5px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.staff-bell-empty {
+  margin: 0;
+  padding: 10px 16px 14px;
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.notification-list .staff-bell-item {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.2);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-list .staff-bell-item:hover { background: rgba(255, 255, 255, 0.05); }
+.notification-list .staff-bell-item.unread { background: rgba(74, 222, 128, 0.07); }
+.staff-bell-item:focus-visible { outline: 2px solid #4ade80; outline-offset: -2px; }
+
+.staff-bell-icon {
+  margin-top: 2px;
+  color: #6ee7b7;
+  font-size: 15px;
+}
+
+.staff-bell-item .notification-message,
+.staff-bell-item .notification-time { display: block; }
+.staff-bell-item .notification-message strong { color: #f8fafc; }
+
+/* Other notices: the notice itself (opening marks it read) and its dismiss button */
+.staff-bell-other-open {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.staff-bell-other-open:focus-visible,
+.staff-bell-other .notification-delete:focus-visible {
+  outline: 2px solid #4ade80;
+  outline-offset: 2px;
+}
+
+/* The dismiss button shows on hover, on keyboard focus, and always on touch screens */
+.staff-bell-other .notification-delete:focus-visible { opacity: 1; }
+@media (hover: none) {
+  .staff-bell-other .notification-delete { opacity: 1; }
+}
+
+/* Where a booking stands now */
+.staff-bell-state {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.staff-bell-state--action { background: rgba(251, 191, 36, 0.18); color: #fcd34d; }
+.staff-bell-state--done { background: rgba(74, 222, 128, 0.16); color: #86efac; }
+.staff-bell-state--closed { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; }
+.staff-bell-state--danger { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
+
+.staff-bell-icon--warning { color: #fbbf24; }
+.staff-bell-icon--danger { color: #f87171; }
+
+.light .staff-bell-section { background: var(--bg-subtle); color: var(--text-muted); }
+.light .staff-bell-count { background: #d1fae5; color: #065f46; }
+.light .staff-bell-empty { color: var(--text-muted); }
+.light .notification-list .staff-bell-item:hover { background: var(--bg-subtle); }
+.light .notification-list .staff-bell-item.unread { background: #ecfdf5; }
+.light .staff-bell-item:focus-visible,
+.light .staff-bell-other-open:focus-visible,
+.light .staff-bell-other .notification-delete:focus-visible { outline-color: #047857; }
+.light .staff-bell-icon { color: #047857; }
+.light .staff-bell-item .notification-message strong { color: var(--text-primary); }
+.light .staff-bell-state--action { background: #fef3c7; color: #92400e; }
+.light .staff-bell-state--done { background: #d1fae5; color: #065f46; }
+.light .staff-bell-state--closed { background: #e2e8f0; color: #334155; }
+.light .staff-bell-state--danger { background: #fee2e2; color: #991b1b; }
+.light .staff-bell-icon--warning { color: #b45309; }
+.light .staff-bell-icon--danger { color: #b91c1c; }

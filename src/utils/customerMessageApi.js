@@ -1,3 +1,4 @@
+import { apiFetch } from "./apiFetch";
 const MESSAGE_API_URL = import.meta.env.VITE_CUSTOMER_MESSAGE_API_URL || (
   !import.meta.env.DEV && window.location.hostname.endsWith("breakandchill.com")
     ? "https://app.breakandchill.com/api/customer_messages.php"
@@ -13,7 +14,7 @@ const MESSAGE_API_URL = import.meta.env.VITE_CUSTOMER_MESSAGE_API_URL || (
  * switched on (or a sending limit was reached), "failed" if the provider refused.
  */
 export const sendCustomerConfirmation = async ({ context, referenceId, phone, participant, paymentReference }) => {
-  const response = await fetch(MESSAGE_API_URL, {
+  const response = await apiFetch(MESSAGE_API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ context, referenceId, phone, participant, paymentReference }),
@@ -29,7 +30,7 @@ export const sendCustomerConfirmation = async ({ context, referenceId, phone, pa
 
 export const fetchCustomerMessages = async (status = "") => {
   const url = status ? `${MESSAGE_API_URL}?status=${encodeURIComponent(status)}` : MESSAGE_API_URL;
-  const response = await fetch(url);
+  const response = await apiFetch(url);
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok || !data.success) {

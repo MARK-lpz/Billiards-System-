@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ForgotPassModal from "../Elements/Global/ForgotPassModal";
 import { MIN_PASSWORD_LENGTH } from "../utils/passwordRules";
-import { saveSignedInUser } from "../utils/session";
+import { hasSignInEndedNote, saveSignedInUser } from "../utils/session";
 import "../styles/Login.css";
 
 export default function Login({ onLogin, onGoToRegister }) {
@@ -9,6 +9,8 @@ export default function Login({ onLogin, onGoToRegister }) {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  // Sent back here because the server ended the sign-in (see App.jsx).
+  const [signInEnded] = useState(hasSignInEndedNote);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -82,6 +84,13 @@ export default function Login({ onLogin, onGoToRegister }) {
 
         <h1 className="title">BREAK &amp; CHILL</h1>
         <p className="subtitle">Billiard Hall Management System</p>
+
+        {signInEnded && (
+          <p className="login-notice" role="status">
+            <i className="bi bi-info-circle" aria-hidden="true"></i>
+            You were signed out (idle too long, or signed out on the server). Please sign in again.
+          </p>
+        )}
 
         <form className="login-form" onSubmit={handleLogin}>
           <div className="form-group">

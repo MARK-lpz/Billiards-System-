@@ -1,4 +1,13 @@
-export default function InventoryTable({ products, onEdit, onDelete, onRestock }) {
+import { useEffect, useRef } from "react";
+
+// `highlightId`: a product opened from the admin's bell, marked and scrolled into view.
+export default function InventoryTable({ products, onEdit, onDelete, onRestock, highlightId = null }) {
+  const highlightedRow = useRef(null);
+
+  useEffect(() => {
+    highlightedRow.current?.scrollIntoView?.({ block: "center" });
+  }, [highlightId]);
+
   return (
     <div className="card inventory-table-card">
       <div className="card-body">
@@ -26,11 +35,16 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock }
                 const stockTone = isOutOfStock ? "out" : isLowStock ? "low" : "ok";
                 const stockCeiling = Math.max(minStock, 1) * 2;
                 const stockPercent = Math.max(0, Math.min(100, (stockLeft / stockCeiling) * 100));
+                const isHighlighted = highlightId !== null && String(product.id) === String(highlightId);
 
                 return (
                   <tr
                     key={product.id}
-                    className={isOutOfStock ? "inventory-row-danger" : isLowStock ? "inventory-row-warning" : ""}
+                    ref={isHighlighted ? highlightedRow : undefined}
+                    className={[
+                      isOutOfStock ? "inventory-row-danger" : isLowStock ? "inventory-row-warning" : "",
+                      isHighlighted ? "inventory-row-focus" : "",
+                    ].filter(Boolean).join(" ")}
                   >
                     <td className="inventory-sku">
                       {product.productNumber || String(product.id).padStart(3, "0")}

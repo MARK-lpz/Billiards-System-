@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Login from './Pages/login'
 import Dashboard from './Pages/Admin/AdminDashboard'
 import EmployeeDashboard from './Pages/Employee/Employeedashboard'
@@ -20,20 +20,23 @@ import './styles/formErrors.css'
 // Last on purpose: the brand layer is meant to win over the page styles above.
 import './styles/brand.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
+import SyncNotices from './Elements/Global/SyncNotices'
+import useServerList from './Elements/Global/useServerList'
 import { initialReservations } from './utils/reservations'
 
 import { fetchRemoteReservations } from './utils/reservationApi'
 import { fetchReservationSettings, updateReservationSettings } from './utils/reservationSettingsApi'
-import { fetchRemoteTables, saveRemoteTables } from './utils/tableApi'
-import { fetchRemoteEquipment, saveRemoteEquipment } from './utils/equipmentApi'
+import { fetchRemoteTables, saveRemoteTableChanges } from './utils/tableApi'
+import { fetchRemoteEquipment, saveRemoteEquipmentChanges } from './utils/equipmentApi'
 import { createAuditEntry, normalizeAuditLogs } from './utils/audit'
 import { normalizeProductNumbers } from './utils/productNumbers'
 import { TABLE_CHARGES_STORAGE_KEY } from './utils/tableCharges'
 import { applyTableHolds } from './utils/tableHolds'
-import { clearSignedInUser, getSignedInUser } from './utils/session'
+import { clearSignedInUser, getAuthToken, getSignedInUser, noteSignInEnded } from './utils/session'
+import { SESSION_ENDED_EVENT, apiFetch } from './utils/apiFetch'
 import { fetchRemoteIssues } from './utils/issueApi'
 import { isExpiredReport } from './utils/issues'
-import { fetchRemoteEvents, saveRemoteEvents } from './utils/eventApi'
+import { fetchRemoteEvents, saveRemoteEventChanges } from './utils/eventApi'
 
 const initialTables = [
   { id: 1, name: 'Table 1', rate: 15, status: 'available', startTime: null, customer: '', durationMinutes: 60, addedMinutes: 0 },
@@ -92,10 +95,18 @@ const getPublicView = () => "guest"
 const sanitizeEvents = (events) =>
   Array.isArray(events) ? events.filter((event) => !legacyEventIds.has(event?.id)) : initialEvents
 
+// The tournaments as the server has them, without the old sample ones.
+const fetchSharedEvents = async () => {
+  const { items, versions } = await fetchRemoteEvents()
+  return { items: sanitizeEvents(items), versions }
+}
+
 // The account this tab logged in with stays until Logout or the tab is closed,
 // so reloading keeps the staff member signed in instead of sending them back to
 // the login form. Each tab has its own, so an admin tab stays admin.
 const readSavedRole = () => {
+  // A tab signed in before sign-in tokens existed has none, so it signs in again.
+  if (!getAuthToken()) return null
   const role = String(getSignedInUser()?.role || '').toLowerCase()
   return role === 'admin' || role === 'employee' ? role : null
 }
@@ -193,13 +204,6 @@ function App() {
       return initialEvents
     }
   })
-  const [tableStatusLoaded, setTableStatusLoaded] = useState(false)
-  const [equipmentLoaded, setEquipmentLoaded] = useState(false)
-  // The equipment list as the server last had it, and whether a save is on its
-  // way, so a poll that crosses an admin's edit cannot put the old list back.
-  const remoteEquipmentJson = useRef('')
-  const equipmentSaving = useRef(false)
-  const [eventsLoaded, setEventsLoaded] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -256,110 +260,55 @@ function App() {
     catch (error) { console.warn('Unable to persist pool tables', error) }
   }, [tables])
 
+  // Pool tables, equipment and tournaments are shared through the server, one
+  // item at a time with versions, so no screen can overwrite a list it did not
+  // read. Only a signed-in tab saves: staff update tables, only the admin adds or
+  // deletes them, and only the admin changes equipment and tournaments (players
+  // register through their own request). Equipment is never read by the website.
+  const staffSignedIn = isStaffApp && isLoggedIn
+  const adminSignedIn = staffSignedIn && userRole === 'admin'
+  useServerList({
+    name: 'tables',
+    list: tables,
+    setList: setTables,
+    fetchList: fetchRemoteTables,
+    saveChanges: saveRemoteTableChanges,
+    canSave: staffSignedIn,
+    canCreate: adminSignedIn,
+    canRemove: adminSignedIn,
+  })
+  useServerList({
+    name: 'equipment',
+    list: equipment,
+    setList: setEquipment,
+    fetchList: fetchRemoteEquipment,
+    saveChanges: saveRemoteEquipmentChanges,
+    enabled: staffSignedIn,
+    canSave: adminSignedIn,
+  })
+  useServerList({
+    name: 'tournaments',
+    list: events,
+    setList: setEvents,
+    fetchList: fetchSharedEvents,
+    saveChanges: saveRemoteEventChanges,
+    canSave: adminSignedIn,
+    canRemove: false,
+  })
+
+  // The server ended this tab's sign-in (signed out elsewhere, or idle too
+  // long): back to the login screen, which says why.
   useEffect(() => {
-    let cancelled = false
-
-    const syncTableStatus = async () => {
-      try {
-        const remoteTables = await fetchRemoteTables()
-        if (cancelled) return
-
-        if (remoteTables.length) {
-          setTables((current) =>
-            JSON.stringify(current) === JSON.stringify(remoteTables) ? current : remoteTables
-          )
-        }
-      } catch (error) {
-        console.warn('Unable to sync shared table status', error)
-      } finally {
-        if (!cancelled) setTableStatusLoaded(true)
-      }
+    const handleSessionEnded = () => {
+      clearSignedInUser()
+      noteSignInEnded()
+      setIsLoggedIn(false)
+      setUserRole(null)
+      setCurrentView(isStaffApp ? 'login' : 'guest')
     }
-
-    syncTableStatus()
-    const interval = setInterval(syncTableStatus, 3000)
-    return () => {
-      cancelled = true
-      clearInterval(interval)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!isStaffApp || !tableStatusLoaded) return
-
-    saveRemoteTables(tables).catch((error) => {
-      console.warn('Unable to save shared table status', error)
-    })
-  }, [isStaffApp, tableStatusLoaded, tables])
-
-  // Equipment is shared through the server, so the admin and every employee see
-  // the same items on the same tables. The first copy read is merged with this
-  // device's, so items registered before sharing began are kept (but not ones
-  // deleted since); after that the server's copy is taken as it is.
-  useEffect(() => {
-    if (!isStaffApp) return
-    let cancelled = false
-    let firstRead = true
-
-    const syncEquipment = async () => {
-      try {
-        const { equipment: remoteEquipment, removedIds } = await fetchRemoteEquipment()
-        if (cancelled || equipmentSaving.current) return
-
-        const mergeLocal = firstRead
-        firstRead = false
-        remoteEquipmentJson.current = JSON.stringify(remoteEquipment)
-        if (remoteEquipment.length || removedIds.length) {
-          setEquipment((current) => {
-            const knownIds = new Set([...remoteEquipment.map((item) => String(item.id)), ...removedIds])
-            const next = mergeLocal
-              ? [...remoteEquipment, ...current.filter((item) => !knownIds.has(String(item.id)))]
-              : remoteEquipment
-            return JSON.stringify(next) === JSON.stringify(current) ? current : next
-          })
-        }
-        setEquipmentLoaded(true)
-      } catch (error) {
-        console.warn('Unable to sync shared equipment', error)
-      }
-    }
-
-    syncEquipment()
-    const interval = setInterval(syncEquipment, 3000)
-    return () => {
-      cancelled = true
-      clearInterval(interval)
-    }
+    window.addEventListener(SESSION_ENDED_EVENT, handleSessionEnded)
+    return () => window.removeEventListener(SESSION_ENDED_EVENT, handleSessionEnded)
   }, [isStaffApp])
-
-  // Only the admin's screen saves equipment; employees read it.
-  useEffect(() => {
-    if (!isStaffApp || !equipmentLoaded || !isLoggedIn || userRole !== 'admin') return
-
-    const json = JSON.stringify(equipment)
-    if (json === remoteEquipmentJson.current) return
-
-    // Items the server had that this list no longer has were deleted here.
-    let removedIds = []
-    try {
-      const keptIds = new Set(equipment.map((item) => String(item.id)))
-      removedIds = JSON.parse(remoteEquipmentJson.current || '[]')
-        .map((item) => String(item.id))
-        .filter((id) => !keptIds.has(id))
-    } catch {
-      removedIds = []
-    }
-
-    equipmentSaving.current = true
-    saveRemoteEquipment(equipment, removedIds)
-      .then(() => {
-        remoteEquipmentJson.current = json
-      })
-      .catch((error) => console.warn('Unable to save shared equipment', error))
-      .finally(() => {
-        equipmentSaving.current = false
-      })
-  }, [isStaffApp, equipmentLoaded, isLoggedIn, userRole, equipment])
 
   useEffect(() => {
     try { localStorage.setItem('activityLogs', JSON.stringify(logs)) }
@@ -391,7 +340,9 @@ function App() {
     catch (error) { console.warn('Unable to persist reservations', error) }
   }, [reservations])
 
+  // Reports are read by signed-in staff only (the server refuses anyone else).
   useEffect(() => {
+    if (!staffSignedIn) return undefined
     let cancelled = false
 
     const syncIssues = async () => {
@@ -424,7 +375,7 @@ function App() {
       cancelled = true
       clearInterval(interval)
     }
-  }, [])
+  }, [staffSignedIn])
 
   // Ticks every 30 seconds so a table turns Reserved as its booking comes due,
   // and frees up again when a no-show's grace period runs out.
@@ -476,43 +427,6 @@ function App() {
   }, [events])
 
   useEffect(() => {
-    let cancelled = false
-
-    const syncEvents = async () => {
-      try {
-        const remoteEvents = await fetchRemoteEvents()
-        if (cancelled) return
-
-        if (remoteEvents.length) {
-          setEvents((current) => {
-            const next = sanitizeEvents(remoteEvents)
-            return JSON.stringify(next) === JSON.stringify(current) ? current : next
-          })
-        }
-      } catch (error) {
-        console.warn('Unable to sync shared tournaments', error)
-      } finally {
-        if (!cancelled) setEventsLoaded(true)
-      }
-    }
-
-    syncEvents()
-    const interval = setInterval(syncEvents, 3000)
-    return () => {
-      cancelled = true
-      clearInterval(interval)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!isStaffApp || !eventsLoaded) return
-
-    saveRemoteEvents(events).catch((error) => {
-      console.warn('Unable to save shared tournaments', error)
-    })
-  }, [events, eventsLoaded, isStaffApp])
-
-  useEffect(() => {
     try { localStorage.setItem('theme', theme) }
     catch (error) { console.warn('Unable to persist theme', error) }
   }, [theme])
@@ -537,41 +451,17 @@ function App() {
     return () => window.removeEventListener("popstate", handlePopState)
   }, [currentView, isStaffApp])
 
+  // Another tab's copy is taken for what lives only in this browser. Pool tables,
+  // equipment and tournaments are not: they come from the server, so a stale
+  // tab (or another sign-in) can never push its copy through this one.
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (e.key === 'poolTables') {
-        try {
-          const newTables = JSON.parse(e.newValue)
-          setTables(newTables)
-        } catch (error) {
-          console.warn('Failed to parse poolTables from storage', error)
-        }
-      }
-
       if (e.key === 'activityLogs') {
         try {
           const nextLogs = e.newValue ? normalizeAuditLogs(JSON.parse(e.newValue)) : []
           setLogs(nextLogs)
         } catch (error) {
           console.warn('Failed to parse activity logs from storage', error)
-        }
-      }
-
-      if (e.key === 'events') {
-        try {
-          const nextEvents = e.newValue ? sanitizeEvents(JSON.parse(e.newValue)) : initialEvents
-          setEvents(nextEvents)
-        } catch (error) {
-          console.warn('Failed to parse events from storage', error)
-        }
-      }
-
-      if (e.key === 'equipment') {
-        try {
-          const nextEquipment = e.newValue ? JSON.parse(e.newValue) : initialEquipment
-          setEquipment(nextEquipment)
-        } catch (error) {
-          console.warn('Failed to parse equipment from storage', error)
         }
       }
 
@@ -596,13 +486,10 @@ function App() {
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
+  // Pool tables, equipment and tournaments are not reloaded from this browser:
+  // they come from the server every few seconds.
   const handleReload = () => {
     setLoading(true)
-
-    try {
-      const stored = localStorage.getItem('poolTables')
-      if (stored) setTables(JSON.parse(stored))
-    } catch (error) { console.warn('Unable to reload pool tables', error) }
 
     try {
       const stored = localStorage.getItem('activityLogs')
@@ -613,11 +500,6 @@ function App() {
       const stored = localStorage.getItem('products')
       if (stored) setProducts(normalizeProductNumbers(JSON.parse(stored)))
     } catch (error) { console.warn('Unable to reload products', error) }
-
-    try {
-      const stored = localStorage.getItem('equipment')
-      if (stored) setEquipment(JSON.parse(stored))
-    } catch (error) { console.warn('Unable to reload equipment', error) }
 
     try {
       const stored = localStorage.getItem('transactions')
@@ -633,11 +515,6 @@ function App() {
       const stored = localStorage.getItem(TABLE_CHARGES_STORAGE_KEY)
       if (stored) setTableCharges(JSON.parse(stored))
     } catch (error) { console.warn('Unable to reload table charges', error) }
-
-    try {
-      const stored = localStorage.getItem('events')
-      if (stored) setEvents(sanitizeEvents(JSON.parse(stored)))
-    } catch (error) { console.warn('Unable to reload events', error) }
 
 
     try {
@@ -669,6 +546,11 @@ function App() {
 
   const handleLogout = () => {
     setLoading(true)
+    apiFetch('/api/log_in.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'logout' }),
+    }).catch((error) => console.warn('Unable to end the session on the server', error))
     setTimeout(() => {
       setIsLoggedIn(false)
       setUserRole(null)
@@ -717,6 +599,7 @@ function App() {
       canReceiveEmployeeNotifications={isLoggedIn && userRole === 'employee'}
     >
       <div className={theme}>
+        <SyncNotices />
         <LoadingBar loading={loading} />
         {splash && <SplashScreen leaving={splash === 'leaving'} />}
 

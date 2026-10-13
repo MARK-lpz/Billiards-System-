@@ -5,7 +5,7 @@ import "../../styles/Admin/Dashboard.css";
 
 // Global Elements
 import LoadingBar from "../../Elements/Global/Loading";
-import Notification from "../../Elements/Global/Notification";
+import AdminBell from "../../Elements/Admin/AdminBell";
 import Menu from "../../Elements/Global/Menu";
 import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
 import Toast from "../../Elements/Global/Toast";
@@ -85,6 +85,9 @@ export default function Dashboard({
   const [activeNav, setActiveNav] = useState("dashboard");
   const [loading, setLoading] = useState(false);
   const [selectedEquipmentIssue, setSelectedEquipmentIssue] = useState(null);
+  // What the bell opened, for the page it leads to (a product in Inventory).
+  // Cleared by any other navigation.
+  const [focus, setFocus] = useState(null);
   const { addNotification, showToast } = useNotifications();
 
   // Used by the time's up pop-up, which shows on every admin page, not only on
@@ -138,7 +141,8 @@ export default function Dashboard({
     setTimeout(() => setLoading(false), 300);
   };
 
-  const handleNavChange = (navId) => {
+  const handleNavChange = (navId, nextFocus = null) => {
+    setFocus(nextFocus);
     setLoading(true);
     setTimeout(() => {
       setActiveNav(navId);
@@ -197,7 +201,9 @@ export default function Dashboard({
         />;
       
       case 'inventory':
-        return <Inventory 
+        return <Inventory
+          key={focus?.key || "inventory"}
+          focusProductId={focus?.nav === "inventory" ? focus.productId : null}
           products={products}
           setProducts={setProducts}
         />;
@@ -252,7 +258,12 @@ export default function Dashboard({
               
               <div className="header-right">
                 <div className="header-icons">
-                  <Notification />
+                  <AdminBell
+                    products={products}
+                    onOpenProduct={(productId) =>
+                      handleNavChange("inventory", { nav: "inventory", productId, key: `product-${Date.now()}` })
+                    }
+                  />
                   <Menu 
                     onLogout={onLogout}
                     onProfile={() => handleNavChange('profile')}

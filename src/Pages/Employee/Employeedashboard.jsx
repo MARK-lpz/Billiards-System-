@@ -8,7 +8,7 @@ import EndSessionModal from "../../Elements/Admin/EndSessionModal";
 import CancelReservationModal from "../../Elements/Admin/CancelReservationModal";
 import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
 import Toast from "../../Elements/Global/Toast";
-import Notification from "../../Elements/Global/Notification";
+import EmployeeBell from "../../Elements/Employee/EmployeeBell";
 import LoadingBar from "../../Elements/Global/Loading";
 import Menu from "../../Elements/Global/Menu";
 import Settings from "../Settings";
@@ -52,6 +52,9 @@ export default function EmployeeDashboard({
   // the page header has no entry to read its title from.
   const [activeNav, setActiveNav] = useState("Pool Tables");
   const [loading, setLoading] = useState(false);
+  // What the bell opened, for the page it leads to: a booking on the Reservation
+  // Desk, or a player on the Tournament Schedule. Cleared by any other navigation.
+  const [focus, setFocus] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   // The table a walk-in is being started on, while staff enter how long they stay.
   const [walkInTableId, setWalkInTableId] = useState(null);
@@ -70,7 +73,8 @@ export default function EmployeeDashboard({
     setTimeout(() => setLoading(false), 300);
   };
 
-  const handleNavChange = (navId) => {
+  const handleNavChange = (navId, nextFocus = null) => {
+    setFocus(nextFocus);
     setLoading(true);
     setTimeout(() => {
       setActiveNav(navId);
@@ -318,7 +322,14 @@ export default function EmployeeDashboard({
         );
 
       case "tournaments":
-        return <TournamentSchedule events={events} tables={tables} />;
+        return (
+          <TournamentSchedule
+            key={focus?.key || "tournaments"}
+            events={events}
+            tables={tables}
+            focusPlayer={focus?.nav === "tournaments" ? focus : null}
+          />
+        );
 
       case "settings":
         return <Settings theme={theme} setTheme={setTheme} showHeader={false} />;
@@ -326,6 +337,8 @@ export default function EmployeeDashboard({
       case "reservations":
         return (
           <ReservationDesk
+            key={focus?.key || "reservations"}
+            focusReservationId={focus?.nav === "reservations" ? focus.reservationId : null}
             tables={tables}
             setTables={setTables}
             reservations={reservations}
@@ -460,7 +473,16 @@ export default function EmployeeDashboard({
 
               <div className="header-right">
                 <div className="header-icons">
-                  <Notification />
+                  <EmployeeBell
+                    events={events}
+                    reservations={reservations}
+                    onOpenReservation={(reservationId) =>
+                      handleNavChange("reservations", { nav: "reservations", reservationId, key: `booking-${Date.now()}` })
+                    }
+                    onOpenRegistration={(player) =>
+                      handleNavChange("tournaments", { nav: "tournaments", ...player, key: `player-${Date.now()}` })
+                    }
+                  />
                   <Menu
                     onLogout={onLogout}
                     onProfile={() => handleNavChange("profile")}

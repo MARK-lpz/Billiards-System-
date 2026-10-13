@@ -1,29 +1,37 @@
+import { apiFetch, refusalError } from "./apiFetch";
+
 const TABLE_API_URL = import.meta.env.VITE_TABLE_API_URL || (
   !import.meta.env.DEV && window.location.hostname === "breakandchill.com"
     ? "https://app.breakandchill.com/api/tables.php"
     : "/api/tables.php"
 );
 
+// The tables and each one's version (see useServerList.js).
 export const fetchRemoteTables = async () => {
-  const response = await fetch(TABLE_API_URL);
+  const response = await apiFetch(TABLE_API_URL);
   const data = await response.json();
 
   if (!response.ok || !data.success) {
-    throw new Error(data.message || "Unable to load table status.");
+    throw refusalError(response, data, "Unable to load table status.");
   }
 
-  return Array.isArray(data.tables) ? data.tables : [];
+  return {
+    items: Array.isArray(data.tables) ? data.tables : [],
+    versions: data.versions && typeof data.versions === "object" ? data.versions : {},
+  };
 };
 
-export const saveRemoteTables = async (tables) => {
-  const response = await fetch(TABLE_API_URL, {
+// Only the tables changed here: { upsert, remove, confirmRemoval }.
+export const saveRemoteTableChanges = async (changes) => {
+  const response = await apiFetch(TABLE_API_URL, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tables }),
+    body: JSON.stringify(changes),
   });
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok || !data.success) {
-    throw new Error(data.message || "Unable to save table status.");
+    throw refusalError(response, data, "Unable to save table status.");
   }
+  return { versions: data.versions || {} };
 };

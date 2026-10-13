@@ -1,4 +1,5 @@
 import { findTableReservation } from './reservations';
+import { apiFetch } from "./apiFetch";
 
 const RESERVATION_API_URL = import.meta.env.VITE_RESERVATION_API_URL || (
   !import.meta.env.DEV && window.location.hostname === 'breakandchill.com'
@@ -7,7 +8,7 @@ const RESERVATION_API_URL = import.meta.env.VITE_RESERVATION_API_URL || (
 );
 
 const request = async (method, reservation) => {
-  const response = await fetch(RESERVATION_API_URL, {
+  const response = await apiFetch(RESERVATION_API_URL, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(reservation),
@@ -45,7 +46,7 @@ export const saveTableReservationStatus = ({ table, reservations = [], setReserv
 };
 
 export const fetchRemoteReservations = async () => {
-  const response = await fetch(RESERVATION_API_URL);
+  const response = await apiFetch(RESERVATION_API_URL);
   const data = await response.json();
 
   if (!response.ok || !data.success) {

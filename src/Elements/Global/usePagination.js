@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { PAGE_SIZE, paginate } from "../../utils/pagination";
 
-export default function usePagination(items = [], size = PAGE_SIZE) {
-  const [page, setPage] = useState(1);
+// `initialPage`: where the list opens, e.g. the page holding a row to show.
+export default function usePagination(items = [], size = PAGE_SIZE, initialPage = 1) {
+  const [page, setPage] = useState(initialPage);
   const { pageCount, currentPage, pageStart, items: pageItems } = paginate(items, page, size);
 
   return {

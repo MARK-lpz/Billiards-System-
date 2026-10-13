@@ -1,3 +1,4 @@
+import { apiFetch } from "./apiFetch";
 const RESERVATION_SETTINGS_API_URL = import.meta.env.VITE_RESERVATION_SETTINGS_API_URL || (
   !import.meta.env.DEV && window.location.hostname === "breakandchill.com"
     ? "https://app.breakandchill.com/api/reservation-settings.php"
@@ -15,12 +16,12 @@ const parseResponse = async (response, fallbackMessage) => {
 };
 
 export const fetchReservationSettings = async () => {
-  const response = await fetch(RESERVATION_SETTINGS_API_URL);
+  const response = await apiFetch(RESERVATION_SETTINGS_API_URL);
   return parseResponse(response, "Unable to load online reservation settings.");
 };
 
 export const updateReservationSettings = async ({ onlineReservationsOpen }) => {
-  const response = await fetch(RESERVATION_SETTINGS_API_URL, {
+  const response = await apiFetch(RESERVATION_SETTINGS_API_URL, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ onlineReservationsOpen }),

@@ -1,3 +1,4 @@
+import { apiFetch } from "./apiFetch";
 const BACKUP_API_URL = import.meta.env.VITE_BACKUP_API_URL || (
   !import.meta.env.DEV && window.location.hostname.endsWith("breakandchill.com")
     ? "https://app.breakandchill.com/api/backup.php"
@@ -5,7 +6,7 @@ const BACKUP_API_URL = import.meta.env.VITE_BACKUP_API_URL || (
 );
 
 const post = async (payload) => {
-  const response = await fetch(BACKUP_API_URL, {
+  const response = await apiFetch(BACKUP_API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

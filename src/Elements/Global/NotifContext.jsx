@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { NotificationContext } from './NotificationContext';
+import { apiFetch } from '../../utils/apiFetch';
 
 const ADMIN_NOTIFICATION_KEY = 'adminNotifications';
 const EMPLOYEE_NOTIFICATION_KEY = 'employeeNotifications';
@@ -64,7 +65,7 @@ export function NotificationProvider({
 
   const loadRemoteNotifications = async (recipient) => {
     try {
-      const response = await fetch(`${NOTIFICATION_API_URL}?recipient=${recipient}`);
+      const response = await apiFetch(`${NOTIFICATION_API_URL}?recipient=${recipient}`);
       if (!response.ok) return;
 
       const data = await response.json();
@@ -75,7 +76,7 @@ export function NotificationProvider({
   };
 
   const sendRemoteNotification = (notification, recipients) => {
-    fetch(NOTIFICATION_API_URL, {
+    apiFetch(NOTIFICATION_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...notification, recipients }),
@@ -90,7 +91,7 @@ export function NotificationProvider({
         : null;
     if (!recipient) return;
 
-    fetch(NOTIFICATION_API_URL, {
+    apiFetch(NOTIFICATION_API_URL, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, recipient, action }),

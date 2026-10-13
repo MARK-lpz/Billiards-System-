@@ -1,9 +1,11 @@
 /**
  * Promo pictures and videos for tournaments. They are uploaded to the server
- * (api/event_media.php) and each tournament keeps a list of them in `media`,
+ * (api/event_media.php, kept in backend/Media) and each tournament keeps a list of them in `media`,
  * the first being its cover: shown on the website's slideshow and on the
  * Tournaments page.
  */
+import { SESSION_ENDED_EVENT, apiFetch } from "./apiFetch";
+import { getAuthToken } from "./session";
 
 const EVENT_API_BASE = import.meta.env.VITE_EVENT_API_URL
   ? import.meta.env.VITE_EVENT_API_URL.replace(/[^/]*$/, "")
@@ -32,7 +34,9 @@ export const DEFAULT_EVENT_MEDIA_LIMITS = { imageMaxBytes: 8 * 1024 * 1024, vide
 // Pictures larger than this on either side are scaled down before upload.
 const IMAGE_MAX_SIDE = 1920;
 
-const PATH_PATTERN = /^uploads\/events\/[a-f0-9]{32}\.(jpg|png|webp|gif|mp4|webm)$/;
+// Files live in backend/Media; a tournament stores "Media/<name>".
+const MEDIA_PREFIX = "Media/";
+const PATH_PATTERN = /^Media\/[a-f0-9]{32}\.(jpg|png|webp|gif|mp4|webm)$/;
 
 /** A tournament's usable media, in order (the first is the cover). */
 export const getEventMedia = (event) =>
@@ -43,8 +47,9 @@ export const getEventMedia = (event) =>
 /** The picture (or else video) that stands for a tournament on the website. */
 export const getEventCover = (event) => getEventMedia(event)[0] || null;
 
-/** Where a media file is served from. */
-export const eventMediaUrl = (item) => `${EVENT_API_BASE}${item.path}`;
+/** Where a media file is served from: api/media.php, as Media/ is not under api/. */
+export const eventMediaUrl = (item) =>
+  `${EVENT_API_BASE}media.php?file=${encodeURIComponent(String(item.path).slice(MEDIA_PREFIX.length))}`;
 
 export const formatMegabytes = (bytes) => `${Math.round((bytes / (1024 * 1024)) * 10) / 10} MB`;
 
@@ -59,7 +64,7 @@ export const getMediaKind = (file) => {
 };
 
 export const fetchEventMediaLimits = async () => {
-  const response = await fetch(EVENT_MEDIA_API_URL);
+  const response = await apiFetch(EVENT_MEDIA_API_URL);
   const data = await response.json();
   if (!response.ok || !data.success) throw new Error(data.message || "Unable to read the upload limits.");
   return { ...DEFAULT_EVENT_MEDIA_LIMITS, ...data.limits };
@@ -115,6 +120,8 @@ export const uploadEventMedia = (file, onProgress) => {
   const request = new XMLHttpRequest();
   const promise = new Promise((resolve, reject) => {
     request.open("POST", EVENT_MEDIA_API_URL);
+    const token = getAuthToken();
+    if (token) request.setRequestHeader("X-Auth-Token", token);
     request.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100));
     };
@@ -125,6 +132,7 @@ export const uploadEventMedia = (file, onProgress) => {
       } catch {
         data = null;
       }
+      if (request.status === 401 && token) window.dispatchEvent(new CustomEvent(SESSION_ENDED_EVENT));
       if (request.status >= 200 && request.status < 300 && data?.success && data.media) resolve(data.media);
       else if (request.status === 413) reject(new Error(data?.message || "This file is larger than the server accepts."));
       else reject(new Error(data?.message || "The upload did not finish. Please try again."));

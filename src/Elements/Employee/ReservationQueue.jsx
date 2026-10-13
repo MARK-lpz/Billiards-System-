@@ -1,8 +1,9 @@
 // ReservationQueue.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ConfirmDialog from "../Global/ConfirmDialog";
 import Pagination from "../Global/Pagination";
 import usePagination from "../Global/usePagination";
+import { PAGE_SIZE } from "../../utils/pagination";
 import { describeReservationTime, getArrivalWindow } from "../../utils/reservations";
 import { getReservationIssues, getReservationMode } from "../../utils/reservationIssues";
 
@@ -50,6 +51,8 @@ export default function ReservationQueue({
   setReservationFilter,
   onBookingStatus,
   onCheckPayment,
+  // A booking opened from the bell: the list opens at its page, marked and in view.
+  highlightId = null,
 }) {
   // Cancelling cannot be undone, so the click only arms the confirmation.
   const [cancelTarget, setCancelTarget] = useState(null);
@@ -84,7 +87,14 @@ export default function ReservationQueue({
   const needsAttention = allReservations.filter((booking) => checkBooking(booking).issues.length > 0);
   const [sortOrder, setSortOrder] = useState("newest");
   const rows = sortBookings(reservationFilter === "issues" ? needsAttention : reservations, sortOrder);
-  const pagination = usePagination(rows);
+  const isHighlighted = (booking) => highlightId !== null && String(booking.id) === String(highlightId);
+  const highlightIndex = rows.findIndex(isHighlighted);
+  const pagination = usePagination(rows, PAGE_SIZE, highlightIndex >= 0 ? Math.floor(highlightIndex / PAGE_SIZE) + 1 : 1);
+  const highlightedRow = useRef(null);
+
+  useEffect(() => {
+    highlightedRow.current?.scrollIntoView?.({ block: "center" });
+  }, [highlightId]);
 
   // A new filter or order starts again from the first page.
   const changeFilter = (value) => {
@@ -211,7 +221,11 @@ export default function ReservationQueue({
                       : "";
 
                   return (
-                    <tr key={booking.id} className={worst ? `rd-row--${worst}` : undefined}>
+                    <tr
+                      key={booking.id}
+                      ref={isHighlighted(booking) ? highlightedRow : undefined}
+                      className={[worst ? `rd-row--${worst}` : "", isHighlighted(booking) ? "rd-row--focus" : ""].filter(Boolean).join(" ") || undefined}
+                    >
                       <td>
                         <div className="rd-table-customer">{booking.customerName}</div>
                         {booking.phone ? (

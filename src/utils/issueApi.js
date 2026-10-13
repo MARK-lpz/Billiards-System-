@@ -1,3 +1,4 @@
+import { apiFetch } from "./apiFetch";
 const ISSUE_API_URL = import.meta.env.VITE_ISSUE_API_URL || (
   !import.meta.env.DEV && window.location.hostname.endsWith('breakandchill.com')
     ? 'https://app.breakandchill.com/api/issues.php'
@@ -13,7 +14,7 @@ const parseResponse = async (response) => {
 };
 
 export const createRemoteIssue = async (issue) => {
-  const response = await fetch(ISSUE_API_URL, {
+  const response = await apiFetch(ISSUE_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(issue),
@@ -23,7 +24,7 @@ export const createRemoteIssue = async (issue) => {
 
 // `resolvedBy` is kept with the report, so the history shows who closed it.
 export const resolveRemoteIssue = async (id, resolvedBy = '') => {
-  const response = await fetch(ISSUE_API_URL, {
+  const response = await apiFetch(ISSUE_API_URL, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, resolvedBy }),
@@ -40,7 +41,7 @@ export const fetchResolvedIssues = async ({ page = 1, perPage = 15, tableId = ''
   const params = new URLSearchParams({ status: 'resolved', page: String(page), perPage: String(perPage) });
   if (tableId !== '' && tableId !== null && tableId !== undefined) params.set('tableId', String(tableId));
   if (type) params.set('type', type);
-  const response = await fetch(`${ISSUE_API_URL}?${params}`);
+  const response = await apiFetch(`${ISSUE_API_URL}?${params}`);
   const data = await parseResponse(response);
   return {
     issues: Array.isArray(data.issues) ? data.issues : [],
@@ -54,7 +55,7 @@ export const fetchResolvedIssues = async ({ page = 1, perPage = 15, tableId = ''
 };
 
 export const fetchRemoteIssues = async () => {
-  const response = await fetch(ISSUE_API_URL);
+  const response = await apiFetch(ISSUE_API_URL);
   const data = await parseResponse(response);
   return Array.isArray(data.issues) ? data.issues : [];
 };

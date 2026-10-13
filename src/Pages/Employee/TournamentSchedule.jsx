@@ -1,17 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import "../../styles/Employee/TournamentSchedule.css";
 import { registerRemoteTournamentParticipant } from "../../utils/eventApi";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import useClock from "../../Elements/Global/useClock";
 import RegistrationBell from "../../Elements/Employee/RegistrationBell";
 import ParticipantModal from "../../Elements/Employee/ParticipantModal";
-import {
-  SEEN_REGISTRATIONS_KEY,
-  findRegistration,
-  getRegistrations,
-  readSeenRegistrations,
-  registrationKey,
-} from "../../utils/tournamentRegistrations";
+import useSeenRegistrations from "../../Elements/Employee/useSeenRegistrations";
+import { findRegistration, getRegistrations, registrationKey } from "../../utils/tournamentRegistrations";
 import {
   describeDaysAway,
   formatEventWhen,
@@ -112,37 +107,30 @@ const resolveAssignedTables = (assignedTables = [], tables = []) => {
   return [...new Set(labels)];
 };
 
-export default function TournamentSchedule({ events = [], setEvents, tables = [] }) {
+// `focusPlayer` ({ eventId, label, key }): a player opened from the employee's
+// bell, shown as soon as the page opens.
+export default function TournamentSchedule({ events = [], setEvents, tables = [], focusPlayer = null }) {
   const { addNotification } = useNotifications();
   // Refreshed every minute, so a tournament moves to Past once its day is over.
   const now = useClock(60000);
   const [tab, setTab] = useState("upcoming");
-  const [selectedId, setSelectedId] = useState(null);
+  // Opened from the bell: that player's tournament is the one shown.
+  const [selectedId, setSelectedId] = useState(focusPlayer?.eventId ?? null);
   const [walkInOpen, setWalkInOpen] = useState(false);
   const [walkInForm, setWalkInForm] = useState(emptyWalkIn);
   const [walkInError, setWalkInError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   // Registrations opened on this device, and the player shown in the pop-up
   // ({ eventId, label, fromBell }).
-  const [seen, setSeen] = useState(() => readSeenRegistrations(events));
-  const [openPlayer, setOpenPlayer] = useState(null);
-
-  useEffect(() => {
-    try {
-      // The latest 500 are plenty to tell new players from ones already seen.
-      localStorage.setItem(SEEN_REGISTRATIONS_KEY, JSON.stringify([...seen].slice(-500)));
-    } catch (error) {
-      console.warn("Unable to keep the seen registrations", error);
-    }
-  }, [seen]);
+  const [seen, markSeen] = useSeenRegistrations(events, focusPlayer ? [focusPlayer.key] : []);
+  const [openPlayer, setOpenPlayer] = useState(() =>
+    focusPlayer ? { eventId: focusPlayer.eventId, label: focusPlayer.label, fromBell: true } : null
+  );
 
   const groups = useMemo(() => groupStaffEvents(events, now), [events, now]);
   const registrations = useMemo(() => getRegistrations(events, now), [events, now]);
   // Looked up from the live list, so the pop-up follows changes and closes if the player is removed.
   const playerShown = openPlayer ? findRegistration(events, openPlayer.eventId, openPlayer.label) : null;
-
-  const markSeen = (keys) =>
-    setSeen((previous) => (keys.every((key) => previous.has(key)) ? previous : new Set([...previous, ...keys])));
 
   const showPlayer = (eventId, label, fromBell) => {
     markSeen([registrationKey(eventId, label)]);

@@ -1,140 +1,158 @@
 import { useState } from "react";
 import "../../styles/Notification.css";
+import "../../styles/StaffBell.css";
 import { useNotifications } from "./useNotifications";
+import { noticeTime } from "../../utils/notices";
 
+const OTHERS_SHOWN = 30;
 
-export default function Notification({ notifications: externalNotifications }) {
+/**
+ * The staff bell, shared by the admin's and the employee's dashboards
+ * (AdminBell, EmployeeBell). On top, the `sections` each role focuses on, every
+ * item opening its module:
+ *   { key, title, icon, newCount, empty, items: [{ key, unread, icon, title, meta, state, onOpen }] }
+ * Under them, when `others` ({ title, filter }) is given, the rest of the
+ * notices the role still gets (`filter` picks them), which can be read or
+ * dismissed as before. The badge counts everything new in both.
+ */
+export default function Notification({ sections = [], others = null, onMarkAllSeen, title = "Notifications" }) {
   const [show, setShow] = useState(false);
-  const { notifications: contextNotifications, markAllAsRead, markAsRead, deleteNotification } = useNotifications();
-  const notifications = externalNotifications || contextNotifications;
+  // On a narrow screen the list spans the screen just under the bell (its top,
+  // in px), instead of hanging off the bell's edge past the screen.
+  const [dockTop, setDockTop] = useState(null);
+  const { notifications, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const otherNotices = others ? notifications.filter(others.filter) : [];
+  const unreadOthers = otherNotices.filter((notice) => notice.unread).length;
+  const unread = sections.reduce((sum, section) => sum + (section.newCount || 0), 0) + unreadOthers;
 
-  const handleMarkAllAsRead = () => {
-    markAllAsRead();
-  };
-
-  const handleNotificationClick = (id) => {
-    markAsRead(id);
-  };
-
-  const handleDelete = (id, e) => {
-    e.stopPropagation();
-    deleteNotification(id);
-  };
-
-  const updateEmployeeRequest = (requestId, status) => {
-    const storedRequests = JSON.parse(localStorage.getItem("employeePasswordRequests") || "[]");
-    const updatedRequests = storedRequests.map((request) =>
-      request.id === requestId
-        ? {
-            ...request,
-            status,
-            reviewedAt: new Date().toISOString(),
-          }
-        : request
-    );
-
-    localStorage.setItem("employeePasswordRequests", JSON.stringify(updatedRequests));
-  };
-
-  const handlePasswordRequestAction = (notification, status, event) => {
-    event.stopPropagation();
-    if (!notification.requestId) return;
-
-    updateEmployeeRequest(notification.requestId, status);
-    markAsRead(notification.id);
-    deleteNotification(notification.id);
-  };
-
-  const getRequestStatus = (requestId) => {
-    if (!requestId) return null;
-
-    try {
-      const storedRequests = JSON.parse(localStorage.getItem("employeePasswordRequests") || "[]");
-      return storedRequests.find((request) => request.id === requestId)?.status || null;
-    } catch {
-      return null;
+  const toggle = (clickEvent) => {
+    if (show) {
+      setShow(false);
+      return;
     }
+    const bell = clickEvent.currentTarget.getBoundingClientRect();
+    setDockTop(window.innerWidth <= 640 ? Math.round(bell.bottom + 8) : null);
+    setShow(true);
+  };
+
+  const openItem = (item) => {
+    setShow(false);
+    item.onOpen();
+  };
+
+  const markAll = () => {
+    onMarkAllSeen?.();
+    if (unreadOthers) markAllAsRead();
+  };
+
+  const dismiss = (notice, clickEvent) => {
+    clickEvent.stopPropagation();
+    deleteNotification(notice.id);
   };
 
   return (
     <div className="dropdown-container">
-      <button 
-        className="header-icon-btn" 
-        onClick={() => setShow(!show)}
+      <button
+        type="button"
+        className="header-icon-btn"
+        onClick={toggle}
+        aria-label={unread ? `${title}, ${unread} new` : title}
+        aria-expanded={show}
+        title={title}
       >
         <i className="bi bi-bell"></i>
-        {unreadCount > 0 && (
-          <span className="notification-badge">{unreadCount}</span>
-        )}
+        {unread > 0 && <span className="notification-badge">{unread}</span>}
       </button>
 
       {show && (
         <>
           <div className="notification-overlay" onClick={() => setShow(false)} />
-          <div className="dropdown-menu notification-dropdown">
+          <div
+            className={`dropdown-menu notification-dropdown staff-bell ${dockTop !== null ? "staff-bell--docked" : ""}`}
+            style={dockTop !== null ? { top: dockTop } : undefined}
+          >
             <div className="dropdown-header">
-              <h3>Notifications</h3>
-              {unreadCount > 0 && (
-                <button 
-                  className="mark-read-btn" 
-                  onClick={handleMarkAllAsRead}
-                >
+              <h3>{title}</h3>
+              {unread > 0 && (
+                <button type="button" className="mark-read-btn" onClick={markAll}>
                   Mark all as read
                 </button>
               )}
             </div>
 
-          <div className="notification-list">
-              {notifications.length === 0 ? (
-                <div className="notification-empty">
-                  <i className="bi bi-bell-slash"></i>
-                  <p>No notifications</p>
+            <div className="notification-list">
+              {sections.map((section) => (
+                <div key={section.key} className="staff-bell-group">
+                  <p className="staff-bell-section">
+                    <i className={`bi ${section.icon}`} aria-hidden="true"></i>
+                    {section.title}
+                    {section.newCount > 0 && <span className="staff-bell-count">{section.newCount} new</span>}
+                  </p>
+                  {section.items.length ? (
+                    section.items.map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        className={`menu-item staff-bell-item ${item.unread ? "unread" : ""}`}
+                        onClick={() => openItem(item)}
+                      >
+                        <i className={`bi ${item.icon} staff-bell-icon`} aria-hidden="true"></i>
+                        <span className="notification-content">
+                          <span className="notification-message">{item.title}</span>
+                          <span className="notification-time">
+                            {item.meta}
+                            {item.state && (
+                              <span className={`staff-bell-state staff-bell-state--${item.state.tone}`}>{item.state.label}</span>
+                            )}
+                          </span>
+                        </span>
+                        {item.unread && <span className="notification-dot" aria-label="New" />}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="staff-bell-empty">{section.empty}</p>
+                  )}
                 </div>
-              ) : (
-                notifications.map((notif) => (
-                  <div 
-                    key={notif.id} 
-                    className={`menu-item ${notif.unread ? 'unread' : ''}`}
-                    onClick={() => handleNotificationClick(notif.id)}
-                  >
-                    <div className="notification-content">
-                      <p className="notification-message">{notif.message}</p>
-                      <span className="notification-time">{notif.time}</span>
-                      {notif.type === "password-reset" &&
-                        getRequestStatus(notif.requestId) === "pending-admin-approval" && (
-                          <div className="notification-actions">
-                            <button
-                              type="button"
-                              className="notification-action-btn approve"
-                              onClick={(event) =>
-                                handlePasswordRequestAction(notif, "approved", event)
-                              }
-                            >
-                              Grant
-                            </button>
-                            <button
-                              type="button"
-                              className="notification-action-btn reject"
-                              onClick={(event) =>
-                                handlePasswordRequestAction(notif, "rejected", event)
-                              }
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        )}
-                    </div>
-                    <button 
-                      className="notification-delete"
-                      onClick={(e) => handleDelete(notif.id, e)}
-                    >
-                      <i className="bi bi-x"></i>
-                    </button>
-                    {notif.unread && <div className="notification-dot" />}
-                  </div>
-                ))
+              ))}
+
+              {others && (
+                <div className="staff-bell-group">
+                  <p className="staff-bell-section">
+                    <i className="bi bi-bell" aria-hidden="true"></i>
+                    {others.title}
+                    {unreadOthers > 0 && <span className="staff-bell-count">{unreadOthers} new</span>}
+                  </p>
+                  {otherNotices.length ? (
+                    otherNotices.slice(0, OTHERS_SHOWN).map((notice) => (
+                      <div key={notice.id} className={`menu-item staff-bell-item staff-bell-other ${notice.unread ? "unread" : ""}`}>
+                        <button
+                          type="button"
+                          className="staff-bell-other-open"
+                          onClick={() => notice.unread && markAsRead(notice.id)}
+                          aria-label={notice.unread ? `${notice.message} (mark as read)` : notice.message}
+                        >
+                          <span className="notification-content">
+                            <span className="notification-message">{notice.message}</span>
+                            <span className="notification-time">{noticeTime(notice)}</span>
+                          </span>
+                          {notice.unread && <span className="notification-dot" aria-hidden="true" />}
+                        </button>
+                        <button
+                          type="button"
+                          className="notification-delete"
+                          onClick={(clickEvent) => dismiss(notice, clickEvent)}
+                          aria-label={`Dismiss: ${notice.message}`}
+                          title="Dismiss"
+                        >
+                          <i className="bi bi-x" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="staff-bell-empty">{others.empty || "No other notices."}</p>
+                  )}
+                </div>
               )}
             </div>
           </div>
