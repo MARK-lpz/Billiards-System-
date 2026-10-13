@@ -1,47 +1,57 @@
 <?php
 require_once '../config/cors.php';
 require_once '../config/database.php';
+require_once '../config/auth.php';
+require_once '../config/collection.php';
 
-function ensureTableStatusStore($pdo) {
-    $pdo->exec(
-        "CREATE TABLE IF NOT EXISTS pool_table_status (
-            id TINYINT PRIMARY KEY,
-            tables_json LONGTEXT NOT NULL,
-            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-    );
+// The pool tables and their live status (who is playing, until when), shared by
+// the admin and employee screens and read by the website for availability.
+// Saved one table at a time (see config/collection.php); any staff member can
+// update a table, only the admin can add or delete one.
+
+function cleanPoolTable($table) {
+    if (!is_array($table)) {
+        return 'Each table must be an object.';
+    }
+    if (trim((string) ($table['name'] ?? '')) === '') {
+        return 'Each table needs a name.';
+    }
+    return $table;
 }
 
 $pdo = getDBConnection();
-ensureTableStatusStore($pdo);
+$spec = openCollection($pdo, 'tables');
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    $stmt = $pdo->query('SELECT tables_json FROM pool_table_status WHERE id = 1');
-    $storedTables = $stmt->fetchColumn();
-    $tables = $storedTables ? json_decode($storedTables, true) : [];
-
-    echo json_encode(['success' => true, 'tables' => is_array($tables) ? $tables : []]);
+    $list = readCollection($pdo, $spec);
+    echo json_encode(['success' => true, 'tables' => $list['items'], 'versions' => $list['versions']]);
     exit();
 }
 
 if ($method === 'PUT') {
-    $payload = json_decode(file_get_contents('php://input'), true) ?: [];
-    $tables = $payload['tables'] ?? null;
-
-    if (!is_array($tables)) {
+    $staff = requireStaff($pdo);
+    $payload = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($payload)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'A valid table list is required.']);
+        echo json_encode(['success' => false, 'message' => 'The changes could not be read.']);
         exit();
     }
 
-    $stmt = $pdo->prepare(
-        'INSERT INTO pool_table_status (id, tables_json) VALUES (1, ?)
-         ON DUPLICATE KEY UPDATE tables_json = VALUES(tables_json)'
-    );
-    $stmt->execute([json_encode($tables)]);
+    try {
+        $result = changeCollection($pdo, $spec, $payload, [
+            'staff' => $staff,
+            'validate' => 'cleanPoolTable',
+            'canCreate' => $staff['role'] === 'admin',
+            'canRemove' => $staff['role'] === 'admin',
+            'createRefusal' => 'Only the admin can add tables.',
+            'removeRefusal' => 'Only the admin can delete tables.',
+        ]);
+    } catch (CollectionRefusal $refusal) {
+        sendCollectionRefusal($refusal);
+    }
 
-    echo json_encode(['success' => true]);
+    echo json_encode(['success' => true, 'versions' => $result['versions']]);
     exit();
 }
 

@@ -1,0 +1,4 @@
+# Pictures and videos uploaded for tournaments (api/event_media.php). Each
+# computer and the hosting keep their own; the folder is made again on the
+# first upload.
+Media/

@@ -1,6 +1,7 @@
 <?php
 require_once '../config/cors.php';
 require_once '../config/database.php';
+require_once '../config/auth.php';
 require_once '../config/sms.php';
 
 const RESET_CODE_MINUTES = 10;
@@ -82,6 +83,7 @@ if ($method === 'GET') {
     }
 
     // Admin reads the history: who reset, and when. Never a password.
+    requireStaff($pdo, ['admin']);
     $stmt = $pdo->query(
         'SELECT id, username, role, reset_at AS resetAt
          FROM password_reset_log

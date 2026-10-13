@@ -1,6 +1,7 @@
 <?php
 require_once '../config/cors.php';
 require_once '../config/database.php';
+require_once '../config/auth.php';
 require_once '../config/sms.php';
 
 // Caps on real texts, so a script hammering this endpoint cannot run up the
@@ -32,6 +33,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 // Staff read the queue: what was sent to which customer, and when.
 if ($method === 'GET') {
+    requireStaff($pdo);
     $status = trim((string) ($_GET['status'] ?? ''));
 
     if ($status !== '' && in_array($status, ['queued', 'sent', 'failed'], true)) {
@@ -217,6 +219,7 @@ if ($method === 'POST') {
 
 // Staff mark a message as sent once it has gone out.
 if ($method === 'PUT') {
+    requireStaff($pdo);
     $id = trim((string) ($data['id'] ?? ''));
     $status = trim((string) ($data['status'] ?? 'sent'));
 

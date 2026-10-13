@@ -1,6 +1,7 @@
 <?php
 require_once '../config/cors.php';
 require_once '../config/database.php';
+require_once '../config/auth.php';
 
 function ensureUserProfileColumns($pdo) {
     $columns = [
@@ -22,8 +23,34 @@ function readJsonBody() {
     return json_decode(file_get_contents("php://input"), true) ?: [];
 }
 
+function refuse($status, $message) {
+    http_response_code($status);
+    echo json_encode(["success" => false, "message" => $message]);
+    exit();
+}
+
+// The same rules as getUsernameError in the frontend's formValidation.js, plus
+// the check only the server can make for sure: no other account has the name.
+// $checkName is false when an account keeps the name it already has, so an
+// older name that breaks the rules can still have its password changed.
+function checkAccountFields($pdo, $username, $phone, $id = 0, $checkName = true) {
+    if ($checkName && !preg_match('/^[A-Za-z0-9._-]{3,30}$/', $username)) {
+        refuse(400, "Usernames are 3 to 30 letters, numbers, dots, dashes or underscores, with no spaces.");
+    }
+    if ($phone !== '' && !preg_match('/^09\d{9}$/', $phone)) {
+        refuse(400, "Enter the mobile number in 09XXXXXXXXX format, or leave it blank.");
+    }
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND id <> ? LIMIT 1");
+    $stmt->execute([$username, $id]);
+    if ($stmt->fetch()) {
+        refuse(409, "{$username} is already taken. Choose another username.");
+    }
+}
+
 $pdo = getDBConnection();
 ensureUserProfileColumns($pdo);
+// Accounts are listed and changed from the admin's Account Management only.
+requireStaff($pdo, ['admin']);
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -54,6 +81,8 @@ if ($method === 'POST') {
         echo json_encode(["success" => false, "message" => "Password must be at least 6 characters"]);
         exit();
     }
+
+    checkAccountFields($pdo, $username, $phone);
 
     $stmt = $pdo->prepare("INSERT INTO users (username, password, role, email, full_name, phone) VALUES (?, MD5(?), ?, ?, ?, ?)");
     $stmt->execute([$username, $password, $role, $email, $fullName, $phone]);
@@ -97,6 +126,14 @@ if ($method === 'PUT') {
         echo json_encode(["success" => false, "message" => "New password must be at least 6 characters"]);
         exit();
     }
+
+    $stmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
+    $stmt->execute([$id]);
+    $storedUsername = $stmt->fetchColumn();
+    if ($storedUsername === false) {
+        refuse(404, "That account no longer exists. Reload the page and try again.");
+    }
+    checkAccountFields($pdo, $username, $phone, $id, $storedUsername !== $username);
 
     if ($password !== '') {
         $stmt = $pdo->prepare("UPDATE users SET username = ?, password = MD5(?), role = ?, email = ?, full_name = ?, phone = ? WHERE id = ?");

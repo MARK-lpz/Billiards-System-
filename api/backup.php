@@ -1,6 +1,8 @@
 <?php
 require_once '../config/cors.php';
 require_once '../config/database.php';
+require_once '../config/auth.php';
+require_once '../config/collection.php';
 
 /*
  * Whole-system backup and restore for the shared (server) data.
@@ -8,22 +10,38 @@ require_once '../config/database.php';
  * Only these tables are ever read or written. Table names are never taken from
  * the uploaded file, so a crafted backup cannot reach any other table.
  *
- * Deliberately left out: `users` and `password_reset_log`. A backup is a file
- * the admin downloads and keeps, and it must never carry employee password
- * hashes. Restoring also never touches who can log in.
+ * Deliberately left out: `users`, `password_reset_log` and `auth_sessions`. A
+ * backup is a file the admin downloads and keeps, and it must never carry
+ * employee password hashes or sign-ins. Restoring also never touches who can
+ * log in.
+ *
+ * Pool tables and equipment are kept one row per item (pool_table_items,
+ * equipment_items; see config/collection.php). Their old one-blob tables are
+ * still listed so a backup made before that change restores too.
  */
 const BACKUP_TABLES = [
     'reservations',
     'reservation_settings',
+    'pool_table_items',
     'pool_table_status',
     'tournament_events',
+    'equipment_items',
+    'equipment_status',
+    'equipment_history',
     'employee_issues',
     'notifications',
     'customer_messages',
 ];
 
+// Each list kept as rows, and the old table it was moved from.
+const BACKUP_LISTS = [
+    'tables' => ['rows' => 'pool_table_items', 'legacy' => 'pool_table_status'],
+    'equipment' => ['rows' => 'equipment_items', 'legacy' => 'equipment_status'],
+];
+
 const BACKUP_FORMAT = 'break-and-chill-backup';
-const BACKUP_VERSION = 1;
+// 2: pool tables and equipment as rows, and equipment included.
+const BACKUP_VERSION = 2;
 
 function respond(int $status, array $body): void
 {
@@ -50,9 +68,14 @@ if ($username === '' || $password === '') {
 }
 
 $pdo = getDBConnection();
+requireStaff($pdo, ['admin']);
+// The row tables exist (and hold the lists) before anything is read or replaced.
+foreach (['tables', 'equipment', 'events'] as $list) {
+    openCollection($pdo, $list);
+}
 
-// Every endpoint here is otherwise open, and a restore replaces the whole
-// database, so both actions need the admin to prove who they are right now.
+// A restore replaces the whole database, so on top of being signed in as the
+// admin, both actions need the admin's password again right now.
 $check = $pdo->prepare("SELECT id FROM users WHERE username = ? AND password = MD5(?) AND LOWER(role) = 'admin'");
 $check->execute([$username, $password]);
 if (!$check->fetch()) {
@@ -152,6 +175,16 @@ if ($action === 'restore') {
             }
 
             $restored[$table] = count($rows);
+        }
+
+        // A backup from before the lists were kept as rows has only the old
+        // table: the rows are filled again from it. A newer one has the rows.
+        foreach (BACKUP_LISTS as $list => $tables) {
+            if (array_key_exists($tables['rows'], $server['tables'])) {
+                $pdo->prepare('INSERT IGNORE INTO sync_collections (name) VALUES (?)')->execute([$list]);
+            } elseif (array_key_exists($tables['legacy'], $server['tables'])) {
+                remigrateCollection($pdo, $list);
+            }
         }
 
         $pdo->commit();

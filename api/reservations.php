@@ -1,6 +1,8 @@
 <?php
 require_once '../config/cors.php';
 require_once '../config/database.php';
+require_once '../config/auth.php';
+require_once '../config/collection.php';
 
 function readJsonBody() {
     return json_decode(file_get_contents('php://input'), true) ?: [];
@@ -191,15 +193,7 @@ function isWithinArrivalWindow($date, $time) {
 // session past its booked end that has not been ended still has a player, so
 // it counts until now. Same rule as getOccupiedTableRange in reservations.js.
 function getOccupiedTableEnd($pdo, $reservation) {
-    try {
-        $storedTables = $pdo->query('SELECT tables_json FROM pool_table_status WHERE id = 1')->fetchColumn();
-    } catch (PDOException $error) {
-        return null; // No table status saved yet.
-    }
-    $tables = $storedTables ? json_decode($storedTables, true) : [];
-    if (!is_array($tables)) {
-        return null;
-    }
+    $tables = readCollection($pdo, openCollection($pdo, 'tables'))['items'];
 
     $zone = new DateTimeZone('Asia/Manila');
     $candidateStart = DateTime::createFromFormat('Y-m-d H:i', $reservation['date'] . ' ' . $reservation['time'], $zone);
@@ -325,6 +319,23 @@ if (!isValidReservation($data)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Complete reservation details are required']);
     exit();
+}
+
+// Staff book and change bookings signed in. The website (no sign-in) can only
+// ask for a new online booking: always pending, and never over an existing one.
+$staff = currentStaff($pdo);
+if ($method === 'PUT' || ($method === 'POST' && $data['source'] !== 'online')) {
+    $staff = requireStaff($pdo);
+}
+if ($method === 'POST' && !$staff) {
+    $data['status'] = 'pending';
+    $exists = $pdo->prepare('SELECT 1 FROM reservations WHERE id = ?');
+    $exists->execute([$data['id']]);
+    if ($exists->fetchColumn()) {
+        http_response_code(409);
+        echo json_encode(['success' => false, 'message' => 'This booking was already sent. Please start a new one.']);
+        exit();
+    }
 }
 
 if ($method === 'POST' && $data['source'] === 'online' && !onlineReservationsAreOpen($pdo)) {

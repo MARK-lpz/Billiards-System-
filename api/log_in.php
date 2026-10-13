@@ -1,6 +1,16 @@
 <?php
 require_once '../config/cors.php';
 require_once '../config/database.php';
+require_once '../config/auth.php';
+
+$pdo = getDBConnection();
+
+// Who this tab is signed in as, or 401 once the session has ended.
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $staff = requireStaff($pdo);
+    echo json_encode(["success" => true, "user" => $staff]);
+    exit();
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -10,6 +20,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 // Get JSON input
 $data = json_decode(file_get_contents("php://input"), true);
+
+// Logout ends this tab's session on the server too.
+if (($data['action'] ?? '') === 'logout') {
+    endAuthSession($pdo);
+    echo json_encode(["success" => true]);
+    exit();
+}
+
 $username = trim($data['username'] ?? '');
 $password = $data['password'] ?? '';
 
@@ -19,8 +37,6 @@ if (empty($username) || empty($password)) {
     echo json_encode(["success" => false, "message" => "Username and password are required"]);
     exit();
 }
-
-$pdo = getDBConnection();
 
 $profileColumns = [
     'email' => "ALTER TABLE users ADD COLUMN email varchar(120) NULL",
@@ -44,6 +60,8 @@ if ($user) {
     echo json_encode([
         "success" => true,
         "message" => "Login successful",
+        // Sent back on every staff request; see config/auth.php.
+        "token" => createAuthSession($pdo, (int) $user['id']),
         "user" => [
             "id"       => $user['id'],
             "username" => $user['username'],

@@ -1,6 +1,7 @@
 <?php
 require_once '../config/cors.php';
 require_once '../config/database.php';
+require_once '../config/auth.php';
 
 function ensureReservationSettingsTable($pdo) {
     $pdo->exec(
@@ -37,6 +38,8 @@ if ($method === 'GET') {
     echo json_encode(['success' => true, 'settings' => reservationSettingsResponse($pdo)]);
     exit();
 }
+
+requireStaff($pdo, ['admin']);
 
 if ($method !== 'PUT') {
     http_response_code(405);

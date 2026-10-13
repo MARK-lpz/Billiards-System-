@@ -1,6 +1,7 @@
 <?php
 require_once '../config/cors.php';
 require_once '../config/database.php';
+require_once '../config/auth.php';
 
 function readJsonBody() {
     return json_decode(file_get_contents('php://input'), true) ?: [];
@@ -32,10 +33,17 @@ ensureNotificationsTable($pdo);
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
+    $staff = requireStaff($pdo);
     $recipient = $_GET['recipient'] ?? '';
     if (!validRecipient($recipient)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'A valid recipient is required']);
+        exit();
+    }
+
+    if ($recipient !== $staff['role']) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'These notifications are for another role.']);
         exit();
     }
 
@@ -85,6 +93,7 @@ if ($method === 'POST') {
 }
 
 if ($method === 'PUT') {
+    $staff = requireStaff($pdo);
     $data = readJsonBody();
     $id = trim($data['id'] ?? '');
     $recipient = $data['recipient'] ?? '';
@@ -93,6 +102,12 @@ if ($method === 'PUT') {
     if ($id === '' || !validRecipient($recipient) || !in_array($action, ['read', 'dismiss'], true)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid notification update']);
+        exit();
+    }
+
+    if ($recipient !== $staff['role']) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'These notifications are for another role.']);
         exit();
     }
 
