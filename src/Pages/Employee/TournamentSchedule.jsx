@@ -204,31 +204,24 @@ export default function TournamentSchedule({ events = [], setEvents, tables = []
 
   const assignedTables = selectedEvent ? resolveAssignedTables(selectedEvent.tables, tables) : [];
 
-  // The page's own header: its bell is only about players registering.
-  const header = (
-    <div className="page-header">
-      <div className="page-header-text">
-        <h1 className="page-title">Tournament Schedule</h1>
-        <p className="page-subtitle">View tournaments and events created from the admin side</p>
-      </div>
-      <div className="header-right">
-        <div className="header-icons">
-          <RegistrationBell
-            registrations={registrations}
-            seen={seen}
-            onOpen={(registration) => showPlayer(registration.event.id, registration.label, true)}
-            onMarkAllSeen={() => markSeen(registrations.map((registration) => registration.key))}
-          />
-        </div>
-      </div>
+  // The page's own bell, only about players registering. It sits at the end of
+  // the tab bar; the page's name is in the top bar.
+  const bell = (
+    <div className="tourna-bell">
+      <RegistrationBell
+        registrations={registrations}
+        seen={seen}
+        onOpen={(registration) => showPlayer(registration.event.id, registration.label, true)}
+        onMarkAllSeen={() => markSeen(registrations.map((registration) => registration.key))}
+      />
     </div>
   );
 
   if (!events.length) {
     return (
       <>
-        {header}
         <div className="tourna-shell">
+          <div className="tourna-toolbar tourna-toolbar--bell-only">{bell}</div>
           <div className="tourna-empty-card">
             <i className="bi bi-trophy"></i>
             <h2>No tournament schedules yet</h2>
@@ -286,7 +279,6 @@ export default function TournamentSchedule({ events = [], setEvents, tables = []
 
   return (
     <>
-      {header}
       <div className="tourna-shell">
         <div className="tourna-stats">
           <div className="tourna-stat-card">
@@ -315,23 +307,26 @@ export default function TournamentSchedule({ events = [], setEvents, tables = []
           </div>
         </div>
 
-        <div className="tourna-tabs" role="tablist" aria-label="Tournament schedule">
-          {TABS.map((entry) => (
-            <button
-              key={entry.key}
-              type="button"
-              role="tab"
-              aria-selected={tab === entry.key}
-              className={`tourna-tab tourna-tab--${entry.key}${tab === entry.key ? " is-active" : ""}`}
-              onClick={() => setTab(entry.key)}
-            >
-              {entry.label}
-              <span className="tourna-tab-count">{groups[entry.key].length}</span>
-            </button>
-          ))}
+        <div className="tourna-toolbar">
+          <div className="tourna-tabs" role="tablist" aria-label="Tournament schedule">
+            {TABS.map((entry) => (
+              <button
+                key={entry.key}
+                type="button"
+                role="tab"
+                aria-selected={tab === entry.key}
+                className={`tourna-tab tourna-tab--${entry.key}${tab === entry.key ? " is-active" : ""}`}
+                onClick={() => setTab(entry.key)}
+              >
+                {entry.label}
+                <span className="tourna-tab-count">{groups[entry.key].length}</span>
+              </button>
+            ))}
+          </div>
+          {bell}
         </div>
 
-        <div className="tourna-layout">
+        <div className={`tourna-layout${selectedEvent ? "" : " tourna-layout--single"}`}>
           <div className="tourna-list">
             {shown.length === 0 ? (
               <div className="tourna-list-empty">

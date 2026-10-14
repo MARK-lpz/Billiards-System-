@@ -498,8 +498,7 @@
 }
 
 /* Titles go: the top bar names the page. Buttons stay. */
-.employee-shell :is(.rd-header, .qa-page-header) > :first-child,
-.employee-shell .employee-module-tournament-schedule > .page-header > .page-header-text {
+.employee-shell :is(.rd-header, .qa-page-header) > :first-child {
   display: none;
 }
 
@@ -532,26 +531,6 @@
   background: none;
 }
 
-/* Tournaments: the registrations bell sits in the page's top-right corner */
-.employee-shell .employee-module-tournament-schedule {
-  position: relative;
-}
-
-.employee-shell .employee-module-tournament-schedule > .page-header {
-  position: absolute;
-  top: 1.75rem;
-  right: 2rem;
-  z-index: 2;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-}
-
-.employee-shell .employee-module-tournament-schedule > .tourna-shell > :first-child {
-  margin-right: 60px;
-}
-
 /* Stat strips: the cards joined into one bar, read left to right */
 .employee-shell :is(.rd-stats-row, .qa-summary, .tourna-stats) {
   display: grid !important;
@@ -571,6 +550,7 @@
 
 .employee-shell .tourna-stats {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr) !important;
+  margin-bottom: 0 !important; /* the page already spaces its sections */
 }
 
 .employee-shell :is(.rd-stat-card, .qa-summary-pill, .tourna-stat-card) {
