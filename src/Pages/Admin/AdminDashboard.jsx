@@ -12,7 +12,7 @@ import Toast from "../../Elements/Global/Toast";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import useClock from "../../Elements/Global/useClock";
 import useStaffShell from "../../Elements/Global/useStaffShell";
-import StaffTopbar from "../../Elements/Global/StaffTopbar";
+import AdminTopbar from "../../Elements/Admin/AdminTopbar";
 import { formatHoursLabel, getExtensionBlock } from "../../utils/reservations";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
 import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
@@ -314,8 +314,7 @@ export default function Dashboard({
         {navOpen && <div className="admin-nav-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
 
         <div className="admin-workspace">
-          <StaffTopbar
-            panelLabel="Admin Panel"
+          <AdminTopbar
             page={currentPage}
             now={now}
             navOpen={navOpen}
@@ -332,7 +331,7 @@ export default function Dashboard({
               onProfile={() => handleNavChange('profile')}
               onSettings={() => handleNavChange('settings')}
             />
-          </StaffTopbar>
+          </AdminTopbar>
 
           <main className={`main-content admin-module admin-module-${activeNav}`}>
             {renderModule()}

@@ -25,7 +25,7 @@ import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChar
 import { getCheckInBlock, hasTableReservation } from "../../utils/tableHolds";
 import useClock from "../../Elements/Global/useClock";
 import useStaffShell from "../../Elements/Global/useStaffShell";
-import StaffTopbar from "../../Elements/Global/StaffTopbar";
+import EmployeeTopbar from "../../Elements/Employee/EmployeeTopbar";
 import { navItems } from "../../Elements/Employee/employeeNav";
 
 const getCurrentTimestamp = () => Date.now();
@@ -378,9 +378,9 @@ export default function EmployeeDashboard({
       default:
         return (
           <>
-            <section className="page-header admin-hero">
-              <div className="page-header-text admin-hero-text">
-                <span className="admin-hero-eyebrow">{formatToday(clock)}</span>
+            <section className="page-header employee-hero">
+              <div className="page-header-text employee-hero-text">
+                <span className="employee-hero-eyebrow">{formatToday(clock)}</span>
                 <h1 className="page-title">Pool Table Dashboard</h1>
               </div>
               <PoolTableStats
@@ -465,11 +465,10 @@ export default function EmployeeDashboard({
           collapsed={sidebarCollapsed}
           onToggleCollapsed={toggleSidebarCollapsed}
         />
-        {navOpen && <div className="admin-nav-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
+        {navOpen && <div className="employee-nav-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
 
-        <div className="admin-workspace">
-          <StaffTopbar
-            panelLabel="Employee Panel"
+        <div className="employee-workspace">
+          <EmployeeTopbar
             page={currentPage}
             now={clock}
             navOpen={navOpen}
@@ -490,7 +489,7 @@ export default function EmployeeDashboard({
               onProfile={() => handleNavChange("profile")}
               onSettings={() => handleNavChange("settings")}
             />
-          </StaffTopbar>
+          </EmployeeTopbar>
 
           <main className={`main-content employee-module employee-module-${moduleSlug}`}>
             {renderModule()}

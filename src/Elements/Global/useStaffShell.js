@@ -29,7 +29,7 @@ export default function useStaffShell(storageKey) {
     });
   };
 
-  const shellClassName = `dashboard-layout staff-shell ${collapsed ? "is-collapsed" : ""} ${navOpen ? "is-nav-open" : ""}`;
+  const shellClassName = `dashboard-layout ${collapsed ? "is-collapsed" : ""} ${navOpen ? "is-nav-open" : ""}`;
 
   return { collapsed, toggleCollapsed, navOpen, setNavOpen, shellClassName };
 }

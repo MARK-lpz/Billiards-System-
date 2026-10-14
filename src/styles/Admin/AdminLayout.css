@@ -1,0 +1,883 @@
+/* Admin layout.
+   The admin panel's arrangement: a grouped, collapsible sidebar, a sticky top
+   bar carrying the page name, clock, bell and menu on every module, and each
+   module laid out as a header band, a joined stat strip, a toolbar and its
+   content. Only placement changes here: every color is one the staff app
+   already uses (the navy sidebar and page, the slate cards, the cyan active
+   item, the sign's tubes), and the light theme keeps its own variables.
+   App.jsx imports this after brand.css, and every rule is scoped to
+   .admin-shell, so the employee panel has its own (EmployeeLayout.css). */
+
+.admin-shell {
+  --ax-page: #071e47;
+  --ax-panel: rgba(30, 41, 59, 0.5);
+  --ax-panel-solid: #0b2552;
+  --ax-border: rgba(71, 85, 105, 0.3);
+  --ax-divider: rgba(71, 85, 105, 0.35);
+  --ax-text: #ffffff;
+  --ax-muted: #94a3b8;
+  --ax-faint: #64748b;
+  --ax-active: rgb(40, 152, 189);
+  --ax-active-soft: rgba(40, 152, 189, 0.14);
+  --ax-topbar: rgba(7, 30, 71, 0.88);
+  --ax-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.6);
+  --ax-tubes-vertical: linear-gradient(180deg, var(--bc-pink) 0 25%, var(--bc-yellow) 25% 50%, var(--bc-green) 50% 75%, var(--bc-cyan) 75% 100%);
+  --ax-sidebar-width: 240px;
+  --ax-sidebar-collapsed: 84px;
+}
+
+.light .admin-shell {
+  --ax-page: var(--bg-root);
+  --ax-panel: var(--bg-card);
+  --ax-panel-solid: var(--bg-card);
+  --ax-border: var(--border);
+  --ax-divider: var(--border);
+  --ax-text: var(--text-primary);
+  --ax-muted: var(--text-muted);
+  --ax-faint: var(--text-muted);
+  --ax-active-soft: rgba(40, 152, 189, 0.12);
+  --ax-topbar: rgba(234, 240, 248, 0.9);
+  --ax-shadow: var(--shadow);
+}
+
+/* ================================================================
+   Shell
+   ================================================================ */
+
+.admin-shell.dashboard-layout {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+  background-color: var(--ax-page);
+}
+
+.admin-workspace {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-shell .main-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 1.75rem 2rem 3rem;
+  overflow: visible;
+}
+
+/* The modules bring their own outer padding; the workspace sets it now */
+.admin-shell :is(.pool-tables-container, .inventory-container, .events-container, .reports-container,
+  .audit-trail-container, .reservations-container, .equipment-container, .sales-pos-container) {
+  padding: 0;
+}
+
+/* Icons sit a little apart from the words beside them */
+.admin-shell .bi.me-2 {
+  margin-right: 0.5rem;
+}
+
+/* ---------- Sidebar ---------- */
+
+.admin-shell .sidebar {
+  width: var(--ax-sidebar-width);
+  min-width: var(--ax-sidebar-width);
+  transition: width 0.22s ease, min-width 0.22s ease;
+  z-index: 30;
+}
+
+.admin-shell .sidebar-logo-text {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.admin-shell .sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  gap: 1rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+.admin-shell .sidebar-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admin-shell .sidebar-nav-heading {
+  padding: 0 0.875rem 0.3rem;
+  font-family: var(--bc-font-label);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(191, 219, 254, 0.5);
+}
+
+.admin-shell .nav-item {
+  position: relative;
+  white-space: nowrap;
+}
+
+.admin-shell .nav-icon {
+  width: 1.15rem;
+  flex: none;
+  text-align: center;
+}
+
+.admin-shell .nav-item.nav-active::before {
+  content: "";
+  position: absolute;
+  left: -0.75rem;
+  top: 22%;
+  bottom: 22%;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--bc-yellow);
+}
+
+.sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.875rem;
+  border: 1px solid rgba(191, 219, 254, 0.18);
+  border-radius: 10px;
+  background: transparent;
+  color: #a9b6c9;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+/* Collapsed: an icon rail */
+.admin-shell.is-collapsed .sidebar {
+  width: var(--ax-sidebar-collapsed);
+  min-width: var(--ax-sidebar-collapsed);
+}
+
+.admin-shell.is-collapsed .sidebar-logo {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.admin-shell.is-collapsed :is(.sidebar-logo-text, .nav-label) {
+  display: none;
+}
+
+.admin-shell.is-collapsed .sidebar-nav-heading {
+  height: 1px;
+  margin: 0.15rem 0.6rem 0.4rem;
+  padding: 0;
+  overflow: hidden;
+  font-size: 0;
+  background: rgba(191, 219, 254, 0.18);
+}
+
+.admin-shell.is-collapsed :is(.nav-item, .sidebar-collapse-btn) {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.admin-shell.is-collapsed .nav-icon {
+  font-size: 1.1rem;
+}
+
+/* ---------- Top bar ---------- */
+
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 68px;
+  padding: 0.7rem 2rem;
+  background: var(--ax-topbar);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--ax-border);
+}
+
+.admin-topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--bc-tubes);
+  opacity: 0.55;
+}
+
+.admin-nav-toggle {
+  display: none !important;
+}
+
+.admin-topbar-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.admin-topbar-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--ax-active-soft);
+  color: var(--ax-active);
+  font-size: 1.1rem;
+}
+
+.admin-topbar-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.admin-topbar-section {
+  font-family: var(--bc-font-label);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ax-faint);
+}
+
+.admin-topbar-page {
+  font-family: var(--bc-font-display);
+  font-size: 1.15rem;
+  color: var(--ax-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-left: auto;
+}
+
+.admin-topbar-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 999px;
+  background: var(--ax-panel);
+  color: var(--ax-muted);
+  font-family: var(--bc-font-label);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.admin-topbar .header-icons {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.admin-topbar .header-icon-btn {
+  width: 40px;
+  height: 40px;
+}
+
+.admin-nav-backdrop {
+  display: none;
+}
+
+/* ================================================================
+   Module titles
+   Only the dashboard keeps a title band; the top bar already names every
+   other page. Headers that hold buttons keep them, right-aligned.
+   ================================================================ */
+
+.admin-shell .admin-hero {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin: 0 0 1.25rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 16px;
+  background: linear-gradient(115deg, var(--ax-active-soft), transparent 60%), var(--ax-panel);
+  box-shadow: var(--ax-shadow);
+  overflow: hidden;
+}
+
+/* The sign's tubes run down the band's edge instead of under the title */
+.admin-shell .admin-hero::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--ax-tubes-vertical);
+}
+
+.admin-shell .admin-hero .page-title {
+  margin: 0 0 0.3rem;
+}
+
+.admin-shell .admin-hero .page-title::after {
+  display: none;
+}
+
+.admin-shell .admin-hero .page-subtitle {
+  margin: 0;
+}
+
+/* Title-only headers go entirely */
+.admin-shell :is(.reports-header, .audit-trail-header, .sales-pos-header, .profile-header, .settings-header,
+  .inventory-header, .events-header) {
+  display: none;
+}
+
+/* Headers with actions lose the title and keep the buttons */
+.admin-shell :is(.pool-tables-header, .reservations-header, .equipment-header) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.admin-shell :is(.pool-tables-header, .reservations-header, .equipment-header) > :first-child {
+  display: none;
+}
+
+/* ================================================================
+   Stat strip: the stat cards joined into one bar, read left to right
+   ================================================================ */
+
+.admin-shell :is(.stats-grid, .events-container > .row.g-3, .audit-trail-container > .row.g-3, .reports-container .row.g-3,
+  .equipment-summary-grid, .sales-pos-summary-grid) {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) !important;
+  gap: 0 !important;
+  margin: 0 0 1.25rem !important;
+  border: 1px solid var(--ax-border);
+  border-radius: 14px;
+  background: var(--ax-panel);
+  box-shadow: var(--ax-shadow);
+  overflow: hidden;
+}
+
+.admin-shell :is(.events-container > .row.g-3, .audit-trail-container > .row.g-3, .reports-container .row.g-3) > [class*="col-"] {
+  display: contents;
+}
+
+.admin-shell :is(.inventory-stat-card, .events-stat-card, .audit-stat-card, .reports-stat-card, .equipment-stat-card, .sales-summary-card) {
+  position: relative;
+  margin: 0 !important;
+  width: auto;
+  min-height: 0;
+  border-width: 3px 0 0 0 !important;
+  border-style: solid !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: inset 1px 0 0 var(--ax-divider) !important;
+  transform: none !important;
+}
+
+.admin-shell :is(.inventory-stat-card, .events-stat-card, .audit-stat-card, .reports-stat-card, .equipment-stat-card):hover {
+  transform: none !important;
+}
+
+.admin-shell .equipment-stat-clickable:hover {
+  background: var(--ax-active-soft) !important;
+}
+
+.admin-shell :is(.inventory-stat-card, .events-stat-card, .audit-stat-card, .reports-stat-card, .equipment-stat-card) .card-body {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "icon value"
+    "icon label";
+  align-items: center;
+  justify-items: start;
+  column-gap: 0.9rem;
+  row-gap: 0.1rem;
+  padding: 1rem 1.25rem;
+  text-align: left;
+}
+
+.admin-shell :is(.inventory-stat-icon, .audit-stat-icon, .reports-stat-icon) {
+  grid-area: icon;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  margin: 0;
+  border-radius: 12px;
+  background: var(--ax-active-soft);
+  font-size: 1.15rem;
+}
+
+.admin-shell :is(.inventory-stat-value, .events-stat-value, .audit-stat-value, .reports-stat-value, .equipment-stat-value) {
+  grid-area: value;
+  margin: 0;
+  font-size: 1.65rem;
+  line-height: 1.1;
+}
+
+.admin-shell :is(.inventory-stat-label, .events-stat-label, .audit-stat-label, .reports-stat-label, .equipment-stat-label) {
+  grid-area: label;
+  margin: 0;
+  text-align: left;
+}
+
+/* Sales / POS summary keeps its note line under the number */
+.admin-shell .sales-summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 1rem 1.25rem;
+  border-top-color: var(--ax-active) !important;
+}
+
+.admin-shell .sales-summary-card--amber { border-top-color: #fbbf24 !important; }
+.admin-shell .sales-summary-card--blue { border-top-color: #60a5fa !important; }
+
+/* ================================================================
+   Dashboard
+   ================================================================ */
+
+.admin-shell .admin-hero {
+  align-items: stretch;
+  padding: 1.5rem 1.5rem 1.5rem 1.85rem;
+}
+
+.admin-hero-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 240px;
+}
+
+.admin-hero-eyebrow {
+  margin-bottom: 0.35rem;
+  font-family: var(--bc-font-label);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ax-active);
+}
+
+.admin-shell .admin-hero .page-title {
+  font-size: 2rem;
+}
+
+/* The two counts sit inside the band, on the right */
+.admin-shell .admin-hero .employee-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  flex: 0 1 460px;
+}
+
+.admin-shell .admin-hero .stat-card-employee {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  background: var(--ax-page);
+  border: 1px solid var(--ax-border);
+}
+
+.light .admin-shell .admin-hero .stat-card-employee {
+  background: var(--bg-subtle) !important;
+}
+
+.admin-shell .admin-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+  gap: 1.25rem;
+  margin: 0 0 1.25rem;
+  align-items: stretch;
+}
+
+.admin-shell .admin-dashboard-grid > .content-card {
+  height: 100%;
+  border-radius: 16px;
+  box-shadow: var(--ax-shadow);
+}
+
+.admin-shell .active-tables-card .active-tables-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.admin-shell .admin-dashboard-grid .task-list {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+/* ================================================================
+   Pool Tables: status filter as one segmented bar, roomier grid
+   ================================================================ */
+
+.admin-shell .pool-table-stats {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 1.25rem;
+  padding: 0.3rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 12px;
+  background: var(--ax-panel);
+}
+
+.admin-shell .pool-stat-pill {
+  border-color: transparent !important;
+  border-radius: 9px;
+  padding: 0.45rem 1rem;
+}
+
+.admin-shell .pool-stat-pill.is-active {
+  border-color: currentColor !important;
+}
+
+/* The status filter and Add Table share one row */
+.admin-shell .pool-tables-container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 1rem;
+  align-items: center;
+}
+
+.admin-shell .pool-tables-container > * {
+  grid-column: 1 / -1;
+}
+
+.admin-shell .pool-tables-container > .pool-table-stats {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+}
+
+.admin-shell .pool-tables-container > .pool-tables-header {
+  grid-column: 2;
+  grid-row: 1;
+  margin-bottom: 1.25rem;
+}
+
+.admin-shell .pool-tables-grid {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.1rem;
+}
+
+/* ================================================================
+   Toolbars joined to the table they filter
+   ================================================================ */
+
+.admin-shell :is(.inventory-filters, .reservations-filter-bar) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin: 0 !important;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--ax-border);
+  border-bottom: 0;
+  border-radius: 14px 14px 0 0;
+  background: var(--ax-panel);
+}
+
+.admin-shell .inventory-filters {
+  justify-content: flex-start;
+}
+
+/* Add Product / Create Event sit at the right end of their filter bars */
+.admin-shell :is(.inventory-filters, .events-toolbar) > :is(.inventory-add-btn, .events-add-btn) {
+  margin-left: auto;
+}
+
+.admin-shell .reservations-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-shell .reservations-search {
+  flex: 0 1 360px;
+  margin: 0;
+}
+
+.admin-shell :is(.inventory-filters, .reservations-filter-bar) + :is(.inventory-table-card, .reservations-table-card) {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+.admin-shell :is(.inventory-table-card, .reservations-table-card) {
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  box-shadow: var(--ax-shadow);
+}
+
+/* ================================================================
+   Tabs: underline tabs across a bar
+   ================================================================ */
+
+.admin-shell .events-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1.25rem;
+  padding: 0.3rem 0.5rem 0.3rem 0.3rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 12px;
+  background: var(--ax-panel);
+}
+
+.admin-shell .events-toolbar > .events-tabs {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.admin-shell :is(.events-tabs, .pos-subtabs) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 1.25rem;
+  padding: 0.3rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 12px;
+  background: var(--ax-panel);
+}
+
+.admin-shell .pos-subtab-btn {
+  border-radius: 9px;
+  border-bottom: 0;
+}
+
+.admin-shell .pos-subtab-btn.active {
+  background: var(--ax-active-soft);
+}
+
+/* Events: cards two across */
+.admin-shell .events-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.admin-shell .events-list > .events-card {
+  margin: 0;
+}
+
+/* ================================================================
+   Equipment: view tabs and actions in one right-aligned row
+   ================================================================ */
+
+.admin-shell .equipment-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* ================================================================
+   Reports: the report picker is a tab bar across the top
+   ================================================================ */
+
+.admin-shell .reports-container > .reports-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 1.25rem;
+  padding: 0.3rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 12px;
+  background: var(--ax-panel);
+}
+
+.admin-shell .reports-toolbar {
+  margin-bottom: 1.25rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 14px;
+  background: var(--ax-panel);
+}
+
+/* ================================================================
+   Accounts: employee accounts on the right, admin and resets stacked left
+   ================================================================ */
+
+.admin-shell .account-management-sections {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  align-items: start;
+}
+
+.admin-shell .account-management-sections > :nth-child(2) {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.admin-shell .account-management-sections > :nth-child(3) {
+  grid-column: 1;
+}
+
+/* ================================================================
+   Small screens: the sidebar becomes a drawer
+   ================================================================ */
+
+@media (max-width: 1200px) {
+  .admin-shell .admin-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-shell .admin-hero .employee-stats {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 1024px) {
+  .admin-shell .account-management-sections {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-shell .account-management-sections > :is(:nth-child(2), :nth-child(3)) {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .admin-shell .events-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-shell .sidebar,
+  .admin-shell.is-collapsed .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    display: flex;
+    width: var(--ax-sidebar-width);
+    min-width: var(--ax-sidebar-width);
+    height: 100vh;
+    z-index: 1050;
+    transform: translateX(-105%);
+    transition: transform 0.25s ease;
+  }
+
+  .admin-shell.is-nav-open .sidebar {
+    transform: translateX(0);
+    box-shadow: 20px 0 40px rgba(0, 0, 0, 0.45);
+  }
+
+  /* The drawer always shows the full menu */
+  .admin-shell.is-collapsed :is(.sidebar-logo-text, .nav-label) {
+    display: initial;
+  }
+
+  .admin-shell.is-collapsed .sidebar-logo-text {
+    display: flex;
+  }
+
+  .admin-shell.is-collapsed .sidebar-nav-heading {
+    height: auto;
+    margin: 0;
+    padding: 0 0.875rem 0.3rem;
+    font-size: 0.68rem;
+    background: none;
+  }
+
+  .admin-shell.is-collapsed :is(.nav-item, .sidebar-collapse-btn) {
+    justify-content: flex-start;
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
+
+  .admin-shell .sidebar-collapse-btn {
+    display: none;
+  }
+
+  .admin-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1040;
+    background: rgba(0, 18, 51, 0.6);
+  }
+
+  .admin-nav-toggle {
+    display: flex !important;
+    flex: none;
+  }
+
+  .admin-topbar {
+    padding: 0.6rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .admin-topbar-clock {
+    display: none;
+  }
+
+  .admin-shell .main-content {
+    padding: 1.25rem 1rem 2.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-topbar-icon,
+  .admin-topbar-section {
+    display: none;
+  }
+
+  .admin-shell .admin-hero {
+    padding: 1.1rem 1rem 1.1rem 1.35rem;
+  }
+
+  .admin-shell .admin-hero .employee-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-shell .events-list {
+    grid-template-columns: 1fr;
+  }
+}
+
