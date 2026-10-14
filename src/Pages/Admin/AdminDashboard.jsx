@@ -10,12 +10,14 @@ import Menu from "../../Elements/Global/Menu";
 import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
 import Toast from "../../Elements/Global/Toast";
 import { useNotifications } from "../../Elements/Global/useNotifications";
+import useClock from "../../Elements/Global/useClock";
 import { formatHoursLabel, getExtensionBlock } from "../../utils/reservations";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
 import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
 
 // Admin Elements
 import Sidebar from "../../Elements/Admin/Sidebar";
+import { navItems } from "../../Elements/Admin/adminNav";
 import TaskList from "../../Elements/Admin/TaskList";
 import ActiveTables from "../../Elements/Admin/ActiveTables";
 
@@ -34,6 +36,27 @@ import AccountManagement from "./AccountManagement";
 import AuditTrail from "./AuditTrail";
 import AdminProfile from "./AdminProfile";
 import Settings from "../Settings";
+
+// The pages the top bar can name that are not in the sidebar.
+const extraPages = {
+  profile: { icon: "bi-person", label: "Profile" },
+  settings: { icon: "bi-gear", label: "Settings" },
+};
+
+const SIDEBAR_COLLAPSED_KEY = "admin-sidebar-collapsed";
+
+const readSidebarCollapsed = () => {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
+const formatToday = (now) =>
+  new Date(now).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+
+const formatClock = (now) => new Date(now).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 
 // Read only from click handlers, never while rendering.
 const getCurrentTimestamp = () => Date.now();
@@ -89,6 +112,24 @@ export default function Dashboard({
   // Cleared by any other navigation.
   const [focus, setFocus] = useState(null);
   const { addNotification, showToast } = useNotifications();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
+  // The sidebar slides in over the page on small screens.
+  const [navOpen, setNavOpen] = useState(false);
+  const now = useClock(30000);
+
+  const toggleSidebarCollapsed = () => {
+    setSidebarCollapsed((previous) => {
+      const next = !previous;
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
+      } catch {
+        // Storage blocked: the choice lasts for this visit only.
+      }
+      return next;
+    });
+  };
+
+  const currentPage = navItems.find((item) => item.id === activeNav) || extraPages[activeNav] || navItems[0];
 
   // Used by the time's up pop-up, which shows on every admin page, not only on
   // Pool Tables, so it cannot rely on that page's own handlers.
@@ -142,6 +183,7 @@ export default function Dashboard({
   };
 
   const handleNavChange = (navId, nextFocus = null) => {
+    setNavOpen(false);
     setFocus(nextFocus);
     setLoading(true);
     setTimeout(() => {
@@ -250,40 +292,46 @@ export default function Dashboard({
       default:
         return (
           <>
-            <div className="page-header">
-              <div className="page-header-text">
+            <section className="page-header admin-hero">
+              <div className="page-header-text admin-hero-text">
+                <span className="admin-hero-eyebrow">{formatToday(now)}</span>
                 <h1 className="page-title">Admin Dashboard</h1>
                 <p className="page-subtitle">Welcome back! Manage your business operations</p>
               </div>
-              
-              <div className="header-right">
-                <div className="header-icons">
-                  <AdminBell
-                    products={products}
-                    onOpenProduct={(productId) =>
-                      handleNavChange("inventory", { nav: "inventory", productId, key: `product-${Date.now()}` })
-                    }
-                  />
-                  <Menu 
-                    onLogout={onLogout}
-                    onProfile={() => handleNavChange('profile')}
-                    onSettings={() => handleNavChange('settings')}
-                  />
-                </div>
-              </div>
-            </div>
 
-            {/* Stats — full width */}
-            <EmployeeStats
-              availableTables={availableTablesCount}
-              pendingTasks={pendingTasksCount}
-            />
+              <EmployeeStats
+                availableTables={availableTablesCount}
+                pendingTasks={pendingTasksCount}
+              />
+            </section>
 
-            {/* Main grid — 50/50 equal columns */}
+            {/* Main grid — tables get the wide column, issues sit beside them */}
             <div className="admin-dashboard-grid">
               <ActiveTables tables={tables} onViewPoolTables={() => handleNavChange('pool-tables')} />
               <TaskList logs={logs} setLogs={setLogs} onOpenEquipment={openEquipmentIssue} />
             </div>
+
+            <section className="admin-quick-links" aria-label="Quick access">
+              <h2 className="admin-quick-links-title">Quick access</h2>
+              <div className="admin-quick-links-grid">
+                {navItems
+                  .filter((item) => item.id !== "dashboard")
+                  .map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="admin-quick-link"
+                      onClick={() => handleNavChange(item.id)}
+                    >
+                      <span className="admin-quick-link-icon">
+                        <i className={`bi ${item.icon}`}></i>
+                      </span>
+                      <span className="admin-quick-link-label">{item.label}</span>
+                      <i className="bi bi-arrow-right admin-quick-link-arrow" aria-hidden="true"></i>
+                    </button>
+                  ))}
+              </div>
+            </section>
           </>
         );
     }
@@ -299,17 +347,66 @@ export default function Dashboard({
           "open-pos": activeNav === "sales-pos" ? null : { label: "Open POS", onClick: () => handleNavChange("sales-pos") },
         }}
       />
-      <div className="dashboard-layout">
+      <div
+        className={`dashboard-layout admin-shell ${sidebarCollapsed ? "is-collapsed" : ""} ${navOpen ? "is-nav-open" : ""}`}
+      >
         <Sidebar 
           activeNav={activeNav} 
           setActiveNav={setActiveNav}
           onNavChange={handleNavChange}
           onReload={handleReload}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={toggleSidebarCollapsed}
         />
+        {navOpen && <div className="admin-nav-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
 
-        <main className="main-content">
-          {renderModule()}
-        </main>
+        <div className="admin-workspace">
+          <header className="admin-topbar">
+            <button
+              type="button"
+              className="header-icon-btn admin-nav-toggle"
+              onClick={() => setNavOpen((open) => !open)}
+              aria-label="Open menu"
+              aria-expanded={navOpen}
+            >
+              <i className="bi bi-list"></i>
+            </button>
+
+            <div className="admin-topbar-crumbs">
+              <span className="admin-topbar-icon">
+                <i className={`bi ${currentPage.icon}`}></i>
+              </span>
+              <div className="admin-topbar-text">
+                <span className="admin-topbar-section">Admin Panel</span>
+                <span className="admin-topbar-page">{currentPage.label}</span>
+              </div>
+            </div>
+
+            <div className="admin-topbar-right">
+              <span className="admin-topbar-clock">
+                <i className="bi bi-clock" aria-hidden="true"></i>
+                {formatClock(now)}
+              </span>
+              <div className="header-icons">
+                <AdminBell
+                  products={products}
+                  onOpenProduct={(productId) =>
+                    handleNavChange("inventory", { nav: "inventory", productId, key: `product-${Date.now()}` })
+                  }
+                />
+                <Menu 
+                  onLogout={onLogout}
+                  onProfile={() => handleNavChange('profile')}
+                  onSettings={() => handleNavChange('settings')}
+                />
+              </div>
+            </div>
+          </header>
+
+          <main className={`main-content admin-module admin-module-${activeNav}`}>
+            {renderModule()}
+          </main>
+        </div>
       </div>
     </>
   );
