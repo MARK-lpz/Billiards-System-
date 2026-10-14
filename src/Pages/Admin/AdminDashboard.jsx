@@ -310,28 +310,6 @@ export default function Dashboard({
               <ActiveTables tables={tables} onViewPoolTables={() => handleNavChange('pool-tables')} />
               <TaskList logs={logs} setLogs={setLogs} onOpenEquipment={openEquipmentIssue} />
             </div>
-
-            <section className="admin-quick-links" aria-label="Quick access">
-              <h2 className="admin-quick-links-title">Quick access</h2>
-              <div className="admin-quick-links-grid">
-                {navItems
-                  .filter((item) => item.id !== "dashboard")
-                  .map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className="admin-quick-link"
-                      onClick={() => handleNavChange(item.id)}
-                    >
-                      <span className="admin-quick-link-icon">
-                        <i className={`bi ${item.icon}`}></i>
-                      </span>
-                      <span className="admin-quick-link-label">{item.label}</span>
-                      <i className="bi bi-arrow-right admin-quick-link-arrow" aria-hidden="true"></i>
-                    </button>
-                  ))}
-              </div>
-            </section>
           </>
         );
     }
