@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { navItems } from "./adminNav";
+import { navGroups } from "./adminNav";
 
 export default function Sidebar({ activeNav, setActiveNav, onNavChange, onReload, collapsed = false, onToggleCollapsed }) {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -52,17 +52,22 @@ export default function Sidebar({ activeNav, setActiveNav, onNavChange, onReload
       </div>
 
       <nav className="sidebar-nav">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            className={`nav-item ${activeNav === item.id ? "nav-active" : ""}`}
-            onClick={() => handleNavClick(item.id)}
-            title={collapsed ? item.label : undefined}
-            aria-current={activeNav === item.id ? "page" : undefined}
-          >
-            <i className={`bi ${item.icon} nav-icon`}></i>
-            <span className="nav-label">{item.label}</span>
-          </button>
+        {navGroups.map((group) => (
+          <div key={group.label} className="sidebar-nav-group">
+            <span className="sidebar-nav-heading">{group.label}</span>
+            {group.items.map((item) => (
+              <button
+                key={item.id}
+                className={`nav-item ${activeNav === item.id ? "nav-active" : ""}`}
+                onClick={() => handleNavClick(item.id)}
+                title={collapsed ? item.label : undefined}
+                aria-current={activeNav === item.id ? "page" : undefined}
+              >
+                <i className={`bi ${item.icon} nav-icon`}></i>
+                <span className="nav-label">{item.label}</span>
+              </button>
+            ))}
+          </div>
         ))}
       </nav>
 

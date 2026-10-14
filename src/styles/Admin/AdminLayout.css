@@ -1,5 +1,5 @@
 /* Admin layout.
-   The admin panel's arrangement: a collapsible sidebar, a sticky top
+   The admin panel's arrangement: a grouped, collapsible sidebar, a sticky top
    bar carrying the page name, clock, bell and menu on every module, and each
    module laid out as a header band, a joined stat strip, a toolbar and its
    content. Only placement changes here: every color is one the staff app
@@ -95,9 +95,27 @@
 .admin-shell .sidebar-nav {
   flex: 1;
   min-height: 0;
+  gap: 1rem;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
+}
+
+.admin-shell .sidebar-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admin-shell .sidebar-nav-heading {
+  padding: 0 0.875rem 0.3rem;
+  font-family: var(--bc-font-label);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(191, 219, 254, 0.5);
 }
 
 .admin-shell .nav-item {
@@ -159,6 +177,15 @@
 
 .admin-shell.is-collapsed :is(.sidebar-logo-text, .nav-label) {
   display: none;
+}
+
+.admin-shell.is-collapsed .sidebar-nav-heading {
+  height: 1px;
+  margin: 0.15rem 0.6rem 0.4rem;
+  padding: 0;
+  overflow: hidden;
+  font-size: 0;
+  background: rgba(191, 219, 254, 0.18);
 }
 
 .admin-shell.is-collapsed :is(.nav-item, .sidebar-collapse-btn) {
@@ -836,6 +863,14 @@
 
   .admin-shell.is-collapsed .sidebar-logo-text {
     display: flex;
+  }
+
+  .admin-shell.is-collapsed .sidebar-nav-heading {
+    height: auto;
+    margin: 0;
+    padding: 0 0.875rem 0.3rem;
+    font-size: 0.68rem;
+    background: none;
   }
 
   .admin-shell.is-collapsed :is(.nav-item, .sidebar-collapse-btn) {
