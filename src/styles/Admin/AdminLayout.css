@@ -363,12 +363,13 @@
 }
 
 /* Title-only headers go entirely */
-.admin-shell :is(.reports-header, .audit-trail-header, .sales-pos-header, .profile-header, .settings-header) {
+.admin-shell :is(.reports-header, .audit-trail-header, .sales-pos-header, .profile-header, .settings-header,
+  .inventory-header, .events-header) {
   display: none;
 }
 
 /* Headers with actions lose the title and keep the buttons */
-.admin-shell :is(.pool-tables-header, .inventory-header, .events-header, .reservations-header, .equipment-header) {
+.admin-shell :is(.pool-tables-header, .reservations-header, .equipment-header) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -381,7 +382,7 @@
   box-shadow: none;
 }
 
-.admin-shell :is(.pool-tables-header, .inventory-header, .events-header, .reservations-header, .equipment-header) > :first-child {
+.admin-shell :is(.pool-tables-header, .reservations-header, .equipment-header) > :first-child {
   display: none;
 }
 
@@ -629,6 +630,11 @@
   justify-content: flex-start;
 }
 
+/* Add Product / Create Event sit at the right end of their filter bars */
+.admin-shell :is(.inventory-filters, .events-toolbar) > :is(.inventory-add-btn, .events-add-btn) {
+  margin-left: auto;
+}
+
 .admin-shell .reservations-filters {
   display: flex;
   flex-wrap: wrap;
@@ -654,6 +660,25 @@
 /* ================================================================
    Tabs: underline tabs across a bar
    ================================================================ */
+
+.admin-shell .events-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1.25rem;
+  padding: 0.3rem 0.5rem 0.3rem 0.3rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 12px;
+  background: var(--ax-panel);
+}
+
+.admin-shell .events-toolbar > .events-tabs {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
 
 .admin-shell :is(.events-tabs, .pos-subtabs) {
   display: flex;

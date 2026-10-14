@@ -200,10 +200,6 @@ export default function Inventory({ products, setProducts, focusProductId = null
           <h1 className="inventory-title">Inventory Management</h1>
           <p className="inventory-subtitle">Track and manage product stock levels</p>
         </div>
-        <button className="btn btn-success inventory-add-btn" onClick={openAddModal}>
-          <i className="bi bi-plus-circle me-2"></i>
-          Add Product
-        </button>
       </div>
 
       <InventoryStats stats={stats} />
@@ -226,6 +222,10 @@ export default function Inventory({ products, setProducts, focusProductId = null
             {cat === "all" ? "All Products" : cat === "low-stock" ? "Low Stock" : cat}
           </button>
         ))}
+        <button className="btn btn-success inventory-add-btn" onClick={openAddModal}>
+          <i className="bi bi-plus-circle me-2"></i>
+          Add Product
+        </button>
       </div>
 
       <InventoryTable
