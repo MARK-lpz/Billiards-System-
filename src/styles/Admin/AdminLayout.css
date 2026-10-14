@@ -22,7 +22,7 @@
   --ax-topbar: rgba(7, 30, 71, 0.88);
   --ax-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.6);
   --ax-tubes-vertical: linear-gradient(180deg, var(--bc-pink) 0 25%, var(--bc-yellow) 25% 50%, var(--bc-green) 50% 75%, var(--bc-cyan) 75% 100%);
-  --ax-sidebar-width: 256px;
+  --ax-sidebar-width: 240px;
   --ax-sidebar-collapsed: 84px;
 }
 
@@ -83,14 +83,8 @@
 .admin-shell .sidebar {
   width: var(--ax-sidebar-width);
   min-width: var(--ax-sidebar-width);
-  padding: 1.1rem 1.15rem 1rem 0.75rem;
   transition: width 0.22s ease, min-width 0.22s ease;
   z-index: 30;
-}
-
-.admin-shell .sidebar-logo {
-  padding: 0.35rem 0.6rem 1.2rem;
-  margin-bottom: 0.9rem;
 }
 
 .admin-shell .sidebar-logo-text {
@@ -110,7 +104,7 @@
 .admin-shell .sidebar-nav-group {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.25rem;
 }
 
 .admin-shell .sidebar-nav-heading {
@@ -126,7 +120,6 @@
 
 .admin-shell .nav-item {
   position: relative;
-  padding: 0.6rem 0.875rem;
   white-space: nowrap;
 }
 
