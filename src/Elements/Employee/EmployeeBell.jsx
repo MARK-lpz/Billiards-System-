@@ -1,27 +1,12 @@
 import Notification from "../Global/Notification";
-import { noticeTime } from "../../utils/notices";
+import { ONLINE_RESERVATION_NOTICE, getBookingState, noticeTime } from "../../utils/notices";
 import { useNotifications } from "../Global/useNotifications";
 import useClock from "../Global/useClock";
 import useSeenRegistrations from "./useSeenRegistrations";
 import { getRegistrations } from "../../utils/tournamentRegistrations";
 import { formatEventWhen } from "../../utils/eventUpdates";
 
-// The notices the website sends the staff when a guest books online.
-const ONLINE_RESERVATION = "online-reservation";
 const SHOWN_PER_KIND = 20;
-
-// Where each booking stands now, shown beside its notice.
-const BOOKING_STATES = {
-  pending: { label: "Check payment", tone: "action" },
-  approved: { label: "Approved", tone: "done" },
-  reserved: { label: "Approved", tone: "done" },
-  arrived: { label: "Arrived", tone: "done" },
-  seated: { label: "Seated", tone: "done" },
-  completed: { label: "Completed", tone: "done" },
-  rejected: { label: "Rejected", tone: "closed" },
-  cancelled: { label: "Cancelled", tone: "closed" },
-  expired: { label: "Expired", tone: "closed" },
-};
 
 /**
  * The employee's bell (see Global/Notification.jsx). It is about the two things
@@ -35,17 +20,12 @@ export default function EmployeeBell({ events = [], reservations = [], onOpenRes
   const now = useClock(60000);
   const [seen, markSeen] = useSeenRegistrations(events);
 
-  const bookings = notifications.filter((notice) => notice.type === ONLINE_RESERVATION);
+  const bookings = notifications.filter((notice) => notice.type === ONLINE_RESERVATION_NOTICE);
   const allRegistrations = getRegistrations(events, now);
   const isNewPlayer = (registration) => !seen.has(registration.key);
   // New players first, then the rest in the schedule's order.
   const registrations = [...allRegistrations.filter(isNewPlayer), ...allRegistrations.filter((entry) => !isNewPlayer(entry))];
   const unreadBookings = bookings.filter((notice) => notice.unread).length;
-
-  const stateOf = (notice) => {
-    const booking = reservations.find((entry) => String(entry.id) === String(notice.data?.reservationId));
-    return booking ? BOOKING_STATES[booking.status] || null : null;
-  };
 
   const sections = [
     {
@@ -60,7 +40,7 @@ export default function EmployeeBell({ events = [], reservations = [], onOpenRes
         icon: "bi-globe2",
         title: notice.message,
         meta: noticeTime(notice),
-        state: stateOf(notice),
+        state: getBookingState(notice, reservations),
         onOpen: () => {
           if (notice.unread) markAsRead(notice.id);
           onOpenReservation(notice.data?.reservationId ?? null);

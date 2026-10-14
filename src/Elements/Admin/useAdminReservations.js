@@ -37,11 +37,26 @@ export default function useAdminReservations({
   tableCharges = [],
   setTableCharges,
   setLogs,
+  focusReservationId = null,
 }) {
   const { addNotification, showToast } = useNotifications();
-  const [filter, setFilter] = useState("all");
+  // A booking opened from the admin's bell: the list opens on its tab and page.
+  const focusBooking =
+    focusReservationId === null
+      ? null
+      : reservations.find((reservation) => String(reservation.id) === String(focusReservationId)) || null;
+  const [filter, setFilter] = useState(() =>
+    focusBooking && HISTORY_STATUSES.has(focusBooking.status) ? "history" : "all"
+  );
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    if (!focusBooking) return 1;
+    const inHistory = HISTORY_STATUSES.has(focusBooking.status);
+    const index = reservations
+      .filter((reservation) => HISTORY_STATUSES.has(reservation.status) === inHistory)
+      .findIndex((reservation) => reservation.id === focusBooking.id);
+    return index >= 0 ? Math.floor(index / PAGE_SIZE) + 1 : 1;
+  });
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(emptyReservationForm);
   const [editId, setEditId] = useState(null);
@@ -367,6 +382,7 @@ const releaseTable = (tableId, reservation, nextStatus) => {
     editId,
     filter,
     filteredReservations,
+    focusBooking,
     form,
     modal,
     scheduleError,

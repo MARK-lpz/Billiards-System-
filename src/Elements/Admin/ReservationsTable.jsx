@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ConfirmDialog from "../Global/ConfirmDialog";
 import { describeReservationTime } from "../../utils/reservations";
 
@@ -12,9 +12,15 @@ const getReservationMode = (reservation) => {
   return { label: "Walk-in", icon: "bi-person-walking", className: "reservations-mode-walkin" };
 };
 
-export default function ReservationsTable({ reservations, onUpdate, onEdit, emptyMessage }) {
+// `highlightId`: a booking opened from the admin's bell, marked and scrolled into view.
+export default function ReservationsTable({ reservations, onUpdate, onEdit, emptyMessage, highlightId = null }) {
   // Cancelling cannot be undone, so the click only arms the confirmation.
   const [cancelTarget, setCancelTarget] = useState(null);
+  const highlightedRow = useRef(null);
+
+  useEffect(() => {
+    highlightedRow.current?.scrollIntoView?.({ block: "center" });
+  }, [highlightId]);
 
   // Takes the reservation as an argument rather than reading `cancelTarget` from
   // the closure: the React Compiler narrows a closed-over `cancelTarget.id` into
@@ -53,9 +59,14 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
                 reservations.map(r => {
                   const isHistorical = HISTORY_STATUSES.has(r.status);
                   const mode = getReservationMode(r);
+                  const isHighlighted = highlightId !== null && String(r.id) === String(highlightId);
 
                   return (
-                    <tr key={r.id}>
+                    <tr
+                      key={r.id}
+                      ref={isHighlighted ? highlightedRow : undefined}
+                      className={isHighlighted ? "reservations-row-focus" : undefined}
+                    >
                       <td className="reservations-customer">{r.customerName || r.customer}</td>
                       <td className="reservations-datetime">
                         {r.date}

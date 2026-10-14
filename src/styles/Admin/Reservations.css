@@ -127,6 +127,34 @@
   border-bottom: none;
 }
 
+/* A booking opened from the admin's bell */
+.reservations-table tbody tr.reservations-row-focus {
+  outline: 2px solid #60a5fa;
+  outline-offset: -2px;
+  background: rgba(96, 165, 250, 0.12);
+}
+
+/* Opened from the bell, but the booking is gone */
+.reservations-focus-missing {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 10px;
+  background: rgba(96, 165, 250, 0.08);
+  color: #bfdbfe;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.reservations-focus-missing i { color: #60a5fa; margin-top: 1px; }
+
+.light .reservations-table tbody tr.reservations-row-focus { background: #eff6ff !important; outline-color: #2563eb; }
+.light .reservations-focus-missing { border-color: #93c5fd; background: #eff6ff; color: #1e3a8a; }
+.light .reservations-focus-missing i { color: #1d4ed8; }
+
 /* Table Cells */
 .reservations-customer {
   color: #f0f0f0;

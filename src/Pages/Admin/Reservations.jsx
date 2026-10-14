@@ -6,7 +6,10 @@ import ReservationsTable from "../../Elements/Admin/ReservationsTable";
 import useAdminReservations from "../../Elements/Admin/useAdminReservations";
 import Pagination from "../../Elements/Global/Pagination";
 
+// `focusReservationId`: a booking opened from the admin's bell, shown marked on
+// its page of the list.
 export default function Reservations({
+  focusReservationId = null,
   reservations,
   setReservations,
   tables,
@@ -26,7 +29,9 @@ export default function Reservations({
     tableCharges,
     setTableCharges,
     setLogs,
+    focusReservationId,
   });
+  const { focusBooking } = reservationState;
 
   return (
     <div className="reservations-container">
@@ -36,6 +41,13 @@ export default function Reservations({
         isUpdatingOnlineReservations={isUpdatingOnlineReservations}
         onOnlineReservationsChange={onOnlineReservationsChange}
       />
+
+      {focusReservationId !== null && !focusBooking && (
+        <p className="reservations-focus-missing" role="status">
+          <i className="bi bi-info-circle" aria-hidden="true"></i>
+          That online reservation is no longer in the list. It may have been removed; the latest bookings are below.
+        </p>
+      )}
 
       <ReservationFilters
         counts={reservationState.counts}
@@ -50,6 +62,7 @@ export default function Reservations({
         reservations={reservationState.filteredReservations}
         onUpdate={reservationState.updateReservation}
         onEdit={reservationState.openEdit}
+        highlightId={focusBooking ? focusBooking.id : null}
         emptyMessage={
           reservationState.search
             ? `No reservations match "${reservationState.search}"`

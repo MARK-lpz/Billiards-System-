@@ -98,8 +98,8 @@ export default function Dashboard({
   const [activeNav, setActiveNav] = useState("dashboard");
   const [loading, setLoading] = useState(false);
   const [selectedEquipmentIssue, setSelectedEquipmentIssue] = useState(null);
-  // What the bell opened, for the page it leads to (a product in Inventory).
-  // Cleared by any other navigation.
+  // What the bell opened, for the page it leads to: a product in Inventory, or a
+  // booking in Reservations. Cleared by any other navigation.
   const [focus, setFocus] = useState(null);
   const { addNotification, showToast } = useNotifications();
   const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed, navOpen, setNavOpen, shellClassName } =
@@ -189,7 +189,9 @@ export default function Dashboard({
         />;
       
       case 'reservations':
-        return <Reservations 
+        return <Reservations
+          key={focus?.key || "reservations"}
+          focusReservationId={focus?.nav === "reservations" ? focus.reservationId : null}
           reservations={reservations}
           setReservations={setReservations}
           tables={tables}
@@ -322,8 +324,12 @@ export default function Dashboard({
           >
             <AdminBell
               products={products}
+              reservations={reservations}
               onOpenProduct={(productId) =>
                 handleNavChange("inventory", { nav: "inventory", productId, key: `product-${Date.now()}` })
+              }
+              onOpenReservation={(reservationId) =>
+                handleNavChange("reservations", { nav: "reservations", reservationId, key: `booking-${Date.now()}` })
               }
             />
             <Menu 
