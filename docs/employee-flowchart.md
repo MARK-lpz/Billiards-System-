@@ -1,32 +1,16 @@
 # Employee Side Flowchart
 
-How an employee uses the staff app, one flowchart per page of the Employee Panel.
+![1-login](flowcharts/1-login.png)
 
-**Legend:** green = Start / End, yellow diamond = Yes/No decision, blue box = step.
+![2-dashboard](flowcharts/2-dashboard.png)
 
-To change a chart, edit `docs/flowcharts/build_flowcharts.py` and run
-`python docs/flowcharts/build_flowcharts.py` (needs Graphviz).
+![3-pool-tables](flowcharts/3-pool-tables.png)
 
-## 1. Login and navigation
+![4-sales-pos](flowcharts/4-sales-pos.png)
 
-![Employee login flowchart](flowcharts/1-login.png)
+![5-reservations](flowcharts/5-reservations.png)
 
-## 2. Pool Tables
+![6-actions](flowcharts/6-actions.png)
 
-![Pool Tables flowchart](flowcharts/2-pool-tables.png)
+![7-tournaments](flowcharts/7-tournaments.png)
 
-## 3. Sales POS
-
-![Sales POS flowchart](flowcharts/3-sales-pos.png)
-
-## 4. Reservations Desk
-
-![Reservations Desk flowchart](flowcharts/4-reservations.png)
-
-## 5. Actions (tables and equipment)
-
-![Actions flowchart](flowcharts/5-actions.png)
-
-## 6. Tournament Schedule
-
-![Tournament Schedule flowchart](flowcharts/6-tournaments.png)

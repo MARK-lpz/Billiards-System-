@@ -1,7 +1,8 @@
-"""Builds the employee-side flowcharts in docs/flowcharts as PNG images.
+"""Builds the employee-side system flowchart in docs/flowcharts as PNG pages.
 
-Each chart follows the classic style: green Start/End, yellow Yes/No
-decisions, blue steps, black right-angle arrows. Needs Graphviz (`dot`).
+Black-and-white system flowchart: rounded START/END, parallelograms for pages
+and input, diamonds for YES/NO decisions, boxes for processes. Pages link
+through lettered off-page connectors (A, B, ...). Needs Graphviz (`dot`).
 
     python docs/flowcharts/build_flowcharts.py
 """
@@ -11,214 +12,262 @@ import subprocess
 HERE = pathlib.Path(__file__).parent
 
 STYLES = {
-    "term": 'shape=box, style="rounded,filled", fillcolor="#adff2f", width=1.8, height=0.6',
-    "dec": 'shape=diamond, style=filled, fillcolor="#ffd700", width=2.4, height=1.4',
-    "proc": 'shape=box, style=filled, fillcolor="#00bfff", width=2.2, height=0.8',
+    "term": 'shape=box, style="rounded", width=1.1, height=0.4',
+    "proc": 'shape=box, width=2.4, height=0.55',
+    "io": 'shape=parallelogram, width=2.6, height=0.55',
+    "dec": 'shape=diamond, width=2.2, height=1.3',
+    # On-page connector: joins two points of the same page without a long line.
+    "circ": 'shape=circle, width=0.4, height=0.4, fontsize=10',
+    # Off-page connector leaving this page, and the one a page starts from.
+    "off": 'shape=invhouse, width=0.45, height=0.4, fontsize=10',
+    "offin": 'shape=invhouse, style=filled, fillcolor="#3a3a3a", fontcolor=white, width=0.45, height=0.4, fontsize=10',
 }
 
-# Each chart: nodes as (id, kind, label), edges as (from, to, label).
-# Nodes listed in "main" are kept in one straight column, like the example.
-CHARTS = {
+# Each page: nodes as (id, kind, label), edges as (from, to, label).
+# "main" nodes stay in one straight column; "same_rank" rows sit side by side.
+PAGES = {
     "1-login": {
-        "title": "Employee Login",
-        "main": ["S", "A", "B", "C", "E", "G", "H", "I", "Z"],
+        "main": ["S", "A", "B", "C", "D", "X"],
+        "same_rank": [["C", "N"]],
         "nodes": [
-            ("S", "term", "Start"),
-            ("A", "proc", "Open staff app"),
-            ("B", "proc", "Enter username\nand password"),
-            ("C", "dec", "Credentials\nvalid?"),
-            ("D", "proc", "Show error\nmessage"),
-            ("E", "dec", "Employee\naccount?"),
-            ("F", "proc", "Open Admin\nDashboard"),
-            ("G", "proc", "Open Employee\nPanel"),
-            ("H", "proc", "Choose a page\nfrom the sidebar"),
-            ("I", "dec", "Log out?"),
-            ("Z", "term", "End"),
+            ("S", "term", "START"),
+            ("A", "io", "LOGIN PAGE"),
+            ("B", "io", "INPUT USERNAME\nAND PASSWORD"),
+            ("C", "dec", "CORRECT\nEMPLOYEE\nCREDENTIALS?"),
+            ("D", "proc", "REDIRECT TO\nEMPLOYEE DASHBOARD"),
+            ("X", "off", "A"),
+            ("N", "dec", "DO YOU WANT\nTO TRY AGAIN?"),
+            ("F", "dec", "FORGOT\nPASSWORD?"),
+            ("R", "proc", "REQUEST PASSWORD\nRESET FROM ADMIN"),
+            ("Z1", "term", "END"),
+            ("Z2", "term", "END"),
         ],
         "edges": [
             ("S", "A", ""), ("A", "B", ""), ("B", "C", ""),
-            ("C", "D", "No"), ("D", "B", ""),
-            ("C", "E", "Yes"),
-            ("E", "F", "No"), ("F", "Z", ""),
-            ("E", "G", "Yes"), ("G", "H", ""), ("H", "I", ""),
-            ("I", "H", "No"), ("I", "Z", "Yes"),
+            ("C", "D", "YES"), ("D", "X", ""),
+            ("C", "N", "NO"), ("N", "A", "YES"), ("N", "F", "NO"),
+            ("F", "R", "YES"), ("R", "Z1", ""), ("F", "Z2", "NO"),
         ],
     },
-    "2-pool-tables": {
-        "title": "Pool Tables",
-        "main": ["S", "A", "B", "C", "F", "G", "K", "N", "O", "Z"],
+    "2-dashboard": {
+        "main": ["IN", "A", "B", "P3", "C3"],
+        "same_rank": [["A", "L", "LO"], ["B", "Z"]],
         "nodes": [
-            ("S", "term", "Start"),
-            ("A", "proc", "Open Pool Tables"),
-            ("B", "proc", "Select a table"),
-            ("C", "dec", "Table\navailable?"),
-            ("D", "proc", "Enter customer\nname and hours"),
-            ("E", "proc", "Start walk-in\nsession"),
-            ("F", "dec", "Table\nreserved?"),
-            ("H", "dec", "Guest arrived\non time?"),
-            ("I", "proc", "Cancel\nreservation"),
-            ("J", "proc", "Check in guest"),
-            ("G", "proc", "Session running"),
-            ("K", "dec", "Add more\ntime?"),
-            ("L", "dec", "Clashes with\nnext booking?"),
-            ("M", "proc", "Add time"),
-            ("N", "proc", "End session"),
-            ("O", "proc", "Send table bill\nto Sales POS"),
-            ("Z", "term", "End"),
+            ("IN", "offin", "A"),
+            ("A", "dec", "DO YOU WANT\nTO STAY AND\nUSE THE SYSTEM?"),
+            ("L", "dec", "DO YOU WANT\nTO LOG OUT?"),
+            ("LO", "proc", "LOG OUT"),
+            ("Z", "term", "END"),
+            ("B", "proc", "SELECT PAGE FROM\nTHE SIDEBAR"),
+            ("P1", "io", "POOL TABLES"),
+            ("P2", "io", "SALES POS"),
+            ("P3", "io", "RESERVATIONS"),
+            ("P4", "io", "ACTIONS"),
+            ("P5", "io", "TOURNAMENT\nSCHEDULE"),
+            ("C1", "off", "B"),
+            ("C2", "off", "C"),
+            ("C3", "off", "D"),
+            ("C4", "off", "E"),
+            ("C5", "off", "F"),
         ],
         "edges": [
-            ("S", "A", ""), ("A", "B", ""), ("B", "C", ""),
-            ("C", "D", "Yes"), ("D", "E", ""), ("E", "G", ""),
-            ("C", "F", "No"), ("F", "G", "No"),
-            ("F", "H", "Yes"), ("H", "J", "Yes"), ("J", "G", ""),
-            ("H", "I", "No"), ("I", "Z", ""),
-            ("G", "K", ""), ("K", "L", "Yes"),
-            ("L", "M", "No"), ("M", "G", ""),
-            ("L", "N", "Yes"), ("K", "N", "No"),
-            ("N", "O", ""), ("O", "Z", ""),
+            ("IN", "A", ""),
+            ("A", "B", "YES"), ("A", "L", "NO"),
+            ("L", "LO", "YES"), ("L", "A", "NO"), ("LO", "Z", ""),
+            ("B", "P1", ""), ("B", "P2", ""), ("B", "P3", ""), ("B", "P4", ""), ("B", "P5", ""),
+            ("P1", "C1", ""), ("P2", "C2", ""), ("P3", "C3", ""), ("P4", "C4", ""), ("P5", "C5", ""),
         ],
     },
-    "3-sales-pos": {
-        "title": "Sales POS",
-        "main": ["S", "A", "B", "C", "D", "F", "G", "H", "I", "L", "M", "Z"],
+    "3-pool-tables": {
+        "main": ["IN", "A", "B", "C", "D", "E", "G", "K", "N", "O", "Z1"],
+        "same_rank": [["C", "F"], ["K", "L"]],
         "nodes": [
-            ("S", "term", "Start"),
-            ("A", "proc", "Open Sales POS"),
-            ("B", "proc", "Open or select\na bill"),
-            ("C", "proc", "Pick a product or\ntable charge"),
-            ("D", "dec", "In stock?"),
-            ("E", "proc", "Show out of\nstock message"),
-            ("F", "proc", "Add to cart"),
-            ("G", "dec", "More items?"),
-            ("H", "proc", "Send order\nto queue"),
-            ("I", "dec", "Pay with\nGCash?"),
-            ("J", "proc", "Enter GCash\nreference"),
-            ("K", "proc", "Receive cash"),
-            ("L", "proc", "Confirm payment"),
-            ("M", "proc", "Print receipt"),
-            ("Z", "term", "End"),
+            ("IN", "offin", "B"),
+            ("A", "io", "POOL TABLES PAGE"),
+            ("B", "proc", "SELECT A TABLE"),
+            ("C", "dec", "TABLE\nAVAILABLE?"),
+            ("D", "io", "INPUT CUSTOMER\nNAME AND HOURS"),
+            ("E", "proc", "START WALK-IN\nSESSION"),
+            ("F", "dec", "TABLE\nRESERVED?"),
+            ("H", "dec", "GUEST ARRIVED\nON TIME?"),
+            ("I", "proc", "CANCEL\nRESERVATION"),
+            ("J", "proc", "CHECK IN GUEST"),
+            ("G", "proc", "SESSION RUNNING"),
+            ("K", "dec", "ADD MORE\nTIME?"),
+            ("L", "dec", "CONFLICTS WITH\nNEXT BOOKING?"),
+            ("M", "proc", "ADD TIME"),
+            ("N", "proc", "END SESSION"),
+            ("O", "proc", "SEND TABLE BILL\nTO SALES POS"),
+            ("Z1", "term", "END"),
+            ("Z2", "term", "END"),
         ],
         "edges": [
-            ("S", "A", ""), ("A", "B", ""), ("B", "C", ""), ("C", "D", ""),
-            ("D", "E", "No"), ("E", "C", ""),
-            ("D", "F", "Yes"), ("F", "G", ""),
-            ("G", "C", "Yes"), ("G", "H", "No"),
-            ("H", "I", ""), ("I", "J", "Yes"), ("I", "K", "No"),
-            ("J", "L", ""), ("K", "L", ""), ("L", "M", ""), ("M", "Z", ""),
+            ("IN", "A", ""), ("A", "B", ""), ("B", "C", ""),
+            ("C", "D", "YES"), ("D", "E", ""), ("E", "G", ""),
+            ("C", "F", "NO"), ("F", "H", "YES"), ("F", "G", "NO"),
+            ("H", "J", "YES"), ("J", "G", ""),
+            ("H", "I", "NO"), ("I", "Z2", ""),
+            ("G", "K", ""), ("K", "L", "YES"), ("K", "N", "NO"),
+            ("L", "M", "NO"), ("M", "G", ""), ("L", "N", "YES"),
+            ("N", "O", ""), ("O", "Z1", ""),
         ],
     },
-    "4-reservations": {
-        "title": "Reservations Desk",
-        "main": ["S", "A", "B", "C", "D", "F", "J", "L", "M", "N", "O", "Z"],
+    "4-sales-pos": {
+        "main": ["IN", "A", "B", "C", "D", "F", "G", "H", "I", "K", "L", "M", "P", "Z1"],
+        "same_rank": [["C", "R2"], ["D", "E"], ["G", "R1"], ["I", "J"], ["L", "Q"]],
         "nodes": [
-            ("S", "term", "Start"),
-            ("A", "proc", "Open Reservations"),
-            ("B", "dec", "Online\nbooking?"),
-            ("C", "proc", "Check GCash\npayment"),
-            ("D", "dec", "Payment\nfound?"),
-            ("E", "proc", "Reject booking"),
-            ("G", "proc", "Enter booking\ndetails"),
-            ("H", "dec", "Table free at\nthat time?"),
-            ("I", "proc", "Choose another\ntable or time"),
-            ("F", "proc", "Approve booking"),
-            ("J", "dec", "Guest\narrived?"),
-            ("K", "proc", "Cancel or expire\nbooking"),
-            ("L", "proc", "Mark arrived"),
-            ("M", "proc", "Assign table"),
-            ("N", "proc", "Complete booking"),
-            ("O", "proc", "Send table bill\nto Sales POS"),
-            ("Z", "term", "End"),
+            ("IN", "offin", "C"),
+            ("A", "io", "SALES POS PAGE"),
+            ("B", "proc", "OPEN OR SELECT\nA BILL"),
+            ("C", "io", "SELECT PRODUCT OR\nTABLE CHARGE"),
+            ("D", "dec", "ITEM IN\nSTOCK?"),
+            ("E", "proc", "DISPLAY OUT OF\nSTOCK MESSAGE"),
+            ("F", "proc", "ADD TO CART"),
+            ("G", "dec", "ADD MORE\nITEMS?"),
+            ("H", "proc", "SEND ORDER\nTO QUEUE"),
+            ("I", "dec", "PAY THROUGH\nGCASH?"),
+            ("J", "io", "INPUT GCASH\nREFERENCE NO."),
+            ("K", "proc", "RECEIVE CASH\nPAYMENT"),
+            ("L", "dec", "CONFIRM\nPAYMENT?"),
+            ("Q", "proc", "CANCEL"),
+            ("M", "proc", "SAVE TRANSACTION"),
+            ("P", "io", "PRINT RECEIPT"),
+            ("R1", "circ", "1"),
+            ("R2", "circ", "1"),
+            ("Z1", "term", "END"),
+            ("Z2", "term", "END"),
         ],
         "edges": [
-            ("S", "A", ""), ("A", "B", ""),
-            ("B", "C", "Yes"), ("C", "D", ""),
-            ("D", "E", "No"), ("E", "Z", ""),
-            ("D", "F", "Yes"),
-            ("B", "G", "No"), ("G", "H", ""),
-            ("H", "I", "No"), ("I", "G", ""),
-            ("H", "F", "Yes"),
-            ("F", "J", ""), ("J", "K", "No"), ("K", "Z", ""),
-            ("J", "L", "Yes"), ("L", "M", ""), ("M", "N", ""),
-            ("N", "O", ""), ("O", "Z", ""),
+            ("IN", "A", ""), ("A", "B", ""), ("B", "C", ""), ("C", "D", ""),
+            ("D", "E", "NO"), ("E", "G", ""),
+            ("D", "F", "YES"), ("F", "G", ""),
+            ("G", "R1", "YES"), ("R2", "C", ""), ("G", "H", "NO"),
+            ("H", "I", ""), ("I", "J", "YES"), ("I", "K", "NO"),
+            ("J", "L", ""), ("K", "L", ""),
+            ("L", "Q", "NO"), ("Q", "Z2", ""),
+            ("L", "M", "YES"), ("M", "P", ""), ("P", "Z1", ""),
         ],
     },
-    "5-actions": {
-        "title": "Actions",
-        "main": ["S", "A", "B", "G", "K", "Z"],
+    "5-reservations": {
+        "main": ["IN", "A", "B", "C", "D", "F", "J", "L", "M", "N", "O", "Z1"],
+        "same_rank": [["D", "E"], ["J", "K"]],
+        "nodes": [
+            ("IN", "offin", "D"),
+            ("A", "io", "RESERVATION DESK PAGE"),
+            ("B", "dec", "NEW ONLINE\nBOOKING?"),
+            ("C", "proc", "CHECK GCASH\nPAYMENT"),
+            ("D", "dec", "PAYMENT\nFOUND?"),
+            ("E", "proc", "REJECT BOOKING"),
+            ("G", "dec", "ADD BOOKING\nAT THE DESK?"),
+            ("H", "io", "INPUT BOOKING\nDETAILS"),
+            ("I", "dec", "TABLE FREE AT\nTHAT TIME?"),
+            ("F", "proc", "APPROVE BOOKING"),
+            ("J", "dec", "GUEST\nARRIVED?"),
+            ("K", "proc", "CANCEL OR EXPIRE\nBOOKING"),
+            ("L", "proc", "MARK AS ARRIVED"),
+            ("M", "proc", "ASSIGN TABLE"),
+            ("N", "proc", "COMPLETE BOOKING"),
+            ("O", "proc", "SEND TABLE BILL\nTO SALES POS"),
+            ("Z1", "term", "END"),
+            ("Z2", "term", "END"),
+            ("Z3", "term", "END"),
+            ("Z4", "term", "END"),
+        ],
+        "edges": [
+            ("IN", "A", ""), ("A", "B", ""),
+            ("B", "C", "YES"), ("C", "D", ""),
+            ("D", "E", "NO"), ("E", "Z2", ""),
+            ("D", "F", "YES"),
+            ("B", "G", "NO"), ("G", "Z3", "NO"),
+            ("G", "H", "YES"), ("H", "I", ""),
+            ("I", "H", "NO"), ("I", "F", "YES"),
+            ("F", "J", ""), ("J", "K", "NO"), ("K", "Z4", ""),
+            ("J", "L", "YES"), ("L", "M", ""), ("M", "N", ""),
+            ("N", "O", ""), ("O", "Z1", ""),
+        ],
+    },
+    "6-actions": {
+        "main": ["IN", "A", "B", "G", "K", "Z1"],
         "same_rank": [["B", "C"], ["G", "H"], ["K", "L"]],
         "nodes": [
-            ("S", "term", "Start"),
-            ("A", "proc", "Open Actions"),
-            ("B", "dec", "Problem with\ntable or\nequipment?"),
-            ("C", "proc", "Fill in\nissue report"),
-            ("D", "dec", "Table can't\nbe used?"),
-            ("E", "proc", "Set table under\nmaintenance"),
-            ("F", "proc", "Send report\nto admin"),
-            ("G", "dec", "Change table\nstatus?"),
-            ("H", "dec", "Table in play\nor reserved?"),
-            ("I", "proc", "End session or\nbooking first"),
-            ("J", "proc", "Set Cleaning,\nMaintenance\nor Ready"),
-            ("K", "dec", "Lend spare\nequipment?"),
-            ("L", "proc", "Log borrowed\nitem"),
-            ("M", "dec", "Returned\ndamaged?"),
-            ("N", "proc", "Report damaged\nitem"),
-            ("O", "proc", "Mark as returned"),
-            ("Z", "term", "End"),
+            ("IN", "offin", "E"),
+            ("A", "io", "ACTIONS PAGE"),
+            ("B", "dec", "REPORT AN\nISSUE?"),
+            ("C", "io", "INPUT ISSUE\nDETAILS"),
+            ("D", "dec", "TABLE CANNOT\nBE USED?"),
+            ("E", "proc", "SET TABLE UNDER\nMAINTENANCE"),
+            ("F", "proc", "SEND REPORT\nTO ADMIN"),
+            ("G", "dec", "CHANGE TABLE\nSTATUS?"),
+            ("H", "dec", "TABLE IN PLAY\nOR RESERVED?"),
+            ("I", "proc", "END SESSION OR\nBOOKING FIRST"),
+            ("J", "proc", "SET CLEANING,\nMAINTENANCE OR READY"),
+            ("K", "dec", "LEND SPARE\nEQUIPMENT?"),
+            ("L", "io", "LOG BORROWED\nITEM"),
+            ("M", "dec", "RETURNED\nDAMAGED?"),
+            ("N", "proc", "REPORT DAMAGED\nITEM"),
+            ("O", "proc", "MARK AS RETURNED"),
+            ("Z1", "term", "END"),
+            ("Z2", "term", "END"),
+            ("Z3", "term", "END"),
+            ("Z4", "term", "END"),
         ],
         "edges": [
-            ("S", "A", ""), ("A", "B", ""),
-            ("B", "C", "Yes"), ("C", "D", ""),
-            ("D", "E", "Yes"), ("E", "F", ""), ("D", "F", "No"), ("F", "Z", ""),
-            ("B", "G", "No"),
-            ("G", "H", "Yes"), ("H", "I", "Yes"), ("H", "J", "No"),
-            ("I", "Z", ""), ("J", "Z", ""),
-            ("G", "K", "No"),
-            ("K", "L", "Yes"), ("L", "M", ""),
-            ("M", "N", "Yes"), ("M", "O", "No"),
-            ("N", "Z", ""), ("O", "Z", ""),
-            ("K", "Z", "No"),
+            ("IN", "A", ""), ("A", "B", ""),
+            ("B", "C", "YES"), ("C", "D", ""),
+            ("D", "E", "YES"), ("E", "F", ""), ("D", "F", "NO"), ("F", "Z2", ""),
+            ("B", "G", "NO"),
+            ("G", "H", "YES"), ("H", "I", "YES"), ("H", "J", "NO"),
+            ("I", "Z3", ""), ("J", "Z3", ""),
+            ("G", "K", "NO"),
+            ("K", "L", "YES"), ("L", "M", ""),
+            ("M", "N", "YES"), ("M", "O", "NO"),
+            ("N", "Z4", ""), ("O", "Z4", ""),
+            ("K", "Z1", "NO"),
         ],
     },
-    "6-tournaments": {
-        "title": "Tournament Schedule",
-        "main": ["S", "A", "B", "C", "E", "F", "G", "I", "Z"],
-        "same_rank": [["G", "H"], ["I", "D"]],
+    "7-tournaments": {
+        "main": ["IN", "A", "B", "C", "E", "F", "G", "I", "Z1"],
+        "same_rank": [["C", "D"], ["G", "H"]],
         "nodes": [
-            ("S", "term", "Start"),
-            ("A", "proc", "Open Tournament\nSchedule"),
-            ("B", "proc", "Select a\ntournament"),
-            ("C", "dec", "Open for\nregistration?"),
-            ("D", "proc", "View details only"),
-            ("E", "dec", "Register a\nwalk-in player?"),
-            ("F", "proc", "Enter player\ndetails"),
-            ("G", "dec", "Already\nregistered?"),
-            ("H", "proc", "Show error\nmessage"),
-            ("I", "proc", "Add player to\nparticipants"),
-            ("Z", "term", "End"),
+            ("IN", "offin", "F"),
+            ("A", "io", "TOURNAMENT\nSCHEDULE PAGE"),
+            ("B", "proc", "SELECT A\nTOURNAMENT"),
+            ("C", "dec", "OPEN FOR\nREGISTRATION?"),
+            ("D", "proc", "VIEW DETAILS ONLY"),
+            ("E", "dec", "REGISTER A\nWALK-IN PLAYER?"),
+            ("F", "io", "INPUT PLAYER\nDETAILS"),
+            ("G", "dec", "ALREADY\nREGISTERED?"),
+            ("H", "proc", "DISPLAY ERROR\nMESSAGE"),
+            ("I", "proc", "SUBMIT"),
+            ("Z1", "term", "END"),
+            ("Z2", "term", "END"),
+            ("Z3", "term", "END"),
+            ("Z4", "term", "END"),
         ],
         "edges": [
-            ("S", "A", ""), ("A", "B", ""), ("B", "C", ""),
-            ("C", "D", "No"), ("C", "E", "Yes"),
-            ("E", "D", "No"), ("E", "F", "Yes"), ("F", "G", ""),
-            ("G", "H", "Yes"), ("H", "F", ""),
-            ("G", "I", "No"), ("I", "Z", ""), ("D", "Z", ""),
+            ("IN", "A", ""), ("A", "B", ""), ("B", "C", ""),
+            ("C", "D", "NO"), ("D", "Z2", ""),
+            ("C", "E", "YES"), ("E", "Z3", "NO"),
+            ("E", "F", "YES"), ("F", "G", ""),
+            ("G", "H", "YES"), ("H", "Z4", ""),
+            ("G", "I", "NO"), ("I", "Z1", ""),
         ],
     },
 }
 
 
-def to_dot(chart):
-    main = chart["main"]
+def to_dot(page):
+    main = page["main"]
     lines = [
         "digraph G {",
-        '  graph [splines=ortho, nodesep=0.8, ranksep=0.55, pad=0.4, bgcolor=white, dpi=150];',
-        '  node [fontname="Arial", fontsize=14, color=black, penwidth=2, fixedsize=true];',
-        '  edge [fontname="Arial", fontsize=15, color=black, penwidth=2, arrowsize=1.1];',
+        '  graph [splines=ortho, nodesep=0.6, ranksep=0.45, pad=0.5, bgcolor=white, dpi=150];',
+        '  node [fontname="Arial", fontsize=11, color=black, penwidth=1.3, fixedsize=true];',
+        '  edge [fontname="Arial", fontsize=11, color=black, penwidth=1.3, arrowsize=0.7];',
     ]
-    for node_id, kind, label in chart["nodes"]:
-        group = ', group=main' if node_id in main else ""
+    for node_id, kind, label in page["nodes"]:
+        group = ", group=main" if node_id in main else ""
         lines.append(f'  {node_id} [label="{label}", {STYLES[kind]}{group}];')
-    for src, dst, label in chart["edges"]:
+    for src, dst, label in page["edges"]:
         attrs = []
         if label:
             attrs.append(f'xlabel=" {label} "')
@@ -226,15 +275,17 @@ def to_dot(chart):
         if src in main and dst in main:
             attrs.append("weight=10")
         lines.append(f'  {src} -> {dst} [{", ".join(attrs)}];')
-    for row in chart.get("same_rank", []):
+    for row in page.get("same_rank", []):
         lines.append(f'  {{rank=same; {"; ".join(row)}}}')
     lines.append("}")
     return "\n".join(lines)
 
 
 def main():
-    for name, chart in CHARTS.items():
-        dot = to_dot(chart)
+    for old in HERE.glob("*.png"):
+        old.unlink()
+    for name, page in PAGES.items():
+        dot = to_dot(page)
         subprocess.run(["dot", "-Tpng", "-o", str(HERE / f"{name}.png")], input=dot.encode(), check=True)
         print(f"built {name}.png")
 
