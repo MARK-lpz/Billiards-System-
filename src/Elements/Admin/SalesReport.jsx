@@ -3,23 +3,26 @@ import SalesReportModal from "./SalesReportModal";
 import {
   MONTHS,
   PERIOD_TYPES,
+  RANGE_PRESETS,
+  countRangeDays,
   describePeriod,
   formatPesoAmount as peso,
   getPeriodTransactions,
   getSalesBreakdown,
+  normalizeRange,
   summarizeSales,
 } from "../../utils/salesReport";
 
 const today = () => new Date().toLocaleDateString("en-CA");
 
 /**
- * Daily, monthly and yearly sales in one report. Staff pick the period here and
+ * Daily, monthly, yearly and date-range sales in one report. Staff pick the period here and
  * see its totals; View Report opens the full report as tables in a pop-up.
  */
 export default function SalesReport({ transactions = [] }) {
   const [period, setPeriod] = useState(() => {
     const date = today();
-    return { type: "daily", date, month: date.slice(5, 7), year: date.slice(0, 4) };
+    return { type: "daily", date, month: date.slice(5, 7), year: date.slice(0, 4), from: `${date.slice(0, 7)}-01`, to: date };
   });
   const [reportOpen, setReportOpen] = useState(false);
 
@@ -33,6 +36,16 @@ export default function SalesReport({ transactions = [] }) {
   const periodLabel = describePeriod(period);
 
   const update = (changes) => setPeriod((current) => ({ ...current, ...changes }));
+
+  // Either end can be typed in any order; the range is kept valid as it changes.
+  const updateRange = (changes) =>
+    setPeriod((current) => ({ ...current, ...normalizeRange({ from: current.from, to: current.to, ...changes }, today()) }));
+
+  const activePreset = RANGE_PRESETS.find((preset) => {
+    const range = preset.range(today());
+    return range.from === period.from && range.to === period.to;
+  })?.key;
+  const rangeDays = countRangeDays(period.from, period.to);
 
   const stats = [
     { label: `Revenue · ${periodLabel}`, value: peso(summary.revenue), icon: "bi-currency-dollar", tone: "green" },
@@ -92,7 +105,34 @@ export default function SalesReport({ transactions = [] }) {
             </div>
           )}
 
-          {period.type !== "daily" && (
+          {period.type === "range" && (
+            <>
+              <div>
+                <label className="reports-toolbar-label" htmlFor="sales-report-from">From</label>
+                <input
+                  id="sales-report-from"
+                  type="date"
+                  className="reports-toolbar-select"
+                  value={period.from}
+                  max={today()}
+                  onChange={(event) => event.target.value && updateRange({ from: event.target.value })}
+                />
+              </div>
+              <div>
+                <label className="reports-toolbar-label" htmlFor="sales-report-to">To</label>
+                <input
+                  id="sales-report-to"
+                  type="date"
+                  className="reports-toolbar-select"
+                  value={period.to}
+                  max={today()}
+                  onChange={(event) => event.target.value && updateRange({ to: event.target.value })}
+                />
+              </div>
+            </>
+          )}
+
+          {(period.type === "monthly" || period.type === "yearly") && (
             <div>
               <label className="reports-toolbar-label" htmlFor="sales-report-year">Year</label>
               <select
@@ -108,6 +148,25 @@ export default function SalesReport({ transactions = [] }) {
             </div>
           )}
         </div>
+
+        {period.type === "range" && (
+          <div className="sales-report-presets" role="group" aria-label="Quick date ranges">
+            {RANGE_PRESETS.map((preset) => (
+              <button
+                key={preset.key}
+                type="button"
+                className={`sales-report-preset ${activePreset === preset.key ? "active" : ""}`}
+                aria-pressed={activePreset === preset.key}
+                onClick={() => updateRange(preset.range(today()))}
+              >
+                {preset.label}
+              </button>
+            ))}
+            <span className="sales-report-range-days">
+              {rangeDays} {rangeDays === 1 ? "day" : "days"}
+            </span>
+          </div>
+        )}
 
         <button type="button" className="reports-export-btn sales-report-open" onClick={() => setReportOpen(true)}>
           <i className="bi bi-table me-2"></i>

@@ -605,6 +605,42 @@
 .sales-report-type.active { background: #10b981; color: #fff; }
 .sales-report-type:hover:not(.active) { color: #f8fafc; }
 
+/* Date range: one-tap shortcuts on their own line under the fields */
+.sales-report-presets {
+  order: 3;
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.sales-report-preset {
+  padding: 5px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.5);
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sales-report-preset:hover:not(.active) { color: #f8fafc; border-color: rgba(148, 163, 184, 0.6); }
+.sales-report-preset.active { background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #34d399; }
+
+.sales-report-range-days {
+  margin-left: auto;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.light .sales-report-preset { background: #fff; border-color: #cbd5e1; color: #64748b; }
+.light .sales-report-preset:hover:not(.active) { color: #0f172a; border-color: #94a3b8; }
+.light .sales-report-preset.active { background: rgba(4, 120, 87, 0.1); border-color: #047857; color: #047857; }
+.light .sales-report-range-days { color: #64748b; }
+
 .sales-report-hint p { margin: 0; color: #cbd5e1; font-size: 13px; line-height: 1.6; }
 .sales-report-hint strong { color: #f8fafc; }
 
