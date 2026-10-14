@@ -6,10 +6,17 @@ through lettered off-page connectors (A, B, ...). Needs Graphviz (`dot`).
 
     python docs/flowcharts/build_flowcharts.py
 """
+import io
 import pathlib
 import subprocess
 
+from PIL import Image
+
 HERE = pathlib.Path(__file__).parent
+
+# Portrait letter page (8.5 x 11 in) at 150 dpi, with a margin.
+PAGE_SIZE = (1275, 1650)
+MARGIN = 75
 
 STYLES = {
     "term": 'shape=box, style="rounded", width=1.1, height=0.4',
@@ -50,8 +57,8 @@ PAGES = {
         ],
     },
     "2-dashboard": {
-        "main": ["IN", "A", "B", "P3", "C3"],
-        "same_rank": [["A", "L", "LO"], ["B", "Z"]],
+        "main": ["IN", "A", "B", "Q1", "Q2", "Q3", "Q4", "Q5", "Z2"],
+        "same_rank": [["A", "L"], ["B", "LO"], ["Q1", "P1", "C1"], ["Q2", "P2", "C2"], ["Q3", "P3", "C3"], ["Q4", "P4", "C4"], ["Q5", "P5", "C5"]],
         "nodes": [
             ("IN", "offin", "A"),
             ("A", "dec", "DO YOU WANT\nTO STAY AND\nUSE THE SYSTEM?"),
@@ -59,23 +66,33 @@ PAGES = {
             ("LO", "proc", "LOG OUT"),
             ("Z", "term", "END"),
             ("B", "proc", "SELECT PAGE FROM\nTHE SIDEBAR"),
+            ("Q1", "dec", "OPEN POOL\nTABLES?"),
             ("P1", "io", "POOL TABLES"),
-            ("P2", "io", "SALES POS"),
-            ("P3", "io", "RESERVATIONS"),
-            ("P4", "io", "ACTIONS"),
-            ("P5", "io", "TOURNAMENT\nSCHEDULE"),
             ("C1", "off", "B"),
+            ("Q2", "dec", "OPEN SALES\nPOS?"),
+            ("P2", "io", "SALES POS"),
             ("C2", "off", "C"),
+            ("Q3", "dec", "OPEN\nRESERVATIONS?"),
+            ("P3", "io", "RESERVATIONS"),
             ("C3", "off", "D"),
+            ("Q4", "dec", "OPEN\nACTIONS?"),
+            ("P4", "io", "ACTIONS"),
             ("C4", "off", "E"),
+            ("Q5", "dec", "OPEN TOURNAMENT\nSCHEDULE?"),
+            ("P5", "io", "TOURNAMENT\nSCHEDULE"),
             ("C5", "off", "F"),
+            ("Z2", "term", "END"),
         ],
         "edges": [
             ("IN", "A", ""),
             ("A", "B", "YES"), ("A", "L", "NO"),
             ("L", "LO", "YES"), ("L", "A", "NO"), ("LO", "Z", ""),
-            ("B", "P1", ""), ("B", "P2", ""), ("B", "P3", ""), ("B", "P4", ""), ("B", "P5", ""),
-            ("P1", "C1", ""), ("P2", "C2", ""), ("P3", "C3", ""), ("P4", "C4", ""), ("P5", "C5", ""),
+            ("B", "Q1", ""),
+            ("Q1", "P1", "YES"), ("P1", "C1", ""), ("Q1", "Q2", "NO"),
+            ("Q2", "P2", "YES"), ("P2", "C2", ""), ("Q2", "Q3", "NO"),
+            ("Q3", "P3", "YES"), ("P3", "C3", ""), ("Q3", "Q4", "NO"),
+            ("Q4", "P4", "YES"), ("P4", "C4", ""), ("Q4", "Q5", "NO"),
+            ("Q5", "P5", "YES"), ("P5", "C5", ""), ("Q5", "Z2", "NO"),
         ],
     },
     "3-pool-tables": {
@@ -223,6 +240,8 @@ PAGES = {
             ("M", "N", "YES"), ("M", "O", "NO"),
             ("N", "Z4", ""), ("O", "Z4", ""),
             ("K", "Z1", "NO"),
+            # Keeps each question below the branch before it.
+            ("Z2", "G", "~"), ("Z3", "K", "~"),
         ],
     },
     "7-tournaments": {
@@ -269,6 +288,9 @@ def to_dot(page):
         lines.append(f'  {node_id} [label="{label}", {STYLES[kind]}{group}];')
     for src, dst, label in page["edges"]:
         attrs = []
+        if label == "~":
+            lines.append(f"  {src} -> {dst} [style=invis];")
+            continue
         if label:
             attrs.append(f'xlabel=" {label} "')
         # Steps along the main column pull hardest, so that column stays straight.
@@ -281,12 +303,24 @@ def to_dot(page):
     return "\n".join(lines)
 
 
+def to_portrait_page(chart):
+    """Centers the chart on a white portrait page, shrinking it only if it does not fit."""
+    page = Image.new("RGB", PAGE_SIZE, "white")
+    room = (PAGE_SIZE[0] - 2 * MARGIN, PAGE_SIZE[1] - 2 * MARGIN)
+    scale = min(1, room[0] / chart.width, room[1] / chart.height)
+    if scale < 1:
+        chart = chart.resize((round(chart.width * scale), round(chart.height * scale)), Image.LANCZOS)
+    page.paste(chart, ((PAGE_SIZE[0] - chart.width) // 2, (PAGE_SIZE[1] - chart.height) // 2))
+    return page
+
+
 def main():
     for old in HERE.glob("*.png"):
         old.unlink()
     for name, page in PAGES.items():
         dot = to_dot(page)
-        subprocess.run(["dot", "-Tpng", "-o", str(HERE / f"{name}.png")], input=dot.encode(), check=True)
+        png = subprocess.run(["dot", "-Tpng"], input=dot.encode(), check=True, capture_output=True).stdout
+        to_portrait_page(Image.open(io.BytesIO(png))).save(HERE / f"{name}.png")
         print(f"built {name}.png")
 
 
