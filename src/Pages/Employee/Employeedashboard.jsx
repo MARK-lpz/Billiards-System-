@@ -24,8 +24,19 @@ import { formatPeso, getPlayedMinutes, getSessionTotal } from "../../utils/table
 import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
 import { getCheckInBlock, hasTableReservation } from "../../utils/tableHolds";
 import useClock from "../../Elements/Global/useClock";
+import useStaffShell from "../../Elements/Global/useStaffShell";
+import EmployeeTopbar from "../../Elements/Employee/EmployeeTopbar";
+import { navItems } from "../../Elements/Employee/employeeNav";
 
 const getCurrentTimestamp = () => Date.now();
+
+// Pages the top bar can name that are not in the sidebar.
+const extraPages = {
+  settings: { icon: "bi-gear", label: "Settings" },
+};
+
+const formatToday = (now) =>
+  new Date(now).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 
 export default function EmployeeDashboard({
   onLogout,
@@ -48,6 +59,8 @@ export default function EmployeeDashboard({
   setTheme,
 }) {
   const { addNotification, queueAdminNotification, showToast } = useNotifications();
+  const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed, navOpen, setNavOpen, shellClassName } =
+    useStaffShell("employee-sidebar-collapsed");
   // Must match a sidebar nav id, otherwise nothing is highlighted on load and
   // the page header has no entry to read its title from.
   const [activeNav, setActiveNav] = useState("Pool Tables");
@@ -74,6 +87,7 @@ export default function EmployeeDashboard({
   };
 
   const handleNavChange = (navId, nextFocus = null) => {
+    setNavOpen(false);
     setFocus(nextFocus);
     setLoading(true);
     setTimeout(() => {
@@ -364,12 +378,17 @@ export default function EmployeeDashboard({
       default:
         return (
           <>
-            <PoolTableStats
-              stats={stats}
-              activeStatus={statusFilter}
-              onFilterChange={setStatusFilter}
-            />
-            <h2 className="section-title">Pool Tables</h2>
+            <section className="page-header employee-hero">
+              <div className="page-header-text employee-hero-text">
+                <span className="employee-hero-eyebrow">{formatToday(clock)}</span>
+                <h1 className="page-title">Pool Table Dashboard</h1>
+              </div>
+              <PoolTableStats
+                stats={stats}
+                activeStatus={statusFilter}
+                onFilterChange={setStatusFilter}
+              />
+            </section>
             <div className="pool-tables-grid employee-table-grid">
               {filtered.map((table) => (
                 <PoolTableCard
@@ -422,27 +441,9 @@ export default function EmployeeDashboard({
     }
   };
 
-  // These pages draw their own header (Tournaments: a bell just for player registrations).
-  const selfHeaded = ["sales", "quick-actions", "reservations", "tournaments"];
-
-  const pageMeta = {
-    "Pool Tables": {
-      title: "Pool Table Dashboard",
-      subtitle: "",
-    },
-    tournaments: {
-      title: "Tournament Schedule",
-      subtitle: "View tournaments and events created from the admin side",
-    },
-    settings: {
-      title: "Settings",
-      subtitle: "Choose how the system looks on this device",
-    },
-  };
-
-  // A nav id with no entry here, such as the profile view opened from the menu,
-  // still has to render a header. Falling back to nothing crashed the dashboard.
-  const currentPage = pageMeta[activeNav] || pageMeta["Pool Tables"];
+  // Profile has no page of its own here, so it shows the tables like the default.
+  const currentPage = navItems.find((item) => item.id === activeNav) || extraPages[activeNav] || navItems[0];
+  const moduleSlug = String(currentPage.label).toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
   return (
     <>
@@ -455,46 +456,45 @@ export default function EmployeeDashboard({
           "open-pos": activeNav === "sales" ? null : { label: "Open POS", onClick: () => handleNavChange("sales") },
         }}
       />
-      <div className="dashboard-layout">
+      <div className={`${shellClassName} employee-shell`}>
         <Sidebar
           activeNav={activeNav}
           setActiveNav={setActiveNav}
           onNavChange={handleNavChange}
           onReload={handleReload}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={toggleSidebarCollapsed}
         />
+        {navOpen && <div className="employee-nav-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
 
-        <main className="main-content">
-          {!selfHeaded.includes(activeNav) && (
-            <div className="page-header">
-              <div className="page-header-text">
-                <h1 className="page-title">{currentPage.title}</h1>
-                <p className="page-subtitle">{currentPage.subtitle}</p>
-              </div>
+        <div className="employee-workspace">
+          <EmployeeTopbar
+            page={currentPage}
+            now={clock}
+            navOpen={navOpen}
+            onToggleNav={() => setNavOpen((open) => !open)}
+          >
+            <EmployeeBell
+              events={events}
+              reservations={reservations}
+              onOpenReservation={(reservationId) =>
+                handleNavChange("reservations", { nav: "reservations", reservationId, key: `booking-${Date.now()}` })
+              }
+              onOpenRegistration={(player) =>
+                handleNavChange("tournaments", { nav: "tournaments", ...player, key: `player-${Date.now()}` })
+              }
+            />
+            <Menu
+              onLogout={onLogout}
+              onProfile={() => handleNavChange("profile")}
+              onSettings={() => handleNavChange("settings")}
+            />
+          </EmployeeTopbar>
 
-              <div className="header-right">
-                <div className="header-icons">
-                  <EmployeeBell
-                    events={events}
-                    reservations={reservations}
-                    onOpenReservation={(reservationId) =>
-                      handleNavChange("reservations", { nav: "reservations", reservationId, key: `booking-${Date.now()}` })
-                    }
-                    onOpenRegistration={(player) =>
-                      handleNavChange("tournaments", { nav: "tournaments", ...player, key: `player-${Date.now()}` })
-                    }
-                  />
-                  <Menu
-                    onLogout={onLogout}
-                    onProfile={() => handleNavChange("profile")}
-                    onSettings={() => handleNavChange("settings")}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {renderModule()}
-        </main>
+          <main className={`main-content employee-module employee-module-${moduleSlug}`}>
+            {renderModule()}
+          </main>
+        </div>
       </div>
     </>
   );

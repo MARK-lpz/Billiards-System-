@@ -2,7 +2,7 @@ import { useState } from "react";
 import ForgotPassModal from "../Elements/Global/ForgotPassModal";
 import { MIN_PASSWORD_LENGTH } from "../utils/passwordRules";
 import { hasSignInEndedNote, saveSignedInUser } from "../utils/session";
-import "../styles/Login.css";
+import "../styles/login.css";
 
 export default function Login({ onLogin, onGoToRegister }) {
   const [showPassword, setShowPassword] = useState(false);

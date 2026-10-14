@@ -103,6 +103,28 @@
 }
 
 /* ── List and details ────────────────────────────────────────────────────── */
+/* The tabs, with the registrations bell at the far end */
+.tourna-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tourna-toolbar--bell-only {
+  justify-content: flex-end;
+}
+
+.tourna-bell {
+  margin-left: auto;
+}
+
+/* With no tournament open, the list takes the full width */
+.tourna-layout.tourna-layout--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .tourna-layout {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);

@@ -1,0 +1,691 @@
+/* Employee layout.
+   The employee panel's arrangement, kept apart from the admin panel's
+   (AdminLayout.css) so either can change alone: a grouped, collapsible
+   sidebar, a sticky top bar with the page name, clock, bell and menu, a
+   title band on the Pool Tables dashboard only, and the other pages' stats
+   as joined strips with their buttons beside them. Only placement changes
+   here; every color is one the staff app already uses. App.jsx imports this
+   after brand.css, and every rule is scoped to .employee-shell. */
+
+.employee-shell {
+  --ax-page: #071e47;
+  --ax-panel: rgba(30, 41, 59, 0.5);
+  --ax-panel-solid: #0b2552;
+  --ax-border: rgba(71, 85, 105, 0.3);
+  --ax-divider: rgba(71, 85, 105, 0.35);
+  --ax-text: #ffffff;
+  --ax-muted: #94a3b8;
+  --ax-faint: #64748b;
+  --ax-active: rgb(40, 152, 189);
+  --ax-active-soft: rgba(40, 152, 189, 0.14);
+  --ax-topbar: rgba(7, 30, 71, 0.88);
+  --ax-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.6);
+  --ax-tubes-vertical: linear-gradient(180deg, var(--bc-pink) 0 25%, var(--bc-yellow) 25% 50%, var(--bc-green) 50% 75%, var(--bc-cyan) 75% 100%);
+  --ax-sidebar-width: 240px;
+  --ax-sidebar-collapsed: 84px;
+}
+
+.light .employee-shell {
+  --ax-page: var(--bg-root);
+  --ax-panel: var(--bg-card);
+  --ax-panel-solid: var(--bg-card);
+  --ax-border: var(--border);
+  --ax-divider: var(--border);
+  --ax-text: var(--text-primary);
+  --ax-muted: var(--text-muted);
+  --ax-faint: var(--text-muted);
+  --ax-active-soft: rgba(40, 152, 189, 0.12);
+  --ax-topbar: rgba(234, 240, 248, 0.9);
+  --ax-shadow: var(--shadow);
+}
+
+/* ================================================================
+   Shell
+   ================================================================ */
+
+.employee-shell.dashboard-layout {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+  background-color: var(--ax-page);
+}
+
+.employee-workspace {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.employee-shell .main-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 1.75rem 2rem 3rem;
+  overflow: visible;
+}
+
+/* Icons sit a little apart from the words beside them */
+.employee-shell .bi.me-2 {
+  margin-right: 0.5rem;
+}
+
+/* ---------- Sidebar ---------- */
+
+.employee-shell .sidebar {
+  width: var(--ax-sidebar-width);
+  min-width: var(--ax-sidebar-width);
+  transition: width 0.22s ease, min-width 0.22s ease;
+  z-index: 30;
+}
+
+.employee-shell .sidebar-logo-text {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.employee-shell .sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  gap: 1rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+.employee-shell .sidebar-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.employee-shell .sidebar-nav-heading {
+  padding: 0 0.875rem 0.3rem;
+  font-family: var(--bc-font-label);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(191, 219, 254, 0.5);
+}
+
+.employee-shell .nav-item {
+  position: relative;
+  white-space: nowrap;
+}
+
+.employee-shell .nav-icon {
+  width: 1.15rem;
+  flex: none;
+  text-align: center;
+}
+
+.employee-shell .nav-item.nav-active::before {
+  content: "";
+  position: absolute;
+  left: -0.75rem;
+  top: 22%;
+  bottom: 22%;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--bc-yellow);
+}
+
+.sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.875rem;
+  border: 1px solid rgba(191, 219, 254, 0.18);
+  border-radius: 10px;
+  background: transparent;
+  color: #a9b6c9;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+/* Collapsed: an icon rail */
+.employee-shell.is-collapsed .sidebar {
+  width: var(--ax-sidebar-collapsed);
+  min-width: var(--ax-sidebar-collapsed);
+}
+
+.employee-shell.is-collapsed .sidebar-logo {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.employee-shell.is-collapsed :is(.sidebar-logo-text, .nav-label) {
+  display: none;
+}
+
+.employee-shell.is-collapsed .sidebar-nav-heading {
+  height: 1px;
+  margin: 0.15rem 0.6rem 0.4rem;
+  padding: 0;
+  overflow: hidden;
+  font-size: 0;
+  background: rgba(191, 219, 254, 0.18);
+}
+
+.employee-shell.is-collapsed :is(.nav-item, .sidebar-collapse-btn) {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.employee-shell.is-collapsed .nav-icon {
+  font-size: 1.1rem;
+}
+
+/* ---------- Top bar ---------- */
+
+.employee-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 68px;
+  padding: 0.7rem 2rem;
+  background: var(--ax-topbar);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--ax-border);
+}
+
+.employee-topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--bc-tubes);
+  opacity: 0.55;
+}
+
+.employee-nav-toggle {
+  display: none !important;
+}
+
+.employee-topbar-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.employee-topbar-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--ax-active-soft);
+  color: var(--ax-active);
+  font-size: 1.1rem;
+}
+
+.employee-topbar-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.employee-topbar-section {
+  font-family: var(--bc-font-label);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ax-faint);
+}
+
+.employee-topbar-page {
+  font-family: var(--bc-font-display);
+  font-size: 1.15rem;
+  color: var(--ax-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.employee-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-left: auto;
+}
+
+.employee-topbar-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 999px;
+  background: var(--ax-panel);
+  color: var(--ax-muted);
+  font-family: var(--bc-font-label);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.employee-topbar .header-icons {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.employee-topbar .header-icon-btn {
+  width: 40px;
+  height: 40px;
+}
+
+.employee-nav-backdrop {
+  display: none;
+}
+
+/* ================================================================
+   Title band
+   Only the Pool Tables dashboard keeps a title band; the top bar already
+   names every other page.
+   ================================================================ */
+
+.employee-shell .employee-hero {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin: 0 0 1.25rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 16px;
+  background: linear-gradient(115deg, var(--ax-active-soft), transparent 60%), var(--ax-panel);
+  box-shadow: var(--ax-shadow);
+  overflow: hidden;
+}
+
+/* The sign's tubes run down the band's edge instead of under the title */
+.employee-shell .employee-hero::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--ax-tubes-vertical);
+}
+
+.employee-shell .employee-hero .page-title {
+  margin: 0 0 0.3rem;
+}
+
+.employee-shell .employee-hero .page-title::after {
+  display: none;
+}
+
+.employee-shell .employee-hero .page-subtitle {
+  margin: 0;
+}
+
+/* Title-only headers go entirely */
+.employee-shell :is(.sales-pos-header) {
+  display: none;
+}
+
+/* ================================================================
+   Sales POS summary: its cards joined into one bar
+   ================================================================ */
+
+.employee-shell :is(.sales-pos-summary-grid) {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) !important;
+  gap: 0 !important;
+  margin: 0 0 1.25rem !important;
+  border: 1px solid var(--ax-border);
+  border-radius: 14px;
+  background: var(--ax-panel);
+  box-shadow: var(--ax-shadow);
+  overflow: hidden;
+}
+
+.employee-shell :is(.sales-summary-card) {
+  position: relative;
+  margin: 0 !important;
+  width: auto;
+  min-height: 0;
+  border-width: 3px 0 0 0 !important;
+  border-style: solid !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: inset 1px 0 0 var(--ax-divider) !important;
+  transform: none !important;
+}
+
+/* Sales / POS summary keeps its note line under the number */
+.employee-shell .sales-summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 1rem 1.25rem;
+  border-top-color: var(--ax-active) !important;
+}
+
+.employee-shell .sales-summary-card--amber { border-top-color: #fbbf24 !important; }
+.employee-shell .sales-summary-card--blue { border-top-color: #60a5fa !important; }
+
+/* ================================================================
+   Dashboard band
+   ================================================================ */
+
+.employee-shell .employee-hero {
+  align-items: stretch;
+  padding: 1.5rem 1.5rem 1.5rem 1.85rem;
+}
+
+.employee-hero-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 240px;
+}
+
+.employee-hero-eyebrow {
+  margin-bottom: 0.35rem;
+  font-family: var(--bc-font-label);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ax-active);
+}
+
+.employee-shell .employee-hero .page-title {
+  font-size: 2rem;
+}
+
+/* ================================================================
+   Pool Tables: status filter as one segmented bar, roomier grid
+   ================================================================ */
+
+.employee-shell .pool-table-stats {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 1.25rem;
+  padding: 0.3rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 12px;
+  background: var(--ax-panel);
+}
+
+.employee-shell .pool-stat-pill {
+  border-color: transparent !important;
+  border-radius: 9px;
+  padding: 0.45rem 1rem;
+}
+
+.employee-shell .pool-stat-pill.is-active {
+  border-color: currentColor !important;
+}
+
+.employee-shell .pool-tables-grid {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.1rem;
+}
+
+/* ================================================================
+   Sales POS tabs: one bar
+   ================================================================ */
+
+.employee-shell :is(.pos-subtabs) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 1.25rem;
+  padding: 0.3rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 12px;
+  background: var(--ax-panel);
+}
+
+.employee-shell .pos-subtab-btn {
+  border-radius: 9px;
+  border-bottom: 0;
+}
+
+.employee-shell .pos-subtab-btn.active {
+  background: var(--ax-active-soft);
+}
+
+/* ================================================================
+   Pages
+   ================================================================ */
+
+/* Pool Tables: the status filter sits inside the dashboard band */
+.employee-shell .employee-hero {
+  align-items: center;
+}
+
+.employee-shell .employee-hero .pool-table-stats {
+  margin: 0;
+}
+
+/* The pages bring their own outer padding; the workspace sets it now */
+.employee-shell :is(.rd-page, .qa-page, .sales-pos-container) {
+  padding: 0;
+}
+
+/* Titles go: the top bar names the page. Buttons stay. */
+.employee-shell :is(.rd-header, .qa-page-header) > :first-child {
+  display: none;
+}
+
+/* Reservations and Actions: the buttons share a row with the stats */
+.employee-shell :is(.rd-page, .qa-page) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 1rem;
+  row-gap: 0;
+  align-items: center;
+  align-content: start;
+  min-height: 0;
+}
+
+.employee-shell :is(.rd-page, .qa-page) > * {
+  grid-column: 1 / -1;
+}
+
+.employee-shell :is(.rd-page > .rd-stats-row, .qa-page > .qa-summary) {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.employee-shell :is(.rd-page > .rd-header, .qa-page > .qa-page-header) {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* Stat strips: the cards joined into one bar, read left to right */
+.employee-shell :is(.rd-stats-row, .qa-summary, .tourna-stats) {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+  gap: 0 !important;
+  margin: 0 0 1.25rem !important;
+  border: 1px solid var(--ax-border);
+  border-radius: 14px;
+  background: var(--ax-panel);
+  box-shadow: var(--ax-shadow);
+  overflow: hidden;
+}
+
+.employee-shell .qa-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.employee-shell .tourna-stats {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr) !important;
+  margin-bottom: 0 !important; /* the page already spaces its sections */
+}
+
+.employee-shell :is(.rd-stat-card, .qa-summary-pill, .tourna-stat-card) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.15rem;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0.9rem 1.25rem !important;
+  border-width: 3px 0 0 0 !important;
+  border-style: solid !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: inset 1px 0 0 var(--ax-divider) !important;
+  text-align: left;
+  transform: none !important;
+}
+
+.employee-shell .qa-summary-pill {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
+.employee-shell :is(.rd-stat-card, .tourna-stat-card) {
+  border-top-color: var(--ax-border) !important;
+}
+
+/* ================================================================
+   Small screens: the sidebar becomes a drawer
+   ================================================================ */
+
+@media (max-width: 1024px) {
+  .employee-shell :is(.rd-page, .qa-page) {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-shell :is(.rd-page > .rd-header, .qa-page > .qa-page-header) {
+    grid-column: 1;
+    justify-self: end;
+  }
+
+  .employee-shell :is(.rd-page > .rd-stats-row, .qa-page > .qa-summary) {
+    grid-row: 2;
+  }
+
+}
+
+@media (max-width: 900px) {
+  .employee-shell .sidebar,
+  .employee-shell.is-collapsed .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    display: flex;
+    width: var(--ax-sidebar-width);
+    min-width: var(--ax-sidebar-width);
+    height: 100vh;
+    z-index: 1050;
+    transform: translateX(-105%);
+    transition: transform 0.25s ease;
+  }
+
+  .employee-shell.is-nav-open .sidebar {
+    transform: translateX(0);
+    box-shadow: 20px 0 40px rgba(0, 0, 0, 0.45);
+  }
+
+  /* The drawer always shows the full menu */
+  .employee-shell.is-collapsed :is(.sidebar-logo-text, .nav-label) {
+    display: initial;
+  }
+
+  .employee-shell.is-collapsed .sidebar-logo-text {
+    display: flex;
+  }
+
+  .employee-shell.is-collapsed .sidebar-nav-heading {
+    height: auto;
+    margin: 0;
+    padding: 0 0.875rem 0.3rem;
+    font-size: 0.68rem;
+    background: none;
+  }
+
+  .employee-shell.is-collapsed :is(.nav-item, .sidebar-collapse-btn) {
+    justify-content: flex-start;
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
+
+  .employee-shell .sidebar-collapse-btn {
+    display: none;
+  }
+
+  .employee-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1040;
+    background: rgba(0, 18, 51, 0.6);
+  }
+
+  .employee-nav-toggle {
+    display: flex !important;
+    flex: none;
+  }
+
+  .employee-topbar {
+    padding: 0.6rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .employee-topbar-clock {
+    display: none;
+  }
+
+  .employee-shell .main-content {
+    padding: 1.25rem 1rem 2.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .employee-topbar-icon,
+  .employee-topbar-section {
+    display: none;
+  }
+
+  .employee-shell .employee-hero {
+    padding: 1.1rem 1rem 1.1rem 1.35rem;
+  }
+
+}
+

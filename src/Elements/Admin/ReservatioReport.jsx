@@ -45,11 +45,11 @@ export default function ReservationReport({ reservations }) {
               <tbody>
                 {reservations.map(r => (
                   <tr key={r.id}>
-                    <td className="reports-table-name">{r.customer}</td>
+                    <td className="reports-table-name">{r.customerName || r.customer}</td>
                     <td>{r.date}</td>
                     <td>{r.time}</td>
-                    <td>Table {r.table}</td>
-                    <td>{r.pax}</td>
+                    <td>{r.tableName || `Table ${r.tableId ?? r.table}`}</td>
+                    <td>{r.partySize ?? r.pax}</td>
                     <td>
                       <span className={`badge reports-badge-${r.status}`}>
                         {r.status}

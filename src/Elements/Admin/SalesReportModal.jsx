@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { downloadExcel } from "../../utils/exportExcel";
 import { printElement } from "../../utils/printElement";
 import {
-  PERIOD_TYPES,
   buildSalesReportRows,
   describeItems,
   describePeriod,
   formatPesoAmount as peso,
   methodLabel,
   receiptNumber,
+  reportTypeLabel,
 } from "../../utils/salesReport";
 
 // A wide report prints across the page.
@@ -28,7 +28,7 @@ export default function SalesReportModal({ period, transactions, summary, breakd
   // When the report was opened, printed on it and in the Excel file.
   const [generatedAt] = useState(() => new Date().toLocaleString("en-PH"));
   const periodLabel = describePeriod(period);
-  const typeLabel = PERIOD_TYPES.find((entry) => entry.key === period.type)?.label || "";
+  const typeLabel = reportTypeLabel(period);
 
   useEffect(() => {
     const handleKey = (event) => {

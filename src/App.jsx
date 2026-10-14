@@ -19,6 +19,9 @@ import './styles/themeReadability.css'
 import './styles/formErrors.css'
 // Last on purpose: the brand layer is meant to win over the page styles above.
 import './styles/brand.css'
+// Each staff panel's layout; after the brand layer, scoped to its own shell.
+import './styles/Admin/AdminLayout.css'
+import './styles/Employee/EmployeeLayout.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
 import SyncNotices from './Elements/Global/SyncNotices'
 import useServerList from './Elements/Global/useServerList'

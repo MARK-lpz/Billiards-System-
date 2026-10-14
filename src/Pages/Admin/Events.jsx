@@ -244,6 +244,27 @@ export default function Events({ events, setEvents, tables, reservations = [] })
           <h1 className="events-title">Events & Tournaments</h1>
           <p className="events-subtitle">Manage billiard events and tournament brackets</p>
         </div>
+      </div>
+
+      <EventsStats stats={stats} />
+
+      <div className="events-toolbar">
+        <div className="events-tabs" role="tablist" aria-label="Event list">
+          {EVENT_VIEWS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="tab"
+              aria-selected={view === option.value}
+              className={`events-tab-btn ${view === option.value ? "active" : ""}`}
+              onClick={() => changeView(option.value)}
+            >
+              <i className={`bi ${option.icon}`}></i>
+              {option.label}
+              <span className="events-tab-count">({eventCounts[option.value]})</span>
+            </button>
+          ))}
+        </div>
         <button 
           className="btn btn-success events-add-btn" 
           onClick={() => { 
@@ -254,25 +275,6 @@ export default function Events({ events, setEvents, tables, reservations = [] })
           <i className="bi bi-plus-circle me-2"></i>
           Create Event
         </button>
-      </div>
-
-      <EventsStats stats={stats} />
-
-      <div className="events-tabs" role="tablist" aria-label="Event list">
-        {EVENT_VIEWS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            role="tab"
-            aria-selected={view === option.value}
-            className={`events-tab-btn ${view === option.value ? "active" : ""}`}
-            onClick={() => changeView(option.value)}
-          >
-            <i className={`bi ${option.icon}`}></i>
-            {option.label}
-            <span className="events-tab-count">({eventCounts[option.value]})</span>
-          </button>
-        ))}
       </div>
 
       {pagination.total === 0 ? (

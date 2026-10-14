@@ -10,12 +10,16 @@ import Menu from "../../Elements/Global/Menu";
 import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
 import Toast from "../../Elements/Global/Toast";
 import { useNotifications } from "../../Elements/Global/useNotifications";
+import useClock from "../../Elements/Global/useClock";
+import useStaffShell from "../../Elements/Global/useStaffShell";
+import AdminTopbar from "../../Elements/Admin/AdminTopbar";
 import { formatHoursLabel, getExtensionBlock } from "../../utils/reservations";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
 import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
 
 // Admin Elements
 import Sidebar from "../../Elements/Admin/Sidebar";
+import { navItems } from "../../Elements/Admin/adminNav";
 import TaskList from "../../Elements/Admin/TaskList";
 import ActiveTables from "../../Elements/Admin/ActiveTables";
 
@@ -34,6 +38,15 @@ import AccountManagement from "./AccountManagement";
 import AuditTrail from "./AuditTrail";
 import AdminProfile from "./AdminProfile";
 import Settings from "../Settings";
+
+// The pages the top bar can name that are not in the sidebar.
+const extraPages = {
+  profile: { icon: "bi-person", label: "Profile" },
+  settings: { icon: "bi-gear", label: "Settings" },
+};
+
+const formatToday = (now) =>
+  new Date(now).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 
 // Read only from click handlers, never while rendering.
 const getCurrentTimestamp = () => Date.now();
@@ -89,6 +102,11 @@ export default function Dashboard({
   // Cleared by any other navigation.
   const [focus, setFocus] = useState(null);
   const { addNotification, showToast } = useNotifications();
+  const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed, navOpen, setNavOpen, shellClassName } =
+    useStaffShell("admin-sidebar-collapsed");
+  const now = useClock(30000);
+
+  const currentPage = navItems.find((item) => item.id === activeNav) || extraPages[activeNav] || navItems[0];
 
   // Used by the time's up pop-up, which shows on every admin page, not only on
   // Pool Tables, so it cannot rely on that page's own handlers.
@@ -142,6 +160,7 @@ export default function Dashboard({
   };
 
   const handleNavChange = (navId, nextFocus = null) => {
+    setNavOpen(false);
     setFocus(nextFocus);
     setLoading(true);
     setTimeout(() => {
@@ -250,36 +269,20 @@ export default function Dashboard({
       default:
         return (
           <>
-            <div className="page-header">
-              <div className="page-header-text">
+            <section className="page-header admin-hero">
+              <div className="page-header-text admin-hero-text">
+                <span className="admin-hero-eyebrow">{formatToday(now)}</span>
                 <h1 className="page-title">Admin Dashboard</h1>
                 <p className="page-subtitle">Welcome back! Manage your business operations</p>
               </div>
-              
-              <div className="header-right">
-                <div className="header-icons">
-                  <AdminBell
-                    products={products}
-                    onOpenProduct={(productId) =>
-                      handleNavChange("inventory", { nav: "inventory", productId, key: `product-${Date.now()}` })
-                    }
-                  />
-                  <Menu 
-                    onLogout={onLogout}
-                    onProfile={() => handleNavChange('profile')}
-                    onSettings={() => handleNavChange('settings')}
-                  />
-                </div>
-              </div>
-            </div>
 
-            {/* Stats — full width */}
-            <EmployeeStats
-              availableTables={availableTablesCount}
-              pendingTasks={pendingTasksCount}
-            />
+              <EmployeeStats
+                availableTables={availableTablesCount}
+                pendingTasks={pendingTasksCount}
+              />
+            </section>
 
-            {/* Main grid — 50/50 equal columns */}
+            {/* Main grid — tables get the wide column, issues sit beside them */}
             <div className="admin-dashboard-grid">
               <ActiveTables tables={tables} onViewPoolTables={() => handleNavChange('pool-tables')} />
               <TaskList logs={logs} setLogs={setLogs} onOpenEquipment={openEquipmentIssue} />
@@ -299,17 +302,41 @@ export default function Dashboard({
           "open-pos": activeNav === "sales-pos" ? null : { label: "Open POS", onClick: () => handleNavChange("sales-pos") },
         }}
       />
-      <div className="dashboard-layout">
+      <div className={`${shellClassName} admin-shell`}>
         <Sidebar 
           activeNav={activeNav} 
           setActiveNav={setActiveNav}
           onNavChange={handleNavChange}
           onReload={handleReload}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={toggleSidebarCollapsed}
         />
+        {navOpen && <div className="admin-nav-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
 
-        <main className="main-content">
-          {renderModule()}
-        </main>
+        <div className="admin-workspace">
+          <AdminTopbar
+            page={currentPage}
+            now={now}
+            navOpen={navOpen}
+            onToggleNav={() => setNavOpen((open) => !open)}
+          >
+            <AdminBell
+              products={products}
+              onOpenProduct={(productId) =>
+                handleNavChange("inventory", { nav: "inventory", productId, key: `product-${Date.now()}` })
+              }
+            />
+            <Menu 
+              onLogout={onLogout}
+              onProfile={() => handleNavChange('profile')}
+              onSettings={() => handleNavChange('settings')}
+            />
+          </AdminTopbar>
+
+          <main className={`main-content admin-module admin-module-${activeNav}`}>
+            {renderModule()}
+          </main>
+        </div>
       </div>
     </>
   );
