@@ -320,20 +320,18 @@
 }
 
 /* ================================================================
-   Module header band (every module)
+   Module titles
+   Only the dashboard keeps a title band; the top bar already names every
+   other page. Headers that hold buttons keep them, right-aligned.
    ================================================================ */
 
-.admin-shell :is(.page-header, .pool-tables-header, .inventory-header, .events-header, .reports-header,
-  .audit-trail-header, .reservations-header, .equipment-header, .sales-pos-header, .profile-header, .settings-header) {
+.admin-shell .admin-hero {
   position: relative;
   display: flex;
-  flex-direction: row;
   flex-wrap: wrap;
-  align-items: center;
   justify-content: space-between;
   gap: 1rem 1.5rem;
   margin: 0 0 1.25rem;
-  padding: 1.3rem 1.5rem 1.3rem 1.85rem;
   border: 1px solid var(--ax-border);
   border-radius: 16px;
   background: linear-gradient(115deg, var(--ax-active-soft), transparent 60%), var(--ax-panel);
@@ -342,8 +340,7 @@
 }
 
 /* The sign's tubes run down the band's edge instead of under the title */
-.admin-shell :is(.page-header, .pool-tables-header, .inventory-header, .events-header, .reports-header,
-  .audit-trail-header, .reservations-header, .equipment-header, .sales-pos-header, .profile-header, .settings-header)::before {
+.admin-shell .admin-hero::before {
   content: "";
   position: absolute;
   left: 0;
@@ -353,28 +350,39 @@
   background: var(--ax-tubes-vertical);
 }
 
-.admin-shell :is(.page-title, .pool-tables-title, .inventory-title, .events-title, .equipment-title, .reports-title,
-  .sales-pos-title, .reservations-title, .audit-trail-title) {
+.admin-shell .admin-hero .page-title {
   margin: 0 0 0.3rem;
-  font-size: 1.65rem;
 }
 
-.admin-shell :is(.page-title, .pool-tables-title, .inventory-title, .events-title, .equipment-title, .reports-title,
-  .sales-pos-title, .reservations-title, .audit-trail-title)::after {
+.admin-shell .admin-hero .page-title::after {
   display: none;
 }
 
-.admin-shell :is(.page-subtitle, .pool-tables-subtitle, .inventory-subtitle, .events-subtitle, .equipment-subtitle,
-  .reports-subtitle, .sales-pos-subtitle, .reservations-subtitle, .audit-trail-subtitle) {
+.admin-shell .admin-hero .page-subtitle {
   margin: 0;
-  max-width: 60ch;
 }
 
-/* Headers whose text sits straight in the band (no wrapper) stack it */
-.admin-shell :is(.reports-header, .audit-trail-header, .sales-pos-header) {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
+/* Title-only headers go entirely */
+.admin-shell :is(.reports-header, .audit-trail-header, .sales-pos-header, .profile-header, .settings-header) {
+  display: none;
+}
+
+/* Headers with actions lose the title and keep the buttons */
+.admin-shell :is(.pool-tables-header, .inventory-header, .events-header, .reservations-header, .equipment-header) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.admin-shell :is(.pool-tables-header, .inventory-header, .events-header, .reservations-header, .equipment-header) > :first-child {
+  display: none;
 }
 
 /* ================================================================
@@ -656,16 +664,8 @@
 }
 
 /* ================================================================
-   Equipment: view tabs drop to their own row under the title
+   Equipment: view tabs and actions in one right-aligned row
    ================================================================ */
-
-.admin-shell .equipment-header {
-  flex-wrap: wrap;
-}
-
-.admin-shell .equipment-header > :first-child {
-  flex: 1 1 320px;
-}
 
 .admin-shell .equipment-header-actions {
   display: flex;
@@ -874,8 +874,7 @@
     display: none;
   }
 
-  .admin-shell :is(.page-header, .pool-tables-header, .inventory-header, .events-header, .reports-header,
-    .audit-trail-header, .reservations-header, .equipment-header, .sales-pos-header, .profile-header, .settings-header) {
+  .admin-shell .admin-hero {
     padding: 1.1rem 1rem 1.1rem 1.35rem;
   }
 
