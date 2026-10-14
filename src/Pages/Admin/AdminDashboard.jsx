@@ -11,6 +11,8 @@ import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
 import Toast from "../../Elements/Global/Toast";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import useClock from "../../Elements/Global/useClock";
+import useStaffShell from "../../Elements/Global/useStaffShell";
+import StaffTopbar from "../../Elements/Global/StaffTopbar";
 import { formatHoursLabel, getExtensionBlock } from "../../utils/reservations";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
 import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
@@ -43,20 +45,8 @@ const extraPages = {
   settings: { icon: "bi-gear", label: "Settings" },
 };
 
-const SIDEBAR_COLLAPSED_KEY = "admin-sidebar-collapsed";
-
-const readSidebarCollapsed = () => {
-  try {
-    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
-  } catch {
-    return false;
-  }
-};
-
 const formatToday = (now) =>
   new Date(now).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-
-const formatClock = (now) => new Date(now).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 
 // Read only from click handlers, never while rendering.
 const getCurrentTimestamp = () => Date.now();
@@ -112,22 +102,9 @@ export default function Dashboard({
   // Cleared by any other navigation.
   const [focus, setFocus] = useState(null);
   const { addNotification, showToast } = useNotifications();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
-  // The sidebar slides in over the page on small screens.
-  const [navOpen, setNavOpen] = useState(false);
+  const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed, navOpen, setNavOpen, shellClassName } =
+    useStaffShell("admin-sidebar-collapsed");
   const now = useClock(30000);
-
-  const toggleSidebarCollapsed = () => {
-    setSidebarCollapsed((previous) => {
-      const next = !previous;
-      try {
-        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
-      } catch {
-        // Storage blocked: the choice lasts for this visit only.
-      }
-      return next;
-    });
-  };
 
   const currentPage = navItems.find((item) => item.id === activeNav) || extraPages[activeNav] || navItems[0];
 
@@ -325,9 +302,7 @@ export default function Dashboard({
           "open-pos": activeNav === "sales-pos" ? null : { label: "Open POS", onClick: () => handleNavChange("sales-pos") },
         }}
       />
-      <div
-        className={`dashboard-layout admin-shell ${sidebarCollapsed ? "is-collapsed" : ""} ${navOpen ? "is-nav-open" : ""}`}
-      >
+      <div className={`${shellClassName} admin-shell`}>
         <Sidebar 
           activeNav={activeNav} 
           setActiveNav={setActiveNav}
@@ -339,47 +314,25 @@ export default function Dashboard({
         {navOpen && <div className="admin-nav-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
 
         <div className="admin-workspace">
-          <header className="admin-topbar">
-            <button
-              type="button"
-              className="header-icon-btn admin-nav-toggle"
-              onClick={() => setNavOpen((open) => !open)}
-              aria-label="Open menu"
-              aria-expanded={navOpen}
-            >
-              <i className="bi bi-list"></i>
-            </button>
-
-            <div className="admin-topbar-crumbs">
-              <span className="admin-topbar-icon">
-                <i className={`bi ${currentPage.icon}`}></i>
-              </span>
-              <div className="admin-topbar-text">
-                <span className="admin-topbar-section">Admin Panel</span>
-                <span className="admin-topbar-page">{currentPage.label}</span>
-              </div>
-            </div>
-
-            <div className="admin-topbar-right">
-              <span className="admin-topbar-clock">
-                <i className="bi bi-clock" aria-hidden="true"></i>
-                {formatClock(now)}
-              </span>
-              <div className="header-icons">
-                <AdminBell
-                  products={products}
-                  onOpenProduct={(productId) =>
-                    handleNavChange("inventory", { nav: "inventory", productId, key: `product-${Date.now()}` })
-                  }
-                />
-                <Menu 
-                  onLogout={onLogout}
-                  onProfile={() => handleNavChange('profile')}
-                  onSettings={() => handleNavChange('settings')}
-                />
-              </div>
-            </div>
-          </header>
+          <StaffTopbar
+            panelLabel="Admin Panel"
+            page={currentPage}
+            now={now}
+            navOpen={navOpen}
+            onToggleNav={() => setNavOpen((open) => !open)}
+          >
+            <AdminBell
+              products={products}
+              onOpenProduct={(productId) =>
+                handleNavChange("inventory", { nav: "inventory", productId, key: `product-${Date.now()}` })
+              }
+            />
+            <Menu 
+              onLogout={onLogout}
+              onProfile={() => handleNavChange('profile')}
+              onSettings={() => handleNavChange('settings')}
+            />
+          </StaffTopbar>
 
           <main className={`main-content admin-module admin-module-${activeNav}`}>
             {renderModule()}

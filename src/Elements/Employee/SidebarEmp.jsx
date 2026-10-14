@@ -1,15 +1,8 @@
 
 import { useEffect, useRef, useState } from 'react';
+import { navGroups } from "./employeeNav";
 
-const navItems = [
-  { icon: "bi-speedometer2", label: "Pool Tables", id: "Pool Tables" },
-  { icon: "bi-cart", label: "Sales POS", id: "sales" },
-  { icon: "bi-calendar2-check", label: "Reservations", id: "reservations" },
-  { icon: "bi-clipboard-check", label: "Actions", id: "quick-actions" },
-  { icon: "bi-trophy", label: "Tournament Schedule", id: "tournaments" },
-];
-
-export default function Sidebar({ activeNav, setActiveNav, onNavChange, onReload }) {
+export default function Sidebar({ activeNav, setActiveNav, onNavChange, onReload, collapsed = false, onToggleCollapsed }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const logoRef = useRef(null);
 
@@ -60,17 +53,37 @@ export default function Sidebar({ activeNav, setActiveNav, onNavChange, onReload
       </div>
 
       <nav className="sidebar-nav">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            className={`nav-item ${activeNav === item.id ? "nav-active" : ""}`}
-            onClick={() => handleNavClick(item.id)}
-          >
-            <i className={`bi ${item.icon} nav-icon`}></i>
-            <span>{item.label}</span>
-          </button>
+        {navGroups.map((group) => (
+          <div key={group.label} className="sidebar-nav-group">
+            <span className="sidebar-nav-heading">{group.label}</span>
+            {group.items.map((item) => (
+              <button
+                key={item.id}
+                className={`nav-item ${activeNav === item.id ? "nav-active" : ""}`}
+                onClick={() => handleNavClick(item.id)}
+                title={collapsed ? item.label : undefined}
+                aria-current={activeNav === item.id ? "page" : undefined}
+              >
+                <i className={`bi ${item.icon} nav-icon`}></i>
+                <span className="nav-label">{item.label}</span>
+              </button>
+            ))}
+          </div>
         ))}
       </nav>
+
+      {onToggleCollapsed && (
+        <button
+          type="button"
+          className="sidebar-collapse-btn"
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? "Expand menu" : "Collapse menu"}
+          title={collapsed ? "Expand menu" : "Collapse menu"}
+        >
+          <i className={`bi ${collapsed ? "bi-chevron-double-right" : "bi-chevron-double-left"}`}></i>
+          <span className="nav-label">Collapse</span>
+        </button>
+      )}
     </aside>
   );
 }

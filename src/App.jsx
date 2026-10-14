@@ -19,8 +19,8 @@ import './styles/themeReadability.css'
 import './styles/formErrors.css'
 // Last on purpose: the brand layer is meant to win over the page styles above.
 import './styles/brand.css'
-// The admin panel's layout; after the brand layer, scoped to the admin shell.
-import './styles/Admin/AdminLayout.css'
+// The staff panels' layout; after the brand layer, scoped to the staff shell.
+import './styles/StaffLayout.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
 import SyncNotices from './Elements/Global/SyncNotices'
 import useServerList from './Elements/Global/useServerList'

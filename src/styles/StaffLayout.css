@@ -1,14 +1,15 @@
-/* Admin layout.
-   The admin panel's arrangement: a grouped, collapsible sidebar, a sticky top
+/* Staff layout (admin and employee panels).
+   The panels' arrangement: a grouped, collapsible sidebar, a sticky top
    bar carrying the page name, clock, bell and menu on every module, and each
    module laid out as a header band, a joined stat strip, a toolbar and its
    content. Only placement changes here: every color is one the staff app
    already uses (the navy sidebar and page, the slate cards, the cyan active
    item, the sign's tubes), and the light theme keeps its own variables.
    App.jsx imports this after brand.css, and every rule is scoped to
-   .admin-shell, so the employee panel is untouched. */
+   .staff-shell, which both panels' layouts carry; .admin-shell and
+   .employee-shell mark which panel. */
 
-.admin-shell {
+.staff-shell {
   --ax-page: #071e47;
   --ax-panel: rgba(30, 41, 59, 0.5);
   --ax-panel-solid: #0b2552;
@@ -26,7 +27,7 @@
   --ax-sidebar-collapsed: 84px;
 }
 
-.light .admin-shell {
+.light .staff-shell {
   --ax-page: var(--bg-root);
   --ax-panel: var(--bg-card);
   --ax-panel-solid: var(--bg-card);
@@ -44,7 +45,7 @@
    Shell
    ================================================================ */
 
-.admin-shell.dashboard-layout {
+.staff-shell.dashboard-layout {
   display: flex;
   align-items: stretch;
   min-height: 100vh;
@@ -58,7 +59,7 @@
   flex-direction: column;
 }
 
-.admin-shell .main-content {
+.staff-shell .main-content {
   flex: 1;
   width: 100%;
   max-width: 1560px;
@@ -68,31 +69,31 @@
 }
 
 /* The modules bring their own outer padding; the workspace sets it now */
-.admin-shell :is(.pool-tables-container, .inventory-container, .events-container, .reports-container,
+.staff-shell :is(.pool-tables-container, .inventory-container, .events-container, .reports-container,
   .audit-trail-container, .reservations-container, .equipment-container, .sales-pos-container) {
   padding: 0;
 }
 
 /* Icons sit a little apart from the words beside them */
-.admin-shell .bi.me-2 {
+.staff-shell .bi.me-2 {
   margin-right: 0.5rem;
 }
 
 /* ---------- Sidebar ---------- */
 
-.admin-shell .sidebar {
+.staff-shell .sidebar {
   width: var(--ax-sidebar-width);
   min-width: var(--ax-sidebar-width);
   transition: width 0.22s ease, min-width 0.22s ease;
   z-index: 30;
 }
 
-.admin-shell .sidebar-logo-text {
+.staff-shell .sidebar-logo-text {
   min-width: 0;
   white-space: nowrap;
 }
 
-.admin-shell .sidebar-nav {
+.staff-shell .sidebar-nav {
   flex: 1;
   min-height: 0;
   gap: 1rem;
@@ -101,13 +102,13 @@
   scrollbar-width: thin;
 }
 
-.admin-shell .sidebar-nav-group {
+.staff-shell .sidebar-nav-group {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
-.admin-shell .sidebar-nav-heading {
+.staff-shell .sidebar-nav-heading {
   padding: 0 0.875rem 0.3rem;
   font-family: var(--bc-font-label);
   font-size: 0.68rem;
@@ -118,18 +119,18 @@
   color: rgba(191, 219, 254, 0.5);
 }
 
-.admin-shell .nav-item {
+.staff-shell .nav-item {
   position: relative;
   white-space: nowrap;
 }
 
-.admin-shell .nav-icon {
+.staff-shell .nav-icon {
   width: 1.15rem;
   flex: none;
   text-align: center;
 }
 
-.admin-shell .nav-item.nav-active::before {
+.staff-shell .nav-item.nav-active::before {
   content: "";
   position: absolute;
   left: -0.75rem;
@@ -164,22 +165,22 @@
 }
 
 /* Collapsed: an icon rail */
-.admin-shell.is-collapsed .sidebar {
+.staff-shell.is-collapsed .sidebar {
   width: var(--ax-sidebar-collapsed);
   min-width: var(--ax-sidebar-collapsed);
 }
 
-.admin-shell.is-collapsed .sidebar-logo {
+.staff-shell.is-collapsed .sidebar-logo {
   justify-content: center;
   padding-left: 0;
   padding-right: 0;
 }
 
-.admin-shell.is-collapsed :is(.sidebar-logo-text, .nav-label) {
+.staff-shell.is-collapsed :is(.sidebar-logo-text, .nav-label) {
   display: none;
 }
 
-.admin-shell.is-collapsed .sidebar-nav-heading {
+.staff-shell.is-collapsed .sidebar-nav-heading {
   height: 1px;
   margin: 0.15rem 0.6rem 0.4rem;
   padding: 0;
@@ -188,13 +189,13 @@
   background: rgba(191, 219, 254, 0.18);
 }
 
-.admin-shell.is-collapsed :is(.nav-item, .sidebar-collapse-btn) {
+.staff-shell.is-collapsed :is(.nav-item, .sidebar-collapse-btn) {
   justify-content: center;
   padding-left: 0;
   padding-right: 0;
 }
 
-.admin-shell.is-collapsed .nav-icon {
+.staff-shell.is-collapsed .nav-icon {
   font-size: 1.1rem;
 }
 
@@ -318,7 +319,7 @@
    other page. Headers that hold buttons keep them, right-aligned.
    ================================================================ */
 
-.admin-shell .admin-hero {
+.staff-shell .admin-hero {
   position: relative;
   display: flex;
   flex-wrap: wrap;
@@ -333,7 +334,7 @@
 }
 
 /* The sign's tubes run down the band's edge instead of under the title */
-.admin-shell .admin-hero::before {
+.staff-shell .admin-hero::before {
   content: "";
   position: absolute;
   left: 0;
@@ -343,26 +344,26 @@
   background: var(--ax-tubes-vertical);
 }
 
-.admin-shell .admin-hero .page-title {
+.staff-shell .admin-hero .page-title {
   margin: 0 0 0.3rem;
 }
 
-.admin-shell .admin-hero .page-title::after {
+.staff-shell .admin-hero .page-title::after {
   display: none;
 }
 
-.admin-shell .admin-hero .page-subtitle {
+.staff-shell .admin-hero .page-subtitle {
   margin: 0;
 }
 
 /* Title-only headers go entirely */
-.admin-shell :is(.reports-header, .audit-trail-header, .sales-pos-header, .profile-header, .settings-header,
+.staff-shell :is(.reports-header, .audit-trail-header, .sales-pos-header, .profile-header, .settings-header,
   .inventory-header, .events-header) {
   display: none;
 }
 
 /* Headers with actions lose the title and keep the buttons */
-.admin-shell :is(.pool-tables-header, .reservations-header, .equipment-header) {
+.staff-shell :is(.pool-tables-header, .reservations-header, .equipment-header) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -375,7 +376,7 @@
   box-shadow: none;
 }
 
-.admin-shell :is(.pool-tables-header, .reservations-header, .equipment-header) > :first-child {
+.staff-shell :is(.pool-tables-header, .reservations-header, .equipment-header) > :first-child {
   display: none;
 }
 
@@ -383,7 +384,7 @@
    Stat strip: the stat cards joined into one bar, read left to right
    ================================================================ */
 
-.admin-shell :is(.stats-grid, .events-container > .row.g-3, .audit-trail-container > .row.g-3, .reports-container .row.g-3,
+.staff-shell :is(.stats-grid, .events-container > .row.g-3, .audit-trail-container > .row.g-3, .reports-container .row.g-3,
   .equipment-summary-grid, .sales-pos-summary-grid) {
   display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) !important;
@@ -396,11 +397,11 @@
   overflow: hidden;
 }
 
-.admin-shell :is(.events-container > .row.g-3, .audit-trail-container > .row.g-3, .reports-container .row.g-3) > [class*="col-"] {
+.staff-shell :is(.events-container > .row.g-3, .audit-trail-container > .row.g-3, .reports-container .row.g-3) > [class*="col-"] {
   display: contents;
 }
 
-.admin-shell :is(.inventory-stat-card, .events-stat-card, .audit-stat-card, .reports-stat-card, .equipment-stat-card, .sales-summary-card) {
+.staff-shell :is(.inventory-stat-card, .events-stat-card, .audit-stat-card, .reports-stat-card, .equipment-stat-card, .sales-summary-card) {
   position: relative;
   margin: 0 !important;
   width: auto;
@@ -413,15 +414,15 @@
   transform: none !important;
 }
 
-.admin-shell :is(.inventory-stat-card, .events-stat-card, .audit-stat-card, .reports-stat-card, .equipment-stat-card):hover {
+.staff-shell :is(.inventory-stat-card, .events-stat-card, .audit-stat-card, .reports-stat-card, .equipment-stat-card):hover {
   transform: none !important;
 }
 
-.admin-shell .equipment-stat-clickable:hover {
+.staff-shell .equipment-stat-clickable:hover {
   background: var(--ax-active-soft) !important;
 }
 
-.admin-shell :is(.inventory-stat-card, .events-stat-card, .audit-stat-card, .reports-stat-card, .equipment-stat-card) .card-body {
+.staff-shell :is(.inventory-stat-card, .events-stat-card, .audit-stat-card, .reports-stat-card, .equipment-stat-card) .card-body {
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-areas:
@@ -435,7 +436,7 @@
   text-align: left;
 }
 
-.admin-shell :is(.inventory-stat-icon, .audit-stat-icon, .reports-stat-icon) {
+.staff-shell :is(.inventory-stat-icon, .audit-stat-icon, .reports-stat-icon) {
   grid-area: icon;
   display: grid;
   place-items: center;
@@ -447,21 +448,21 @@
   font-size: 1.15rem;
 }
 
-.admin-shell :is(.inventory-stat-value, .events-stat-value, .audit-stat-value, .reports-stat-value, .equipment-stat-value) {
+.staff-shell :is(.inventory-stat-value, .events-stat-value, .audit-stat-value, .reports-stat-value, .equipment-stat-value) {
   grid-area: value;
   margin: 0;
   font-size: 1.65rem;
   line-height: 1.1;
 }
 
-.admin-shell :is(.inventory-stat-label, .events-stat-label, .audit-stat-label, .reports-stat-label, .equipment-stat-label) {
+.staff-shell :is(.inventory-stat-label, .events-stat-label, .audit-stat-label, .reports-stat-label, .equipment-stat-label) {
   grid-area: label;
   margin: 0;
   text-align: left;
 }
 
 /* Sales / POS summary keeps its note line under the number */
-.admin-shell .sales-summary-card {
+.staff-shell .sales-summary-card {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -470,14 +471,14 @@
   border-top-color: var(--ax-active) !important;
 }
 
-.admin-shell .sales-summary-card--amber { border-top-color: #fbbf24 !important; }
-.admin-shell .sales-summary-card--blue { border-top-color: #60a5fa !important; }
+.staff-shell .sales-summary-card--amber { border-top-color: #fbbf24 !important; }
+.staff-shell .sales-summary-card--blue { border-top-color: #60a5fa !important; }
 
 /* ================================================================
    Dashboard
    ================================================================ */
 
-.admin-shell .admin-hero {
+.staff-shell .admin-hero {
   align-items: stretch;
   padding: 1.5rem 1.5rem 1.5rem 1.85rem;
 }
@@ -499,12 +500,12 @@
   color: var(--ax-active);
 }
 
-.admin-shell .admin-hero .page-title {
+.staff-shell .admin-hero .page-title {
   font-size: 2rem;
 }
 
 /* The two counts sit inside the band, on the right */
-.admin-shell .admin-hero .employee-stats {
+.staff-shell .admin-hero .employee-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(180px, 1fr));
   gap: 0.75rem;
@@ -512,7 +513,7 @@
   flex: 0 1 460px;
 }
 
-.admin-shell .admin-hero .stat-card-employee {
+.staff-shell .admin-hero .stat-card-employee {
   margin: 0;
   padding: 1rem 1.1rem;
   border-radius: 14px;
@@ -520,11 +521,11 @@
   border: 1px solid var(--ax-border);
 }
 
-.light .admin-shell .admin-hero .stat-card-employee {
+.light .staff-shell .admin-hero .stat-card-employee {
   background: var(--bg-subtle) !important;
 }
 
-.admin-shell .admin-dashboard-grid {
+.staff-shell .admin-dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
   gap: 1.25rem;
@@ -532,17 +533,17 @@
   align-items: stretch;
 }
 
-.admin-shell .admin-dashboard-grid > .content-card {
+.staff-shell .admin-dashboard-grid > .content-card {
   height: 100%;
   border-radius: 16px;
   box-shadow: var(--ax-shadow);
 }
 
-.admin-shell .active-tables-card .active-tables-grid {
+.staff-shell .active-tables-card .active-tables-grid {
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
 
-.admin-shell .admin-dashboard-grid .task-list {
+.staff-shell .admin-dashboard-grid .task-list {
   max-height: 420px;
   overflow-y: auto;
 }
@@ -551,7 +552,7 @@
    Pool Tables: status filter as one segmented bar, roomier grid
    ================================================================ */
 
-.admin-shell .pool-table-stats {
+.staff-shell .pool-table-stats {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 0.25rem;
@@ -562,41 +563,41 @@
   background: var(--ax-panel);
 }
 
-.admin-shell .pool-stat-pill {
+.staff-shell .pool-stat-pill {
   border-color: transparent !important;
   border-radius: 9px;
   padding: 0.45rem 1rem;
 }
 
-.admin-shell .pool-stat-pill.is-active {
+.staff-shell .pool-stat-pill.is-active {
   border-color: currentColor !important;
 }
 
 /* The status filter and Add Table share one row */
-.admin-shell .pool-tables-container {
+.staff-shell .pool-tables-container {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   column-gap: 1rem;
   align-items: center;
 }
 
-.admin-shell .pool-tables-container > * {
+.staff-shell .pool-tables-container > * {
   grid-column: 1 / -1;
 }
 
-.admin-shell .pool-tables-container > .pool-table-stats {
+.staff-shell .pool-tables-container > .pool-table-stats {
   grid-column: 1;
   grid-row: 1;
   justify-self: start;
 }
 
-.admin-shell .pool-tables-container > .pool-tables-header {
+.staff-shell .pool-tables-container > .pool-tables-header {
   grid-column: 2;
   grid-row: 1;
   margin-bottom: 1.25rem;
 }
 
-.admin-shell .pool-tables-grid {
+.staff-shell .pool-tables-grid {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.1rem;
 }
@@ -605,7 +606,7 @@
    Toolbars joined to the table they filter
    ================================================================ */
 
-.admin-shell :is(.inventory-filters, .reservations-filter-bar) {
+.staff-shell :is(.inventory-filters, .reservations-filter-bar) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -619,32 +620,32 @@
   background: var(--ax-panel);
 }
 
-.admin-shell .inventory-filters {
+.staff-shell .inventory-filters {
   justify-content: flex-start;
 }
 
 /* Add Product / Create Event sit at the right end of their filter bars */
-.admin-shell :is(.inventory-filters, .events-toolbar) > :is(.inventory-add-btn, .events-add-btn) {
+.staff-shell :is(.inventory-filters, .events-toolbar) > :is(.inventory-add-btn, .events-add-btn) {
   margin-left: auto;
 }
 
-.admin-shell .reservations-filters {
+.staff-shell .reservations-filters {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.admin-shell .reservations-search {
+.staff-shell .reservations-search {
   flex: 0 1 360px;
   margin: 0;
 }
 
-.admin-shell :is(.inventory-filters, .reservations-filter-bar) + :is(.inventory-table-card, .reservations-table-card) {
+.staff-shell :is(.inventory-filters, .reservations-filter-bar) + :is(.inventory-table-card, .reservations-table-card) {
   border-top-left-radius: 0 !important;
   border-top-right-radius: 0 !important;
 }
 
-.admin-shell :is(.inventory-table-card, .reservations-table-card) {
+.staff-shell :is(.inventory-table-card, .reservations-table-card) {
   margin-bottom: 1.25rem;
   overflow: hidden;
   box-shadow: var(--ax-shadow);
@@ -654,7 +655,7 @@
    Tabs: underline tabs across a bar
    ================================================================ */
 
-.admin-shell .events-toolbar {
+.staff-shell .events-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -666,14 +667,14 @@
   background: var(--ax-panel);
 }
 
-.admin-shell .events-toolbar > .events-tabs {
+.staff-shell .events-toolbar > .events-tabs {
   margin: 0;
   padding: 0;
   border: 0;
   background: none;
 }
 
-.admin-shell :is(.events-tabs, .pos-subtabs) {
+.staff-shell :is(.events-tabs, .pos-subtabs) {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
@@ -684,24 +685,24 @@
   background: var(--ax-panel);
 }
 
-.admin-shell .pos-subtab-btn {
+.staff-shell .pos-subtab-btn {
   border-radius: 9px;
   border-bottom: 0;
 }
 
-.admin-shell .pos-subtab-btn.active {
+.staff-shell .pos-subtab-btn.active {
   background: var(--ax-active-soft);
 }
 
 /* Events: cards two across */
-.admin-shell .events-list {
+.staff-shell .events-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
   gap: 1rem;
   align-items: start;
 }
 
-.admin-shell .events-list > .events-card {
+.staff-shell .events-list > .events-card {
   margin: 0;
 }
 
@@ -709,7 +710,7 @@
    Equipment: view tabs and actions in one right-aligned row
    ================================================================ */
 
-.admin-shell .equipment-header-actions {
+.staff-shell .equipment-header-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -721,7 +722,7 @@
    Reports: the report picker is a tab bar across the top
    ================================================================ */
 
-.admin-shell .reports-container > .reports-tabs {
+.staff-shell .reports-container > .reports-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
@@ -732,7 +733,7 @@
   background: var(--ax-panel);
 }
 
-.admin-shell .reports-toolbar {
+.staff-shell .reports-toolbar {
   margin-bottom: 1.25rem;
   padding: 0.9rem 1rem;
   border: 1px solid var(--ax-border);
@@ -744,18 +745,141 @@
    Accounts: employee accounts on the right, admin and resets stacked left
    ================================================================ */
 
-.admin-shell .account-management-sections {
+.staff-shell .account-management-sections {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
   align-items: start;
 }
 
-.admin-shell .account-management-sections > :nth-child(2) {
+.staff-shell .account-management-sections > :nth-child(2) {
   grid-column: 2;
   grid-row: 1 / span 2;
 }
 
-.admin-shell .account-management-sections > :nth-child(3) {
+.staff-shell .account-management-sections > :nth-child(3) {
   grid-column: 1;
+}
+
+/* ================================================================
+   Employee panel
+   ================================================================ */
+
+/* Pool Tables: the status filter sits inside the dashboard band */
+.employee-shell .admin-hero {
+  align-items: center;
+}
+
+.employee-shell .admin-hero .pool-table-stats {
+  margin: 0;
+}
+
+/* The pages bring their own outer padding; the workspace sets it now */
+.employee-shell :is(.rd-page, .qa-page) {
+  padding: 0;
+}
+
+/* Titles go: the top bar names the page. Buttons stay. */
+.employee-shell :is(.rd-header, .qa-page-header) > :first-child,
+.employee-shell .employee-module-tournament-schedule > .page-header > .page-header-text {
+  display: none;
+}
+
+/* Reservations and Actions: the buttons share a row with the stats */
+.employee-shell :is(.rd-page, .qa-page) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 1rem;
+  row-gap: 0;
+  align-items: center;
+  align-content: start;
+  min-height: 0;
+}
+
+.employee-shell :is(.rd-page, .qa-page) > * {
+  grid-column: 1 / -1;
+}
+
+.employee-shell :is(.rd-page > .rd-stats-row, .qa-page > .qa-summary) {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.employee-shell :is(.rd-page > .rd-header, .qa-page > .qa-page-header) {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* Tournaments: the registrations bell sits in the page's top-right corner */
+.employee-shell .employee-module-tournament-schedule {
+  position: relative;
+}
+
+.employee-shell .employee-module-tournament-schedule > .page-header {
+  position: absolute;
+  top: 1.75rem;
+  right: 2rem;
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.employee-shell .employee-module-tournament-schedule > .tourna-shell > :first-child {
+  margin-right: 60px;
+}
+
+/* Stat strips, like the admin modules */
+.employee-shell :is(.rd-stats-row, .qa-summary, .tourna-stats) {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+  gap: 0 !important;
+  margin: 0 0 1.25rem !important;
+  border: 1px solid var(--ax-border);
+  border-radius: 14px;
+  background: var(--ax-panel);
+  box-shadow: var(--ax-shadow);
+  overflow: hidden;
+}
+
+.employee-shell .qa-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.employee-shell .tourna-stats {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr) !important;
+}
+
+.employee-shell :is(.rd-stat-card, .qa-summary-pill, .tourna-stat-card) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.15rem;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0.9rem 1.25rem !important;
+  border-width: 3px 0 0 0 !important;
+  border-style: solid !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: inset 1px 0 0 var(--ax-divider) !important;
+  text-align: left;
+  transform: none !important;
+}
+
+.employee-shell .qa-summary-pill {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
+.employee-shell :is(.rd-stat-card, .tourna-stat-card) {
+  border-top-color: var(--ax-border) !important;
 }
 
 /* ================================================================
@@ -763,33 +887,46 @@
    ================================================================ */
 
 @media (max-width: 1200px) {
-  .admin-shell .admin-dashboard-grid {
+  .staff-shell .admin-dashboard-grid {
     grid-template-columns: 1fr;
   }
 
-  .admin-shell .admin-hero .employee-stats {
+  .staff-shell .admin-hero .employee-stats {
     flex-basis: 100%;
   }
 }
 
 @media (max-width: 1024px) {
-  .admin-shell .account-management-sections {
+  .employee-shell :is(.rd-page, .qa-page) {
     grid-template-columns: 1fr;
   }
 
-  .admin-shell .account-management-sections > :is(:nth-child(2), :nth-child(3)) {
+  .employee-shell :is(.rd-page > .rd-header, .qa-page > .qa-page-header) {
+    grid-column: 1;
+    justify-self: end;
+  }
+
+  .employee-shell :is(.rd-page > .rd-stats-row, .qa-page > .qa-summary) {
+    grid-row: 2;
+  }
+
+  .staff-shell .account-management-sections {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-shell .account-management-sections > :is(:nth-child(2), :nth-child(3)) {
     grid-column: auto;
     grid-row: auto;
   }
 
-  .admin-shell .events-list {
+  .staff-shell .events-list {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 900px) {
-  .admin-shell .sidebar,
-  .admin-shell.is-collapsed .sidebar {
+  .staff-shell .sidebar,
+  .staff-shell.is-collapsed .sidebar {
     position: fixed;
     top: 0;
     left: 0;
@@ -803,21 +940,21 @@
     transition: transform 0.25s ease;
   }
 
-  .admin-shell.is-nav-open .sidebar {
+  .staff-shell.is-nav-open .sidebar {
     transform: translateX(0);
     box-shadow: 20px 0 40px rgba(0, 0, 0, 0.45);
   }
 
   /* The drawer always shows the full menu */
-  .admin-shell.is-collapsed :is(.sidebar-logo-text, .nav-label) {
+  .staff-shell.is-collapsed :is(.sidebar-logo-text, .nav-label) {
     display: initial;
   }
 
-  .admin-shell.is-collapsed .sidebar-logo-text {
+  .staff-shell.is-collapsed .sidebar-logo-text {
     display: flex;
   }
 
-  .admin-shell.is-collapsed .sidebar-nav-heading {
+  .staff-shell.is-collapsed .sidebar-nav-heading {
     height: auto;
     margin: 0;
     padding: 0 0.875rem 0.3rem;
@@ -825,13 +962,13 @@
     background: none;
   }
 
-  .admin-shell.is-collapsed :is(.nav-item, .sidebar-collapse-btn) {
+  .staff-shell.is-collapsed :is(.nav-item, .sidebar-collapse-btn) {
     justify-content: flex-start;
     padding-left: 0.875rem;
     padding-right: 0.875rem;
   }
 
-  .admin-shell .sidebar-collapse-btn {
+  .staff-shell .sidebar-collapse-btn {
     display: none;
   }
 
@@ -857,7 +994,7 @@
     display: none;
   }
 
-  .admin-shell .main-content {
+  .staff-shell .main-content {
     padding: 1.25rem 1rem 2.5rem;
   }
 }
@@ -868,15 +1005,15 @@
     display: none;
   }
 
-  .admin-shell .admin-hero {
+  .staff-shell .admin-hero {
     padding: 1.1rem 1rem 1.1rem 1.35rem;
   }
 
-  .admin-shell .admin-hero .employee-stats {
+  .staff-shell .admin-hero .employee-stats {
     grid-template-columns: 1fr;
   }
 
-  .admin-shell .events-list {
+  .staff-shell .events-list {
     grid-template-columns: 1fr;
   }
 }
