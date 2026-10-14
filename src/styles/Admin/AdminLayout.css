@@ -578,6 +578,30 @@
   border-color: currentColor !important;
 }
 
+/* The status filter and Add Table share one row */
+.admin-shell .pool-tables-container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 1rem;
+  align-items: center;
+}
+
+.admin-shell .pool-tables-container > * {
+  grid-column: 1 / -1;
+}
+
+.admin-shell .pool-tables-container > .pool-table-stats {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+}
+
+.admin-shell .pool-tables-container > .pool-tables-header {
+  grid-column: 2;
+  grid-row: 1;
+  margin-bottom: 1.25rem;
+}
+
 .admin-shell .pool-tables-grid {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.1rem;
