@@ -1,5 +1,8 @@
 import { useState } from "react";
 import SalesReportModal from "./SalesReportModal";
+import Pagination from "../Global/Pagination";
+import usePagination from "../Global/usePagination";
+import { PAGE_SIZE } from "../../utils/pagination";
 import {
   MONTHS,
   PERIOD_TYPES,
@@ -24,9 +27,11 @@ const formatDay = (date) => {
 
 /**
  * Daily, monthly, yearly and date-range sales in one report. Staff pick the period here
- * and see it on the page: its totals, a breakdown by day or month, and every sale.
- * Print / Download opens the report as the sheet it prints on (SalesReportModal), with
- * the paper size and orientation.
+ * and see it on the page: its totals, a breakdown by day or month, and every sale,
+ * 10 rows a page (a year's 12 months on one); another period opens on page 1. The
+ * totals under each table are the whole period's. Print / Download opens the whole
+ * report as the sheet it prints on (SalesReportModal), with the paper size and
+ * orientation.
  */
 export default function SalesReport({ transactions = [] }) {
   const [period, setPeriod] = useState(() => {
@@ -42,6 +47,11 @@ export default function SalesReport({ transactions = [] }) {
   const periodTransactions = getPeriodTransactions(transactions, period);
   const summary = summarizeSales(periodTransactions);
   const breakdown = getSalesBreakdown(periodTransactions, period);
+  const periodKey = JSON.stringify(period);
+  const breakdownPages = usePagination(breakdown?.rows || [], breakdown?.firstColumn === "Month" ? 12 : PAGE_SIZE, 1, periodKey);
+  const salePages = usePagination(periodTransactions, PAGE_SIZE, 1, periodKey);
+  // Under a paged table, the total says it is the whole period's.
+  const totalLabel = (pages, noun) => (pages.pageCount > 1 ? `Total (all ${pages.total} ${noun})` : "Total");
 
   const update = (changes) => setPeriod((current) => ({ ...current, ...changes }));
 
@@ -193,7 +203,7 @@ export default function SalesReport({ transactions = [] }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {breakdown.rows.map((row) => (
+                  {breakdownPages.items.map((row) => (
                     <tr key={row.key} className={row.count ? "" : "sales-report-quiet-row"}>
                       <td className="reports-table-name">{row.label}</td>
                       <td className="reports-num">{row.count}</td>
@@ -205,7 +215,7 @@ export default function SalesReport({ transactions = [] }) {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <th scope="row">Total</th>
+                    <th scope="row">{totalLabel(breakdownPages, breakdown.firstColumn === "Month" ? "months" : "days")}</th>
                     <td className="reports-num">{summary.count}</td>
                     <td className="reports-num">{peso(summary.cash)}</td>
                     <td className="reports-num">{peso(summary.gcash)}</td>
@@ -214,6 +224,7 @@ export default function SalesReport({ transactions = [] }) {
                 </tfoot>
               </table>
             </div>
+            <Pagination {...breakdownPages} />
           </div>
         </div>
       )}
@@ -247,7 +258,7 @@ export default function SalesReport({ transactions = [] }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {periodTransactions.map((tx) => (
+                  {salePages.items.map((tx) => (
                     <tr key={tx.id}>
                       <td className="sales-report-nowrap">{formatDay(tx.date)}</td>
                       <td className="sales-report-nowrap">{tx.time}</td>
@@ -262,13 +273,14 @@ export default function SalesReport({ transactions = [] }) {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <th scope="row" colSpan={7}>Total</th>
+                    <th scope="row" colSpan={7}>{totalLabel(salePages, "sales")}</th>
                     <td className="reports-num">{peso(summary.revenue)}</td>
                   </tr>
                 </tfoot>
               </table>
             </div>
           )}
+          <Pagination {...salePages} />
         </div>
       </div>
 

@@ -1,0 +1,428 @@
+/* The open tournaments on the website (TournamentShowcase.jsx), on the home
+   page and the Tournaments page: the next one large (poster on the left, the
+   details and Register on the right), the rest as short rows under it. */
+.tshow {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+/* ---------- The large one ---------- */
+
+.tshow-feature {
+  display: grid;
+  grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
+  border: 1px solid rgba(226, 236, 230, 0.1);
+  border-radius: 16px;
+  background: #151a17;
+  overflow: hidden;
+}
+
+.tshow-feature.is-rescheduled { border-color: rgba(255, 210, 63, 0.38); }
+
+.tshow-poster {
+  position: relative;
+  min-height: 100%;
+  aspect-ratio: 4 / 5;
+  background: #0d100e;
+  overflow: hidden;
+}
+
+.tshow-poster-open {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+/* The poster whole (never cropped), over a blurred copy of itself */
+.tshow-poster-blur,
+.tshow-poster-img,
+.tshow-poster-open video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tshow-poster-blur {
+  object-fit: cover;
+  filter: blur(22px) brightness(0.55);
+  transform: scale(1.15);
+}
+
+.tshow-poster-img { object-fit: contain; }
+.tshow-poster-open video { object-fit: cover; }
+
+.tshow-poster-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: #fff;
+  font-size: 3.2rem;
+  opacity: 0.9;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.6));
+}
+
+.tshow-poster-open:focus-visible {
+  outline: 3px solid var(--bc-cyan);
+  outline-offset: -3px;
+}
+
+.tshow-poster-step {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  background: rgba(8, 10, 9, 0.7);
+  color: #fff;
+  transform: translateY(-50%);
+}
+
+.tshow-poster-step.is-prev { left: 10px; }
+.tshow-poster-step.is-next { right: 10px; }
+.tshow-poster-step:hover { background: rgba(8, 10, 9, 0.9); border-color: var(--bc-cyan); }
+
+.tshow-poster-step:focus-visible {
+  outline: 2px solid var(--bc-cyan);
+  outline-offset: 2px;
+}
+
+.tshow-poster-count {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(8, 10, 9, 0.75);
+  color: #fff;
+  font-family: var(--bc-font-label);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* No pictures yet: the date on a felt, inside its rail */
+.tshow-poster.is-felt {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.15rem;
+  background: radial-gradient(circle at 50% 38%, #1f7a45 0%, #135530 55%, #0b3720 100%);
+  box-shadow: inset 0 0 0 10px #3a2414, inset 0 0 0 12px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+.tshow-poster.is-felt i {
+  margin-bottom: 0.4rem;
+  color: var(--bc-yellow);
+  font-size: 2.4rem;
+}
+
+.tshow-poster.is-felt span {
+  color: var(--bc-yellow);
+  font-family: var(--bc-font-label);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+}
+
+.tshow-poster.is-felt strong {
+  color: #fff;
+  font-family: var(--bc-font-display);
+  font-size: 4.6rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+/* Centred beside the poster, so a short one leaves no gap above Register */
+.tshow-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: clamp(1.4rem, 3vw, 2.2rem);
+}
+
+.tshow-info-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.tshow-eyebrow {
+  color: #ff6fb0;
+  font-family: var(--bc-font-label);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.tshow-name {
+  margin: 0;
+  color: #fff;
+  font-family: var(--bc-font-display);
+  font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.tshow-when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  color: #e2e6e0;
+  font-size: 1.02rem;
+}
+
+.tshow-when > i { color: var(--bc-yellow); }
+
+.tshow-countdown {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(53, 198, 244, 0.14);
+  color: #86dcf6;
+  font-family: var(--bc-font-label);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tshow-moved {
+  margin: 0;
+  color: #ffdc5e;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.tshow-prize {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.4rem;
+}
+
+.tshow-prize span {
+  color: #9ba59e;
+  font-family: var(--bc-font-label);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.tshow-prize strong {
+  color: var(--bc-yellow);
+  font-family: var(--bc-font-display);
+  font-size: clamp(2rem, 4.4vw, 3rem);
+  font-weight: 400;
+  line-height: 1.05;
+  text-shadow: 0 0 22px rgba(255, 210, 63, 0.25);
+}
+
+.tshow-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tshow-facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgba(226, 236, 230, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #d5dbd6;
+  font-size: 0.9rem;
+}
+
+.tshow-facts i { color: #8e978f; font-size: 0.8rem; }
+.tshow-facts .tshow-game i { color: var(--bc-yellow); }
+
+.tshow-info .tshow-register {
+  margin-top: 0.6rem;
+  padding-inline: 1.6rem;
+}
+
+/* ---------- The rest ---------- */
+
+.tshow-more-title {
+  margin: 0 0 0.8rem;
+  color: #c9d0ca;
+  font-family: var(--bc-font-label);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.tshow-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tshow-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem 0.75rem 0.75rem;
+  border: 1px solid rgba(226, 236, 230, 0.09);
+  border-radius: 12px;
+  background: #151a17;
+}
+
+.tshow-row.is-rescheduled { border-color: rgba(255, 210, 63, 0.35); }
+
+.tshow-row-date {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  align-self: stretch;
+  min-height: 60px;
+  border-radius: 9px;
+  background: #1b211e;
+}
+
+.tshow-row-date span {
+  color: var(--bc-yellow);
+  font-family: var(--bc-font-label);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.tshow-row-date strong {
+  color: #fff;
+  font-family: var(--bc-font-display);
+  font-size: 1.7rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.tshow-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.tshow-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+}
+
+.tshow-row-head :is(h3, h4, h5, h6) {
+  margin: 0;
+  color: #fff;
+  font-family: var(--bc-font-display);
+  font-size: 1.12rem;
+  font-weight: 400;
+  font-synthesis: none;
+  overflow-wrap: anywhere;
+}
+
+.tshow-row-when,
+.tshow-row-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.tshow-row-when { color: #e2e6e0; font-size: 0.92rem; }
+.tshow-row-when .tshow-countdown { font-size: 0.7rem; }
+.tshow-row-facts { color: #a9b2ab; font-size: 0.86rem; }
+
+/* The picture and Register keep their columns, so Register lines up with or without a picture */
+.tshow-row-thumb {
+  grid-column: 3;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid rgba(226, 236, 230, 0.16);
+  border-radius: 9px;
+  background: #0d100e;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.tshow-row-thumb :is(img, video) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tshow-row-thumb:focus-visible {
+  outline: 2px solid var(--bc-cyan);
+  outline-offset: 2px;
+}
+
+.tshow-row .tshow-row-register {
+  grid-column: 4;
+  min-height: 40px;
+  margin: 0;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.9rem;
+}
+
+/* ---------- Narrower screens ---------- */
+
+@media (max-width: 860px) {
+  .tshow-feature { grid-template-columns: minmax(0, 260px) minmax(0, 1fr); }
+}
+
+/* A phone: the poster on top, then the details; each row's Register under it */
+@media (max-width: 640px) {
+  .tshow-feature { grid-template-columns: minmax(0, 1fr); }
+  .tshow-poster { min-height: 0; aspect-ratio: 1 / 1; }
+  .tshow-poster.is-felt { aspect-ratio: 16 / 9; }
+  .tshow-poster.is-felt strong { font-size: 3.4rem; }
+  .tshow-info { padding: 1.2rem; }
+  .tshow-info .tshow-register { align-self: stretch; }
+
+  .tshow-row {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .tshow-row-thumb { width: 48px; height: 48px; }
+
+  .tshow-row .tshow-row-register {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}

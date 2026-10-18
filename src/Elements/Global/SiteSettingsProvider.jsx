@@ -15,10 +15,10 @@ const REFRESH_MS = 60000;
  */
 export function SiteSettingsProvider({ children }) {
   // `failed`: the first load did not reach the server (it keeps trying).
-  const [state, setState] = useState({ settings: DEFAULT_SITE_SETTINGS, savedAt: {}, loaded: false, failed: false });
+  const [state, setState] = useState({ settings: DEFAULT_SITE_SETTINGS, savedAt: {}, savedBy: {}, loaded: false, failed: false });
 
-  const applySaved = useCallback(({ settings, savedAt }) => {
-    const next = { settings: mergeSiteSettings(settings), savedAt: savedAt || {}, loaded: true, failed: false };
+  const applySaved = useCallback(({ settings, savedAt, savedBy }) => {
+    const next = { settings: mergeSiteSettings(settings), savedAt: savedAt || {}, savedBy: savedBy || {}, loaded: true, failed: false };
     setState((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next));
   }, []);
 

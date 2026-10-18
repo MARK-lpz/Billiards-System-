@@ -23,9 +23,6 @@ export default function Reservations({
   tableCharges,
   setTableCharges,
   setLogs,
-  onlineReservationsOpen,
-  isUpdatingOnlineReservations,
-  onOnlineReservationsChange,
 }) {
   const reservationState = useAdminReservations({
     initialFilter,
@@ -67,9 +64,6 @@ export default function Reservations({
     <div className="reservations-container">
       <ReservationHeader
         onNew={reservationState.openNew}
-        onlineReservationsOpen={onlineReservationsOpen}
-        isUpdatingOnlineReservations={isUpdatingOnlineReservations}
-        onOnlineReservationsChange={onOnlineReservationsChange}
       />
 
       <ReservationFilters

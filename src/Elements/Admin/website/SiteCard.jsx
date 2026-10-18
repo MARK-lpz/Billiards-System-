@@ -4,6 +4,12 @@ import { WebsiteTabsContext } from "./WebsiteTabsContext";
 const formatSavedAt = (ms) =>
   new Date(ms).toLocaleString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
 
+// "Last saved Oct 19, 2026, 3:00 PM by juan (employee)"; who saved it, when the server says.
+const describeSaved = ({ savedAt, savedBy }) => {
+  const by = savedBy?.name ? ` by ${savedBy.name}${savedBy.role === "employee" ? " (employee)" : ""}` : "";
+  return `Last saved ${formatSavedAt(savedAt)}${by}`;
+};
+
 /**
  * One card of Admin > Website, laid out the same for every section: what it
  * sets and a status chip, then the fields on the left and what customers see
@@ -53,7 +59,7 @@ export default function SiteCard({ icon, title, description, chip, draft, blocke
         )}
         <span className={`website-status ${draft.status?.tone || ""}`} role="status">
           {draft.status?.text ||
-            (draft.dirty ? blocked || "Not saved yet." : draft.savedAt ? `Last saved ${formatSavedAt(draft.savedAt)}` : "Never saved.")}
+            (draft.dirty ? blocked || "Not saved yet." : draft.savedAt ? describeSaved(draft) : "Never saved.")}
         </span>
       </div>
     </section>

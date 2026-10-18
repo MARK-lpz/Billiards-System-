@@ -111,7 +111,7 @@ export default function EmployeeBell({
             <strong>{registration.name}</strong> registered for {registration.event.name}
           </>
         ),
-        meta: `${registration.walkIn ? "Walk-in" : "Online"}${registration.team ? ` · ${registration.team}` : ""} · ${formatEventWhen(registration.event.date, registration.event.time)}`,
+        meta: `${registration.walkIn ? "Walk-in" : "Online"}${registration.team ? ` · ${registration.team}` : ""}${registration.skill ? ` · ${registration.skill}` : ""} · ${formatEventWhen(registration.event.date, registration.event.time)}`,
         // An entry fee paid online that no one has checked yet.
         state:
           findPlayerPayment(payments, registration.event.id, registration.label)?.status === "held"

@@ -236,7 +236,7 @@ export default function OnlineReservationForm({
     }
 
     if (!onlineReservationsOpen) {
-      setSubmitError("Online reservations are temporarily closed by the owner. Please check back later.");
+      setSubmitError("Online reservations are temporarily closed by the hall. Please check back later.");
       return;
     }
 

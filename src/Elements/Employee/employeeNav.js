@@ -17,6 +17,7 @@ export const navGroups = [
     items: [
       { icon: "bi-clipboard-check", label: "Actions", id: "quick-actions" },
       { icon: "bi-trophy", label: "Tournament Schedule", id: "tournaments" },
+      { icon: "bi-globe2", label: "Website", id: "website" },
     ],
   },
 ];

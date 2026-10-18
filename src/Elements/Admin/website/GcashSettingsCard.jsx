@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import SiteCard from "./SiteCard";
 import useSiteSectionDraft from "./useSiteSectionDraft";
+import { WebsiteStaffContext } from "./WebsiteTabsContext";
 import { uploadEventMedia } from "../../../utils/eventMedia";
 import { formatMobile, gcashQrUrl } from "../../../utils/siteSettings";
 import { isValidSmsNumber, sanitizePhoneInput } from "../../../utils/phone";
@@ -14,6 +15,7 @@ const isQrPicture = (file) => QR_TYPES.includes(file.type) || /\.(png|jpe?g|webp
  * (Receive, then Download QR), the account name they check before sending, and
  * the number (optional). Online payment is on only once the QR and the name
  * are saved; until then the website takes no paid bookings or registrations.
+ * An employee can change it too; the admin's bell is told what changed.
  */
 export default function GcashSettingsCard({ setLogs }) {
   const draft = useSiteSectionDraft({
@@ -30,6 +32,7 @@ export default function GcashSettingsCard({ setLogs }) {
   const numberWarning = number && !isValidSmsNumber(number) ? "Enter the 11-digit GCash number, 09XXXXXXXXX." : "";
   const ready = draft.saved.ready;
   const name = accountName?.trim() || "";
+  const byEmployee = useContext(WebsiteStaffContext) === "Employee";
 
   const pickQr = async (event) => {
     const file = event.target.files?.[0];
@@ -83,6 +86,12 @@ export default function GcashSettingsCard({ setLogs }) {
           <i className="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
           Until the QR and the account name are saved, the website takes no online bookings or paid tournament
           registrations.
+        </p>
+      )}
+      {byEmployee && (
+        <p className="website-note info">
+          <i className="bi bi-bell" aria-hidden="true"></i>
+          The admin is told when these details change.
         </p>
       )}
 

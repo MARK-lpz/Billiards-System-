@@ -87,6 +87,10 @@ export default function ParticipantModal({ registration, payment: feePayment = n
                   <dd>{registration.team || "Solo player"}</dd>
                 </div>
                 <div>
+                  <dt>Skill level</dt>
+                  <dd>{registration.skill || "Not given"}</dd>
+                </div>
+                <div>
                   <dt>Tournament</dt>
                   <dd>{event.name}</dd>
                 </div>

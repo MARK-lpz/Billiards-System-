@@ -724,6 +724,9 @@ function App() {
             setTheme={setTheme}
             customers={customers}
             setCustomers={setCustomers}
+            onlineReservationsOpen={onlineReservationsOpen}
+            isUpdatingOnlineReservations={isUpdatingOnlineReservations}
+            onOnlineReservationsChange={handleOnlineReservationAvailability}
           />
         )}
       </div>

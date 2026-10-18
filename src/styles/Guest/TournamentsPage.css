@@ -1,6 +1,18 @@
 /* Public tournaments page (TournamentsPage.jsx). Uses the landing page's header,
    badges, buttons and footer from GuestLanding.css; each tournament is a ticket
    with a tear-off date stub, like the cards on the home page. */
+
+/* A short list (one tournament, or none) keeps the footer at the bottom of the
+   window instead of leaving the page's background showing under it. */
+.tournaments-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.tournaments-page > .guest-template-footer {
+  margin-top: auto;
+}
+
 .tournaments-brand {
   border: 0;
   background: transparent;
@@ -58,143 +70,6 @@
   flex-direction: column;
   gap: 1rem;
   margin-bottom: clamp(2.5rem, 5vw, 4rem);
-}
-
-.tournament-row {
-  position: relative;
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr) auto;
-  align-items: center;
-  border: 1px solid rgba(226, 236, 230, 0.09);
-  border-radius: 14px;
-  background: #151a17;
-  overflow: hidden;
-}
-
-/* Punched notches where the stub tears off */
-.tournament-row::before,
-.tournament-row::after {
-  content: "";
-  position: absolute;
-  left: 82px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--guest-wall);
-}
-
-.tournament-row::before { top: -10px; }
-.tournament-row::after { bottom: -10px; }
-
-.tournament-row.is-rescheduled { border-color: rgba(255, 210, 63, 0.35); }
-
-.tournament-date-tile {
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 0.1rem;
-  align-self: stretch;
-  padding: 1rem 0.5rem;
-  border-right: 2px dashed rgba(226, 236, 230, 0.16);
-  background: #1b211e;
-}
-
-.tournament-row.is-rescheduled .tournament-date-tile { background: #231f12; }
-
-.tournament-date-tile span {
-  color: var(--bc-yellow);
-  font-family: var(--bc-font-label);
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-}
-
-.tournament-date-tile strong {
-  color: #fff;
-  font-family: var(--bc-font-display);
-  font-size: 2.4rem;
-  font-weight: 400;
-  line-height: 1;
-}
-
-.tournament-row-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  min-width: 0;
-  padding: 1.15rem 1.35rem;
-}
-
-.tournament-row-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
-}
-
-.tournament-row-head h2 {
-  margin: 0;
-  color: #fff;
-  font-family: var(--bc-font-display);
-  font-size: 1.35rem;
-  font-weight: 400;
-  font-synthesis: none;
-}
-
-.tournament-row-when {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
-  color: #e2e6e0;
-  font-size: 0.98rem;
-}
-
-.tournament-row-when > i { color: var(--bc-yellow); }
-
-.tournament-row-countdown {
-  padding: 0.1rem 0.55rem;
-  border-radius: 999px;
-  background: rgba(53, 198, 244, 0.14);
-  color: #86dcf6;
-  font-family: var(--bc-font-label);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.tournament-row-moved {
-  margin: 0;
-  color: #ffdc5e;
-  font-size: 0.9rem;
-  line-height: 1.5;
-}
-
-.tournament-row-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 1.15rem;
-  margin: 0.15rem 0 0;
-  padding: 0;
-  list-style: none;
-  color: #b3bcb5;
-  font-size: 0.9rem;
-}
-
-.tournament-row-facts li {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.tournament-row-facts .tournament-row-game { text-transform: capitalize; }
-
-.tournament-row-facts i { color: #7f8a83; font-size: 0.8rem; }
-.tournament-row-facts .tournament-row-game i { color: var(--bc-yellow); }
-
-.tournament-row .tournament-row-register {
-  margin: 0 1.35rem 0 0;
 }
 
 .tournaments-empty {
@@ -261,21 +136,4 @@
   .tournaments-hero,
   .tournaments-list,
   .tournaments-cancelled { width: calc(100% - 2rem); }
-
-  .tournament-row {
-    grid-template-columns: 76px minmax(0, 1fr);
-  }
-
-  .tournament-row::before { left: 66px; }
-
-  /* The Register button wraps under the stub, so there is no tear line at the bottom */
-  .tournament-row::after { display: none; }
-
-  .tournament-row-body { padding: 1rem; }
-
-  .tournament-row .tournament-row-register {
-    grid-column: 1 / -1;
-    justify-content: center;
-    margin: 0 1rem 1rem;
-  }
 }

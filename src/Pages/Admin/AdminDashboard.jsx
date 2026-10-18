@@ -197,9 +197,6 @@ export default function Dashboard({
           tableCharges={tableCharges}
           setTableCharges={setTableCharges}
           setLogs={setLogs}
-          onlineReservationsOpen={onlineReservationsOpen}
-          isUpdatingOnlineReservations={isUpdatingOnlineReservations}
-          onOnlineReservationsChange={onOnlineReservationsChange}
         />;
       
       case 'reports':
@@ -257,7 +254,15 @@ export default function Dashboard({
         return <AccountManagement setLogs={setLogs} />;
 
       case 'website':
-        return <Website reservations={reservations} setLogs={setLogs} />;
+        return (
+          <Website
+            key={focus?.key || "website"}
+            reservations={reservations}
+            setLogs={setLogs}
+            openTab={focus?.nav === "website" ? focus.tab : null}
+            bookings={{ open: onlineReservationsOpen, updating: isUpdatingOnlineReservations, onChange: onOnlineReservationsChange }}
+          />
+        );
 
       case 'profile':
         return <AdminProfile />;
@@ -360,6 +365,7 @@ export default function Dashboard({
               }
               onOpenEvents={() => handleNavChange("events")}
               onOpenAccounts={() => handleNavChange("accounts")}
+              onOpenWebsite={(tab) => handleNavChange("website", { nav: "website", tab, key: `website-${Date.now()}` })}
               events={events}
             />
             <Menu 

@@ -854,14 +854,45 @@
 .srp-print-body .srp-table thead { display: table-header-group; }
 .srp-print-body .srp-table tr { break-inside: avoid; }
 
-/* GCash Check: one day's GCash in and out, to tick off against the GCash app */
+/* GCash Check: one day's GCash in and out, to tick off against the GCash app.
+   Laid out like the Sales Report: the day (with arrows) and Refresh, the note
+   under them in the same bar, the totals, then each list with its total. */
+.gcash-check-day {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gcash-check-step {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+  color: #e2e8f0;
+}
+
+.gcash-check-step:hover:not(:disabled) { border-color: #10b981; color: #fff; }
+.gcash-check-step:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.gcash-check-step:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
 .gcash-check-note {
   display: flex;
+  flex-basis: 100%;
   gap: 8px;
   align-items: flex-start;
-  margin: -6px 0 18px;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
   color: #94a3b8;
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.5;
 }
 
@@ -881,27 +912,35 @@
   font-weight: 600;
 }
 
-.gcash-check-table td {
-  vertical-align: middle;
-}
+.sales-report-table.gcash-check-table tbody td { vertical-align: middle; }
 
 .gcash-check-sub {
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
   color: #94a3b8;
   font-size: 11px;
   font-weight: 600;
 }
 
+.gcash-check-taken {
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
 .gcash-check-ref {
   font-family: "Courier New", monospace;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   letter-spacing: 0.5px;
   white-space: nowrap;
 }
 
 .light .gcash-check-note,
-.light .gcash-check-sub { color: var(--text-muted); }
+.light .gcash-check-sub,
+.light .gcash-check-taken { color: var(--text-muted); }
+.light .gcash-check-note { border-top-color: var(--border); }
 .light .gcash-check-note i { color: #0369a1; }
 .light .gcash-check-error { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
+.light .gcash-check-step { background: #fff; border-color: #cbd5e1; color: #334155; }
+.light .gcash-check-step:hover:not(:disabled) { border-color: #059669; color: #047857; }

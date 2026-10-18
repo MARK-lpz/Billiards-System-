@@ -3,7 +3,8 @@ import "../../styles/Guest/GuestLanding.css";
 import "../../styles/Guest/EventMedia.css";
 import { eventMediaUrl, getEventCover } from "../../utils/eventMedia";
 import { describeClosedHours, formatOpeningHours, formatReservationTime, isOutsideReservationHours } from "../../utils/reservations";
-import { formatEventWhen, getDateTile, getEventNotices, getOpenEvents, wasRescheduled } from "../../utils/eventUpdates";
+import { formatEventWhen, getEventNotices, getOpenEvents } from "../../utils/eventUpdates";
+import TournamentShowcase from "../../Elements/Guest/TournamentShowcase";
 import { dayInManila, facebookLinkKind, hasBusinessInfo, isAnnouncementShowing, slidePictureUrl, telLink } from "../../utils/siteSettings";
 import { useSiteSettings } from "../../Elements/Global/useSiteSettings";
 import { useMyRequests } from "../../Elements/Guest/useMyRequests";
@@ -69,7 +70,7 @@ export default function GuestLanding({
   const afterHours = isOutsideReservationHours(new Date(now), hours);
   const reservationsClosed = afterHours || !onlineReservationsOpen || paymentUnavailable;
   const reservationClosedMessage = !onlineReservationsOpen
-    ? "Online reservations are temporarily closed by the owner. Please check back later."
+    ? "Online reservations are temporarily closed by the hall. Please check back later."
     : paymentUnavailable
       ? `Online booking is not available yet. Please book at the hall${business.phone ? ` or call ${business.phone}` : ""}.`
       : describeClosedHours(hours);
@@ -408,8 +409,8 @@ export default function GuestLanding({
         </section>
       )}
 
-      {/* The open tournaments take as much room as there are of them: one is a
-          wide ticket with its poster, two share the row, three fill it. */}
+      {/* The open tournaments: the next one large with its poster, the
+          others (up to HOME_TOURNAMENT_LIMIT in all) in rows under it. */}
       <section className="guest-tournaments" id="tournaments" aria-labelledby="guest-tournaments-title">
         <div className="guest-section-head">
           <p className="guest-template-eyebrow">Tournaments &amp; events</p>
@@ -420,64 +421,7 @@ export default function GuestLanding({
         </div>
 
         {homeTournaments.length > 0 ? (
-          <div className={`guest-tournament-list is-count-${homeTournaments.length}`}>
-            {homeTournaments.map((event) => {
-              const tile = getDateTile(event.date);
-              const type = wasRescheduled(event) ? "rescheduled" : "open";
-              const cover = getEventCover(event);
-              const poster = homeTournaments.length === 1 && cover?.type === "image" ? cover : null;
-
-              return (
-                <article key={event.id} className={`guest-tournament-card is-${type} ${poster ? "has-poster" : ""}`}>
-                  <div className="guest-ticket-stub" aria-hidden="true">
-                    <span>{tile.month}</span>
-                    <strong>{tile.day}</strong>
-                  </div>
-
-                  <div className="guest-ticket-body">
-                    <span className={`guest-tournament-badge is-${type}`}>{type === "rescheduled" ? "Rescheduled" : "Open for registration"}</span>
-                    <h3>{event.name}</h3>
-                    {event.gameType && <span className="guest-tournament-game">{event.gameType}</span>}
-
-                    {type === "rescheduled" ? (
-                      <div className="guest-tournament-when">
-                        <span>
-                          <strong>New schedule:</strong> {formatEventWhen(event.date, event.time)}
-                        </span>
-                        <span className="guest-tournament-old">
-                          Was {formatEventWhen(event.rescheduledFrom.date, event.rescheduledFrom.time)}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="guest-tournament-when">
-                        <span>{formatEventWhen(event.date, event.time)}</span>
-                      </div>
-                    )}
-                    {type === "rescheduled" && event.rescheduleReason && (
-                      <p className="guest-tournament-reason">Reason: {event.rescheduleReason}</p>
-                    )}
-
-                    <div className="guest-tournament-meta">
-                      <span>
-                        <i className="bi bi-trophy-fill" aria-hidden="true"></i>
-                        Prize pool {formatPrize(event.prize)}
-                      </span>
-                      <span>
-                        <i className="bi bi-ticket-perforated-fill" aria-hidden="true"></i>
-                        {Number(event.entryFee) > 0 ? `Entry ${formatPrize(event.entryFee)}` : "Free entry"}
-                      </span>
-                    </div>
-                    <button type="button" className="guest-template-secondary" onClick={() => onOpenTournamentForm(event.id)}>
-                      Register
-                      <i className="bi bi-arrow-right"></i>
-                    </button>
-                  </div>
-
-                  {poster && <img className="guest-ticket-poster" src={eventMediaUrl(poster)} alt={`${event.name} poster`} />}
-                </article>
-              );
-            })}
-          </div>
+          <TournamentShowcase events={homeTournaments} now={now} onRegister={onOpenTournamentForm} level={3} />
         ) : (
           <p className="guest-tournaments-empty">
             <i className="bi bi-trophy" aria-hidden="true"></i>

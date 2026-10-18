@@ -1,5 +1,10 @@
+import Pagination from "../Global/Pagination";
+import usePagination from "../Global/usePagination";
+
+// Every booking, 10 a page; the counts above are all of them.
 export default function ReservationReport({ reservations }) {
   const statuses = ["pending", "approved", "completed", "rejected"];
+  const pagination = usePagination(reservations);
 
   const getStatusColor = (status) => {
     if (status === "approved" || status === "completed") return "green";
@@ -43,7 +48,7 @@ export default function ReservationReport({ reservations }) {
                 </tr>
               </thead>
               <tbody>
-                {reservations.map(r => (
+                {pagination.items.map(r => (
                   <tr key={r.id}>
                     <td className="reports-table-name">{r.customerName || r.customer}</td>
                     <td>{r.date}</td>
@@ -61,6 +66,7 @@ export default function ReservationReport({ reservations }) {
               </tbody>
             </table>
           </div>
+          <Pagination {...pagination} />
         </div>
       </div>
     </div>

@@ -21,6 +21,7 @@ import { describeJustSent } from "../../utils/myRequests";
 import { formatMobile } from "../../utils/siteSettings";
 import FormSteps, { FormReview, FormStepHead, FormStepNav } from "../../Elements/Guest/FormSteps";
 import { useFormSteps } from "../../Elements/Guest/useFormSteps";
+import { buildParticipantLabel, skillLevelLabel } from "../../utils/tournamentRegistrations";
 
 // What the player is told about the entry fee before and after sending.
 const HELD_NOTE =
@@ -30,6 +31,12 @@ const HELD_NOTE =
 // for a free tournament, a last look before registering).
 const LAST_STEP = 2;
 const DETAIL_FIELDS = ["firstName", "lastName", "contact", "age"];
+const EMPTY_FORM = {
+  firstName: "", lastName: "", contact: "", age: "", skillLevel: "",
+  eventId: "", teamName: "", paymentReference: "",
+  // The GCash number the fee came from; null keeps it the same as the contact number.
+  payerNumber: null,
+};
 const isFilled = (form, fields) => fields.every((field) => String(form[field]).trim() !== "");
 
 // Read when the form opens and on submit, never while rendering.
@@ -42,18 +49,11 @@ const playerKey = (label) => String(label || "").replace(/\s*\(.*\)\s*$/, "").tr
 
 export default function TournamentForm({ events = [], setEvents, onGoBack, initialEventId = null }) {
   const [form, setForm] = useState(() => ({
-    firstName: "",
-    lastName: "",
-    contact: "",
-    age: "",
+    ...EMPTY_FORM,
     // Already chosen when the player pressed Register on a tournament.
     eventId: events.some((event) => String(event.id) === String(initialEventId) && isOpenForRegistration(event))
       ? String(initialEventId)
       : "",
-    teamName: "",
-    paymentReference: "",
-    // The GCash number the fee came from; null keeps it the same as the contact number.
-    payerNumber: null,
   }));
   const { step, goTo, title: stepTitle } = useFormSteps();
   // The receipt screenshot, ready to send ({ dataUrl, ... } from utils/receiptImage.js).
@@ -116,14 +116,17 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
   // What each step needs before Next opens the one after it, and what is said
   // under Next while it is missing.
   const detailsFilled = isFilled(form, DETAIL_FIELDS);
-  const detailsReady = detailsFilled && contactIsValid && !detailsError;
+  const skillChosen = Boolean(skillLevelLabel(form.skillLevel));
+  const detailsReady = detailsFilled && contactIsValid && skillChosen && !detailsError;
   const detailsHint =
     detailsError ||
     (!detailsFilled
       ? "Fill in your name, contact number and age to continue."
       : !contactIsValid
         ? "Check the contact number above."
-        : "");
+        : !skillChosen
+          ? "Choose your skill level to continue."
+          : "");
   const tournamentFilled = Boolean(selectedEvent);
   // A paid one cannot be taken online until GCash is set up, so it stops here
   // rather than on the payment step.
@@ -174,7 +177,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
 
     setSubmitError("");
     try {
-      const playerLabel= form.teamName?.trim() ? `${playerName} (${form.teamName.trim()})` : playerName;
+      const playerLabel = buildParticipantLabel(playerName, { team: form.teamName, skillLevel: form.skillLevel });
       const { event: updatedEvent, statusKey } = await registerWebsiteTournamentParticipant({
         eventId: selectedEvent.id,
         participant: playerLabel,
@@ -227,11 +230,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
 
   const handleReset = () => {
     setFollowed(null);
-    setForm({
-      firstName: "", lastName: "", contact: "",
-      age: "", eventId: "",
-      teamName: "", paymentReference: "", payerNumber: null,
-    });
+    setForm(EMPTY_FORM);
     setReceipt(null);
     setSubmitted(false);
     setCustomerMessage(null);
@@ -355,7 +354,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
                           icon: "bi-person",
                           label: "Player",
                           value: playerName,
-                          more: [formatMobile(form.contact), form.age ? `Age ${form.age}` : ""],
+                          more: [formatMobile(form.contact), form.age ? `Age ${form.age}` : "", skillLevelLabel(form.skillLevel)],
                           onChange: () => openStep(0),
                           changeLabel: "Change your details",
                         },

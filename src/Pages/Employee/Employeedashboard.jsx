@@ -20,6 +20,7 @@ import TournamentSchedule from "./TournamentSchedule";
 import QuickActions from "./QuickAction";
 import SalesPOS from "./SalesPos";
 import ReservationDesk from "./ReservationDesk";
+import Website from "../Admin/Website";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import { findTableReservation, formatHoursLabel, getExtensionBlock } from "../../utils/reservations";
@@ -32,6 +33,9 @@ import EmployeeTopbar from "../../Elements/Employee/EmployeeTopbar";
 import { navItems } from "../../Elements/Employee/employeeNav";
 
 const getCurrentTimestamp = () => Date.now();
+
+// The parts of the website the front desk keeps up to date; the rest is the admin's.
+const EMPLOYEE_WEBSITE_SECTIONS = ["gcash", "showcase"];
 
 // Pages the top bar can name that are not in the sidebar.
 const extraPages = {
@@ -63,6 +67,10 @@ export default function EmployeeDashboard({
   setEvents,
   theme,
   setTheme,
+  // The Online reservations switch, on the Website page.
+  onlineReservationsOpen,
+  isUpdatingOnlineReservations,
+  onOnlineReservationsChange,
 }) {
   const { addNotification, showToast } = useNotifications();
   // A website booking's GCash payment moves with it on the server; asked again after a cancel.
@@ -325,6 +333,17 @@ export default function EmployeeDashboard({
 
       case "settings":
         return <Settings theme={theme} setTheme={setTheme} showHeader={false} />;
+
+      case "website":
+        return (
+          <Website
+            reservations={reservations}
+            setLogs={setLogs}
+            only={EMPLOYEE_WEBSITE_SECTIONS}
+            staff="Employee"
+            bookings={{ open: onlineReservationsOpen, updating: isUpdatingOnlineReservations, onChange: onOnlineReservationsChange }}
+          />
+        );
 
       case "reservations":
         return (

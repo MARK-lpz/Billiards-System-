@@ -1,4 +1,5 @@
 import { formatEventWhen, gameTypeLabel } from "../../utils/eventUpdates";
+import { skillLevelLabel } from "../../utils/tournamentRegistrations";
 
 // `status`: where the sign-up stands (RequestStatusCard), under the greeting.
 // `event`: the tournament signed up for.
@@ -24,6 +25,7 @@ export default function SuccessMessage({ form, event = null, onReset, status = n
           ["Name", `${form.firstName} ${form.lastName}`, "bi-person-fill"],
           ["Contact", form.contact, "bi-telephone-fill"],
           ["Age", form.age, "bi-calendar-fill"],
+          ...(skillLevelLabel(form.skillLevel) ? [["Skill Level", skillLevelLabel(form.skillLevel), "bi-bar-chart-fill"]] : []),
           ...(form.teamName ? [["Team / Nickname", form.teamName, "bi-people-fill"]] : []),
         ].map(([label, value, icon]) => (
           <div key={label} className="detail-row">

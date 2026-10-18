@@ -1,3 +1,7 @@
+import { SKILL_LEVELS } from "../../utils/tournamentRegistrations";
+
+// The player's details on step 1, and the skill level they play at (one of
+// three, each with its rating), which the staff see beside their name.
 export default function PersonalInfoForm({ form, onChange, contactWarning = "" }) {
   return (
     <>
@@ -62,6 +66,24 @@ export default function PersonalInfoForm({ form, onChange, contactWarning = "" }
           />
         </div>
       </div>
+      <fieldset className="skill-levels">
+        <legend className="label">Skill Level</legend>
+        <div className="skill-level-options">
+          {SKILL_LEVELS.map((level) => (
+            <label key={level.id} className={`skill-level-option ${form.skillLevel === level.id ? "is-chosen" : ""}`}>
+              <input
+                type="radio"
+                name="skillLevel"
+                value={level.id}
+                checked={form.skillLevel === level.id}
+                onChange={onChange}
+                required
+              />
+              <span className="skill-level-name">{level.name}</span> <span className="skill-level-rating">{level.rating}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
     </>
   );
 }

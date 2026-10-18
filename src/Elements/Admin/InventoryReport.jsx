@@ -1,4 +1,9 @@
+import Pagination from "../Global/Pagination";
+import usePagination from "../Global/usePagination";
+
+// Every product, 10 a page; the counts and the stock value above are all of them.
 export default function InventoryReport({ products }) {
+  const pagination = usePagination(products);
   const lowStockItems = products.filter(p => p.stock <= p.minStock).length;
   const totalValue = products.reduce((s, p) => s + p.price * p.stock, 0);
 
@@ -52,7 +57,7 @@ export default function InventoryReport({ products }) {
                 </tr>
               </thead>
               <tbody>
-                {products.map(p => (
+                {pagination.items.map(p => (
                   <tr key={p.id}>
                     <td className="reports-table-name">{p.name}</td>
                     <td>{p.category}</td>
@@ -72,6 +77,7 @@ export default function InventoryReport({ products }) {
               </tbody>
             </table>
           </div>
+          <Pagination {...pagination} />
         </div>
       </div>
     </div>

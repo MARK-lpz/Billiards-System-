@@ -17,10 +17,11 @@ import { formatExpiryDate } from "../../utils/inventoryValidation";
 import useRefundsSection from "../Global/useRefundsSection";
 
 // The other notices the admin gets, under the low stock, all added by the server:
-// new online reservations, and an account's password reset by texted code (who,
-// never the password). The front desk's approvals, rejections and cancellations
-// are in the Audit Trail; the admin's own actions are toasts (see NotifContext).
-const OTHER_TYPES = new Set(["general", "online-reservation", "password-reset", "login-locked"]);
+// new online reservations, an account's password reset by texted code (who,
+// never the password), and the GCash details changed by an employee. The front
+// desk's approvals, rejections and cancellations are in the Audit Trail; the
+// admin's own actions are toasts (see NotifContext).
+const OTHER_TYPES = new Set(["general", "online-reservation", "password-reset", "login-locked", "website-gcash"]);
 const isOtherNotice = (notice) => !notice.type || OTHER_TYPES.has(notice.type);
 
 const describeExpiry = ({ product, days }) => {
@@ -56,6 +57,7 @@ export default function AdminBell({
   onOpenReservations,
   onOpenEvents,
   onOpenAccounts,
+  onOpenWebsite,
   events = [],
 }) {
   const timeUp = useTimeUpSection({ role: "admin", tables, reservations, onOpenTables, onEndSession });
@@ -72,13 +74,15 @@ export default function AdminBell({
 
   // Opening an other notice: a booking goes to Reservations (on Pending while
   // its payment still needs checking); a password reset, or a sign-in locked
-  // after wrong passwords, to Accounts, where a new password can be set.
+  // after wrong passwords, to Accounts, where a new password can be set; the
+  // GCash details changed by an employee, to Website on its GCash tab.
   // Anything else is only marked read.
   const openerOf = (notice) => {
     if (notice.type === "online-reservation") {
       const booking = reservations.find((entry) => String(entry.id) === String(notice.data?.reservationId));
       return () => onOpenReservations(booking?.status === "pending" ? "pending" : "all");
     }
+    if (notice.type === "website-gcash") return onOpenWebsite ? () => onOpenWebsite("gcash") : null;
     return notice.type === "password-reset" || notice.type === "login-locked" ? onOpenAccounts : null;
   };
 

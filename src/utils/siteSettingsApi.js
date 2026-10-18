@@ -1,6 +1,7 @@
 import { apiFetch } from "./apiFetch";
 
-// The website's settings (Admin > Website): read by anyone, saved by the admin.
+// The website's settings (Admin > Website): read by anyone, saved by the staff
+// (an employee only the GCash details and the slides).
 const SITE_SETTINGS_API_URL = import.meta.env.VITE_SITE_SETTINGS_API_URL || (
   !import.meta.env.DEV && window.location.hostname === "breakandchill.com"
     ? "https://app.breakandchill.com/api/site_settings.php"
@@ -15,7 +16,8 @@ const parseResponse = async (response, fallbackMessage) => {
     data = null;
   }
   if (!response.ok || !data?.success) throw new Error(data?.message || fallbackMessage);
-  return { settings: data.settings, savedAt: data.savedAt || {} };
+  // `savedBy` ({ section: { name, role } }) comes to signed-in staff only.
+  return { settings: data.settings, savedAt: data.savedAt || {}, savedBy: data.savedBy || {} };
 };
 
 export const fetchSiteSettings = async () =>

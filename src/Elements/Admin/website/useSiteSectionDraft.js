@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useSiteSettings } from "../../Global/useSiteSettings";
+import { WebsiteStaffContext } from "./WebsiteTabsContext";
 import { saveSiteSection } from "../../../utils/siteSettingsApi";
 import { appendAuditLog } from "../../../utils/audit";
 
@@ -12,10 +13,12 @@ const same = (first, second) => JSON.stringify(first ?? null) === JSON.stringify
  * the Audit Trail ("GCash: account name, QR picture changed."); a section made
  * of a list can tell what changed in it instead, with `describe(saved, draft)`
  * returning phrases ("slide 2 photo changed", "1 slide added"). The server
- * checks and cleans what is saved; the copy takes its answer.
+ * checks and cleans what is saved; the copy takes its answer. The log names
+ * who saved it (WebsiteStaffContext: the admin, or an employee).
  */
 export default function useSiteSectionDraft({ section, label, fieldLabels, describe, setLogs }) {
-  const { settings, savedAt, applySaved } = useSiteSettings();
+  const { settings, savedAt, savedBy, applySaved } = useSiteSettings();
+  const staff = useContext(WebsiteStaffContext);
   const fields = Object.keys(fieldLabels);
   const saved = settings[section];
   const [draft, setDraft] = useState(() => pick(saved, fields));
@@ -42,7 +45,7 @@ export default function useSiteSectionDraft({ section, label, fieldLabels, descr
       setDraft(pick(answer.settings[section], fields));
       appendAuditLog(setLogs, {
         type: "settings",
-        staff: "Admin",
+        staff,
         action: "Updated website",
         detail: phrases.length
           ? `Website ${label}: ${phrases.join("; ")}.`
@@ -62,5 +65,17 @@ export default function useSiteSectionDraft({ section, label, fieldLabels, descr
     setStatus(null);
   };
 
-  return { section, saved, draft, update, save, reset, saving, status, dirty: changed.length > 0, savedAt: savedAt[section] || 0 };
+  return {
+    section,
+    saved,
+    draft,
+    update,
+    save,
+    reset,
+    saving,
+    status,
+    dirty: changed.length > 0,
+    savedAt: savedAt[section] || 0,
+    savedBy: savedBy?.[section] || null,
+  };
 }

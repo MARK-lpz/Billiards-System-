@@ -1,8 +1,10 @@
 /**
  * Players registered for tournaments, as the staff's Tournament Schedule shows
  * them. A participant is stored as one label: "Ana Cruz", "Ana Cruz (Team)",
- * "Ana Cruz (Walk-in)" or "Ana Cruz (Team, Walk-in)". Online players also have
- * the confirmation text the server saved for them, which holds their number.
+ * "Ana Cruz (Walk-in)" or "Ana Cruz (Team, Walk-in)", with the skill level the
+ * player chose online before Walk-in: "Ana Cruz (Team, Intermediate 3.0)".
+ * Online players also have the confirmation text the server saved for them,
+ * which holds their number.
  */
 import { getOpenEvents } from "./eventUpdates";
 
@@ -12,14 +14,37 @@ const WALK_IN_TAG = "walk-in";
 
 const normalize = (text) => String(text || "").trim().toLowerCase().replace(/\s+/g, " ");
 
+/** The skill levels a player picks when registering, with their rating. */
+export const SKILL_LEVELS = [
+  { id: "beginner", name: "Beginner", rating: "2.0" },
+  { id: "intermediate", name: "Intermediate", rating: "3.0" },
+  { id: "pro", name: "Pro", rating: "4.0" },
+];
+
+/** "Intermediate 3.0" for "intermediate"; "" for none. */
+export const skillLevelLabel = (id) => {
+  const level = SKILL_LEVELS.find((entry) => entry.id === id);
+  return level ? `${level.name} ${level.rating}` : "";
+};
+
+const SKILL_LABELS = new Set(SKILL_LEVELS.map((level) => normalize(skillLevelLabel(level.id))));
+
+/** The label a player is stored under: "Ana Cruz (Team, Pro 4.0)". */
+export const buildParticipantLabel = (name, { team = "", skillLevel = "" } = {}) => {
+  const parts = [String(team).trim(), skillLevelLabel(skillLevel)].filter(Boolean);
+  return parts.length ? `${name} (${parts.join(", ")})` : name;
+};
+
 export const parseParticipant = (label = "") => {
   const text = String(label).trim();
   const match = text.match(/^(.*?)\s*\((.*)\)\s*$/);
-  if (!match) return { name: text, team: "", walkIn: false };
+  if (!match) return { name: text, team: "", skill: "", walkIn: false };
 
   const parts = match[2].split(",").map((part) => part.trim()).filter(Boolean);
   const walkIn = parts.length > 0 && normalize(parts[parts.length - 1]) === WALK_IN_TAG;
-  return { name: match[1].trim(), team: (walkIn ? parts.slice(0, -1) : parts).join(", "), walkIn };
+  const rest = walkIn ? parts.slice(0, -1) : parts;
+  const skill = rest.find((part) => SKILL_LABELS.has(normalize(part))) || "";
+  return { name: match[1].trim(), team: rest.filter((part) => part !== skill).join(", "), skill, walkIn };
 };
 
 export const registrationKey = (eventId, label) => `${eventId}::${normalize(label)}`;
