@@ -25,7 +25,15 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
     $list = readCollection($pdo, $spec);
-    echo json_encode(['success' => true, 'tables' => $list['items'], 'versions' => $list['versions']]);
+    $tables = $list['items'];
+    // What a table ordered is for staff; the website only needs to know if it is free.
+    if (!currentStaff($pdo)) {
+        $tables = array_map(function ($table) {
+            if (is_array($table)) unset($table['orders']);
+            return $table;
+        }, $tables);
+    }
+    echo json_encode(['success' => true, 'tables' => $tables, 'versions' => $list['versions']]);
     exit();
 }
 

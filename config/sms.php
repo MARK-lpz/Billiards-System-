@@ -2,16 +2,28 @@
 /*
  * SMS provider settings (Semaphore, https://semaphore.co).
  *
+ * NEVER put the API key in this file: it is committed, the repository is
+ * public, and Semaphore bans an account whose key shows up in a public repo.
+ * The key goes in config/sms.local.php instead, which git ignores: copy
+ * sms.local.example.php to sms.local.php on each computer and on the hosting,
+ * and fill it in there (or set the SEMAPHORE_API_KEY environment variable).
+ *
  * While the key is empty, password reset from the login screen is switched
- * off: a username and mobile number alone are not proof of identity. Put the
- * API key between the quotes below (or set the SEMAPHORE_API_KEY environment
- * variable) and reset by texted one-time code turns on. No other change is needed.
+ * off: a username and mobile number alone are not proof of identity. With the
+ * key in place, reset by texted one-time code turns on. No other change is needed.
  */
-define('SEMAPHORE_API_KEY', getenv('SEMAPHORE_API_KEY') ?: '');
+$smsLocalFile = __DIR__ . '/sms.local.php';
+$smsLocal = is_file($smsLocalFile) ? require $smsLocalFile : [];
+if (!is_array($smsLocal)) {
+    $smsLocal = [];
+}
+
+define('SEMAPHORE_API_KEY', getenv('SEMAPHORE_API_KEY') ?: trim((string) ($smsLocal['api_key'] ?? '')));
 
 // Optional. Must be a sender name approved in your Semaphore account;
 // leave empty to use Semaphore's default sender.
-define('SEMAPHORE_SENDER_NAME', getenv('SEMAPHORE_SENDER_NAME') ?: '');
+define('SEMAPHORE_SENDER_NAME', getenv('SEMAPHORE_SENDER_NAME') ?: trim((string) ($smsLocal['sender_name'] ?? '')));
+unset($smsLocalFile, $smsLocal);
 
 // Only changed for testing against a local stand-in; leave unset otherwise.
 define('SEMAPHORE_API_URL', getenv('SEMAPHORE_API_URL') ?: 'https://api.semaphore.co/api/v4/messages');

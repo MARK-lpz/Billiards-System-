@@ -4,6 +4,7 @@ require_once '../config/database.php';
 require_once '../config/auth.php';
 require_once '../config/collection.php';
 require_once '../config/media.php';
+require_once '../config/site_settings.php';
 
 // Tournaments: the website lists them and registers players (POST); only the
 // admin's screen changes them, one tournament at a time (see
@@ -139,6 +140,10 @@ if ($method === 'POST') {
         exit();
     }
 
+    // Read before the transaction: both may create their table, which would end it.
+    $fromWebsite = currentStaff($pdo) === null;
+    $gcashReady = gcashIsReady(readSiteSettings($pdo));
+
     $pdo->beginTransaction();
     try {
         $stmt = $pdo->prepare('SELECT event_data, version FROM tournament_events WHERE id = ? FOR UPDATE');
@@ -152,6 +157,12 @@ if ($method === 'POST') {
         $event = normalizeEvent(array_merge(json_decode($storedEvent, true) ?: [], ['id' => $eventId]));
         if (!$event || !in_array($event['status'], ['upcoming', 'active'], true)) {
             throw new RuntimeException('Tournament registration is closed.');
+        }
+        // The website takes the entry fee by GCash, so it signs players up for a
+        // paid tournament only once the admin has set the GCash account (Admin >
+        // Website). Staff signing up walk-ins, who pay at the desk, are not held up.
+        if ((float) $event['entryFee'] > 0 && $fromWebsite && !$gcashReady) {
+            throw new RuntimeException('Online payment is not set up yet. Please register at the hall.');
         }
         // Open through the event's own day, as on the website, but not after it.
         $today = (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d');
@@ -182,6 +193,7 @@ if ($method === 'POST') {
             'Tournament not found.' => 400,
             'Tournament registration is closed.' => 400,
             'This player is already registered for this tournament.' => 409,
+            'Online payment is not set up yet. Please register at the hall.' => 403,
         ];
         $message = isset($known[$error->getMessage()]) ? $error->getMessage() : 'Unable to save tournament registration.';
         http_response_code($known[$message] ?? 500);

@@ -2,3 +2,8 @@
 # computer and the hosting keep their own; the folder is made again on the
 # first upload.
 Media/
+
+# The real Semaphore SMS key. Never commit it: this repo is public, and
+# Semaphore bans an account whose key shows up in a public repo. See
+# config/sms.local.example.php.
+config/sms.local.php

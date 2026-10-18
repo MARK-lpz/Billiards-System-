@@ -3,6 +3,7 @@ require_once '../config/cors.php';
 require_once '../config/database.php';
 require_once '../config/auth.php';
 require_once '../config/sms.php';
+require_once '../config/notices.php';
 
 const RESET_CODE_MINUTES = 10;
 const RESET_CODE_MAX_ATTEMPTS = 5;
@@ -220,11 +221,26 @@ try {
     $pdo->prepare('UPDATE users SET password = MD5(?) WHERE id = ?')->execute([$newPassword, $user['id']]);
     $pdo->prepare('INSERT INTO password_reset_log (user_id, username, role) VALUES (?, ?, ?)')
         ->execute([$user['id'], $user['username'], $user['role']]);
+    $logId = $pdo->lastInsertId();
     $pdo->prepare('UPDATE password_reset_codes SET used_at = NOW() WHERE id = ?')->execute([$codeRow['id']]);
     $pdo->commit();
 } catch (Throwable $error) {
     $pdo->rollBack();
     respond(500, ['success' => false, 'message' => 'Unable to reset the password right now.']);
+}
+
+// The admin's bell is told THAT it happened (who, and how), never the password.
+try {
+    addStaffNotice(
+        $pdo,
+        'password-reset-' . $logId,
+        'password-reset',
+        "{$user['username']} ({$user['role']}) reset their own password with a code texted to their registered number.",
+        ['username' => $user['username'], 'role' => $user['role']],
+        ['admin']
+    );
+} catch (Throwable $error) {
+    error_log('Password reset notice failed: ' . $error->getMessage());
 }
 
 respond(200, [

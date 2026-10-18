@@ -3,13 +3,15 @@ require_once '../config/cors.php';
 require_once '../config/database.php';
 require_once '../config/auth.php';
 require_once '../config/media.php';
+require_once '../config/site_settings.php';
 
 // Pictures and videos that promote a tournament (shown on the website's
 // slideshow and Tournaments page). Files are kept in backend/Media (see
 // config/media.php) under a random name, the tournament stores "Media/<name>",
 // and api/media.php sends them to the website.
-// A file no tournament uses is removed a day after it was uploaded (a form
-// closed without saving, or a picture taken off a tournament).
+// The admin's Website page uploads the GCash QR here too.
+// A file nothing uses is removed a day after it was uploaded (a form closed
+// without saving, or a picture taken off a tournament).
 
 const EVENT_MEDIA_DIR = MEDIA_DIR;
 const EVENT_MEDIA_PATH = MEDIA_PATH_PREFIX;
@@ -95,7 +97,7 @@ function storedMediaFiles() {
     return $files;
 }
 
-// Every media file name a saved tournament still uses.
+// Every media file name a saved tournament, or the website's settings, still uses.
 function usedMediaFiles($pdo) {
     $used = [];
     try {
@@ -108,6 +110,12 @@ function usedMediaFiles($pdo) {
         foreach ((is_array($event['media'] ?? null) ? $event['media'] : []) as $item) {
             if (is_array($item) && isset($item['path'])) $used[basename((string) $item['path'])] = true;
         }
+    }
+    // The website's GCash QR (Admin > Website) lives in Media too.
+    try {
+        foreach (siteSettingMediaFiles($pdo) as $name) $used[$name] = true;
+    } catch (Throwable $error) {
+        return null; // The settings cannot be read: nothing can be judged unused.
     }
     return $used;
 }

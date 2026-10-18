@@ -48,7 +48,8 @@ function collectionSpec(string $name): array
     $specs = [
         'tables' => [
             'name' => 'tables', 'table' => 'pool_table_items', 'id' => 'item_id', 'json' => 'item_json',
-            'ordered' => true, 'tombstones' => true, 'maxBytes' => 20000, 'label' => 'table',
+            // Room for a long session's food and drink orders, which ride on the table.
+            'ordered' => true, 'tombstones' => true, 'maxBytes' => 60000, 'label' => 'table',
         ],
         'equipment' => [
             'name' => 'equipment', 'table' => 'equipment_items', 'id' => 'item_id', 'json' => 'item_json',

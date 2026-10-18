@@ -3,6 +3,8 @@ require_once '../config/cors.php';
 require_once '../config/database.php';
 require_once '../config/auth.php';
 require_once '../config/collection.php';
+require_once '../config/notices.php';
+require_once '../config/site_settings.php';
 
 function readJsonBody() {
     return json_decode(file_get_contents('php://input'), true) ?: [];
@@ -130,8 +132,8 @@ function normalizeReservation($reservation) {
         'date' => normalizeDateValue($reservation['date'] ?? $reservation['reservation_date'] ?? ''),
         'time' => normalizeTimeValue($reservation['time'] ?? $reservation['reservation_time'] ?? ''),
         'partySize' => max(1, (int) ($reservation['partySize'] ?? $reservation['party_size'] ?? 1)),
-        // Up to 12 hours: a guest may book from opening (10:00) to closing (22:00).
-        'durationMinutes' => max(1, min(720, (int) ($reservation['durationMinutes'] ?? $reservation['duration_minutes'] ?? 60))),
+        // At most a day; a website booking must also fit the opening hours (checked on saving).
+        'durationMinutes' => max(1, min(1440, (int) ($reservation['durationMinutes'] ?? $reservation['duration_minutes'] ?? 60))),
         'tableId' => (int) ($reservation['tableId'] ?? $reservation['table_id'] ?? 0),
         'tableName' => trim($reservation['tableName'] ?? $reservation['table_name'] ?? ''),
         'notes' => trim($reservation['notes'] ?? ''),
@@ -300,6 +302,8 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
     expirePastReservations($pdo);
+    // requestedAtMs: when the booking was sent, read by the database itself, so it
+    // is right whatever time zone the database keeps (the admin's payment reminder).
     $stmt = $pdo->query(
         'SELECT id, customer_name AS customerName, phone, email, reservation_date AS date,
                 TIME_FORMAT(reservation_time, "%H:%i") AS time, party_size AS partySize,
@@ -307,7 +311,8 @@ if ($method === 'GET') {
                 table_id AS tableId, table_name AS tableName, notes, status, source,
                 payment_method AS paymentMethod, payment_reference AS paymentReference,
                 payment_amount AS paymentAmount,
-                requested_at AS requestedAt
+                requested_at AS requestedAt,
+                UNIX_TIMESTAMP(requested_at) * 1000 AS requestedAtMs
          FROM reservations ORDER BY requested_at DESC'
     );
     echo json_encode(['success' => true, 'reservations' => $stmt->fetchAll()]);
@@ -345,6 +350,24 @@ if ($method === 'POST' && $data['source'] === 'online' && !onlineReservationsAre
         'message' => 'Online reservations are temporarily closed by the owner. Please check back later.',
     ]);
     exit();
+}
+
+// The website's own booking rules, kept here too since the form can be skipped:
+// it is paid by GCash, so only once the admin has set the GCash account
+// (Admin > Website), and it must fit the opening hours.
+if ($method === 'POST' && !$staff) {
+    $site = readSiteSettings($pdo);
+    if (!gcashIsReady($site)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Online payment is not set up yet. Please book at the hall.']);
+        exit();
+    }
+    $hoursError = bookingHoursError($data, $site['hours']);
+    if ($hoursError !== '') {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => $hoursError]);
+        exit();
+    }
 }
 
 if ($method === 'POST') {
@@ -425,6 +448,16 @@ if ($method === 'POST') {
             : 'The reservation server could not save your request. Please try again.';
         echo json_encode(['success' => false, 'message' => $message]);
         exit();
+    }
+
+    // A booking from the website: the staff bells hear of it from here, since the
+    // website itself cannot post notices. A missed notice never fails the booking.
+    if (!$staff) {
+        try {
+            addOnlineReservationNotice($pdo, $data);
+        } catch (Throwable $error) {
+            error_log('Online reservation notice failed: ' . $error->getMessage());
+        }
     }
 
     echo json_encode(['success' => true, 'reservation' => $data]);
