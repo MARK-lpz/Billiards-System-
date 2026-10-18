@@ -5,11 +5,14 @@
  * opening hours, and the home page's words and pictures (the showcase slides,
  * the booking steps and the footer line). Kept in site_settings, one row per
  * section. A section never saved reads as its default, which is how the site
- * was before.
+ * was before. The employee's Website page changes two of them: the GCash
+ * details and the slides.
  */
 require_once __DIR__ . '/media.php';
 
 const SITE_SETTING_SECTIONS = ['gcash', 'business', 'announcement', 'hours', 'showcase', 'bookingSteps', 'footer'];
+// What an employee may save; the rest is the admin's.
+const SITE_EMPLOYEE_SECTIONS = ['gcash', 'showcase'];
 const SITE_ANNOUNCEMENT_MAX = 200;
 
 // The showcase's own slides (open tournaments get theirs on their own, first).
@@ -81,6 +84,30 @@ function readSiteSettingTimes($pdo) {
         $times[$row['section']] = (float) $row['savedAt'];
     }
     return $times;
+}
+
+/** Who last saved each section ({ name, role }), for the staff pages only. */
+function readSiteSettingSavers($pdo) {
+    ensureSiteSettingsTable($pdo);
+    $savers = [];
+    $rows = $pdo->query(
+        'SELECT s.section, s.updated_by, LOWER(u.role) AS role
+         FROM site_settings s LEFT JOIN users u ON u.username = s.updated_by
+         WHERE s.updated_by IS NOT NULL AND s.updated_by <> \'\''
+    )->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rows as $row) {
+        $savers[$row['section']] = ['name' => $row['updated_by'], 'role' => $row['role'] ?: null];
+    }
+    return $savers;
+}
+
+/** "QR picture, account name": the GCash details that differ between two saves. */
+function gcashChanges($before, $after) {
+    $changed = [];
+    if (($before['qr']['path'] ?? null) !== ($after['qr']['path'] ?? null)) $changed[] = 'QR picture';
+    if (trim((string) ($before['accountName'] ?? '')) !== trim((string) ($after['accountName'] ?? ''))) $changed[] = 'account name';
+    if ((string) ($before['number'] ?? '') !== (string) ($after['number'] ?? '')) $changed[] = 'GCash number';
+    return $changed;
 }
 
 /** The QR or slide picture is in the Media folder (uploaded through event_media.php). */

@@ -9,7 +9,8 @@ require_once '../config/site_settings.php';
 // slideshow and Tournaments page). Files are kept in backend/Media (see
 // config/media.php) under a random name, the tournament stores "Media/<name>",
 // and api/media.php sends them to the website.
-// The admin's Website page uploads the GCash QR and the showcase photos here too.
+// The Website page (the admin's, and the employee's) uploads the GCash QR and
+// the showcase photos here too.
 // A file nothing uses is removed a day after it was uploaded (a form closed
 // without saving, or a picture taken off a tournament).
 
@@ -136,8 +137,9 @@ function cleanUnusedMedia($pdo) {
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
-// Added from the admin's Events page only.
-requireStaff(getDBConnection(), ['admin']);
+// Added from the admin's Events page, and from either Website page (the
+// employee's only changes the GCash QR and the slides).
+requireStaff(getDBConnection(), ['admin', 'employee']);
 
 if ($method === 'GET') {
     respond(200, ['success' => true, 'limits' => limits()]);

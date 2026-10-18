@@ -377,7 +377,7 @@ if ($method === 'POST' && $data['source'] === 'online' && !onlineReservationsAre
     http_response_code(403);
     echo json_encode([
         'success' => false,
-        'message' => 'Online reservations are temporarily closed by the owner. Please check back later.',
+        'message' => 'Online reservations are temporarily closed by the hall. Please check back later.',
     ]);
     exit();
 }

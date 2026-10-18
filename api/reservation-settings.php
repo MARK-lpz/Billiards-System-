@@ -39,7 +39,8 @@ if ($method === 'GET') {
     exit();
 }
 
-requireStaff($pdo, ['admin']);
+// Opened and closed from the Website page, the admin's or the employee's.
+requireStaff($pdo, ['admin', 'employee']);
 
 if ($method !== 'PUT') {
     http_response_code(405);
