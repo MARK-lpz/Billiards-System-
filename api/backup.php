@@ -76,9 +76,10 @@ foreach (['tables', 'equipment', 'events'] as $list) {
 
 // A restore replaces the whole database, so on top of being signed in as the
 // admin, both actions need the admin's password again right now.
-$check = $pdo->prepare("SELECT id FROM users WHERE username = ? AND password = MD5(?) AND LOWER(role) = 'admin'");
-$check->execute([$username, $password]);
-if (!$check->fetch()) {
+$check = $pdo->prepare("SELECT id, password FROM users WHERE username = ? AND LOWER(role) = 'admin'");
+$check->execute([$username]);
+$adminRow = $check->fetch();
+if (!$adminRow || !checkPassword($pdo, (int) $adminRow['id'], $adminRow['password'], $password)) {
     respond(403, ['success' => false, 'message' => 'That admin password is not correct.']);
 }
 

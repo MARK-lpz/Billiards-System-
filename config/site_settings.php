@@ -1,14 +1,31 @@
 <?php
 /*
  * What the admin sets for the website (Admin > Website): the GCash account
- * customers pay into, the hall's address and contacts, an announcement, and the
- * opening hours. Kept in site_settings, one row per section. A section never
- * saved reads as its default, which is how the site was before.
+ * customers pay into, the hall's address and contacts, an announcement, the
+ * opening hours, and the home page's words and pictures (the showcase slides,
+ * the booking steps and the footer line). Kept in site_settings, one row per
+ * section. A section never saved reads as its default, which is how the site
+ * was before.
  */
 require_once __DIR__ . '/media.php';
 
-const SITE_SETTING_SECTIONS = ['gcash', 'business', 'announcement', 'hours'];
+const SITE_SETTING_SECTIONS = ['gcash', 'business', 'announcement', 'hours', 'showcase', 'bookingSteps', 'footer'];
 const SITE_ANNOUNCEMENT_MAX = 200;
+
+// The showcase's own slides (open tournaments get theirs on their own, first).
+const SITE_SLIDES_MAX = 5;
+const SITE_SLIDE_TITLE_MAX = 60;
+const SITE_SLIDE_TEXT_MAX = 160;
+// Which part of the photo stays in view when the slide crops it.
+const SITE_SLIDE_POSITIONS = ['center', 'top', 'bottom', 'left', 'right'];
+
+// Always three steps: each sits on a numbered ball (1, 2, 3).
+const SITE_BOOKING_STEPS = 3;
+const SITE_STEPS_HEADING_MAX = 60;
+const SITE_STEP_TITLE_MAX = 40;
+const SITE_STEP_TEXT_MAX = 160;
+
+const SITE_FOOTER_MAX = 80;
 
 function siteSettingDefaults() {
     return [
@@ -16,6 +33,17 @@ function siteSettingDefaults() {
         'business' => ['address' => '', 'mapsUrl' => '', 'phone' => '', 'facebookUrl' => ''],
         'announcement' => ['enabled' => false, 'message' => '', 'startDate' => '', 'endDate' => ''],
         'hours' => ['open' => '10:00', 'close' => '22:00'],
+        // No photo: the slide uses the site's own picture.
+        'showcase' => ['slides' => [
+            ['id' => 'brand-1', 'title' => 'Play. Compete. Unwind.', 'text' => 'Break & Chill is your place for casual games, serious practice, and tournament play.', 'image' => null, 'position' => 'center'],
+            ['id' => 'brand-2', 'title' => 'Your Next Game Starts Here', 'text' => 'Enjoy a focused billiards space built for players, teams, and friendly competition.', 'image' => null, 'position' => 'bottom'],
+        ]],
+        'bookingSteps' => ['heading' => 'Your table in three shots.', 'steps' => [
+            ['title' => 'Pick a table and time', 'text' => 'Choose the date, an open table, your start time, and how many hours you want to play.'],
+            ['title' => 'Pay with GCash', 'text' => 'Send the payment and enter the reference number from your receipt to hold the table.'],
+            ['title' => 'Get confirmed', 'text' => 'The front desk checks your payment and approves the booking. Your table is waiting when you arrive.'],
+        ]],
+        'footer' => ['tagline' => 'Games, tournaments, and good breaks.'],
     ];
 }
 
@@ -55,7 +83,7 @@ function readSiteSettingTimes($pdo) {
     return $times;
 }
 
-/** The QR picture is in the Media folder (uploaded through event_media.php). */
+/** The QR or slide picture is in the Media folder (uploaded through event_media.php). */
 function siteMediaFileExists($path) {
     return is_string($path)
         && preg_match('#^' . preg_quote(MEDIA_PATH_PREFIX, '#') . '(' . MEDIA_FILE_PATTERN . ')$#', $path, $match)
@@ -71,8 +99,16 @@ function gcashIsReady($settings) {
 
 /** The Media files the settings use, so the clean-up of unused uploads keeps them. */
 function siteSettingMediaFiles($pdo) {
-    $path = readSiteSettings($pdo)['gcash']['qr']['path'] ?? '';
-    return is_string($path) && $path !== '' ? [basename($path)] : [];
+    $settings = readSiteSettings($pdo);
+    $paths = [$settings['gcash']['qr']['path'] ?? ''];
+    foreach ((is_array($settings['showcase']['slides'] ?? null) ? $settings['showcase']['slides'] : []) as $slide) {
+        $paths[] = is_array($slide) ? ($slide['image']['path'] ?? '') : '';
+    }
+    $files = [];
+    foreach ($paths as $path) {
+        if (is_string($path) && $path !== '') $files[] = basename($path);
+    }
+    return $files;
 }
 
 function readOpeningHours($pdo) {
@@ -197,6 +233,57 @@ function cleanSiteSection($section, $values) {
             return [null, 'Closing must be at least 1 hour after opening, on the same day.'];
         }
         return [['open' => $open, 'close' => $close], ''];
+    }
+
+    if ($section === 'showcase') {
+        $slides = is_array($values['slides'] ?? null) ? array_values($values['slides']) : [];
+        if (!$slides) return [null, 'Keep at least one slide.'];
+        if (count($slides) > SITE_SLIDES_MAX) return [null, 'The showcase takes up to ' . SITE_SLIDES_MAX . ' slides.'];
+        $clean = [];
+        $ids = [];
+        foreach ($slides as $index => $slide) {
+            $number = $index + 1;
+            $slide = is_array($slide) ? $slide : [];
+            $title = cleanSiteText($slide['title'] ?? '', SITE_SLIDE_TITLE_MAX);
+            if ($title === '') return [null, "Give slide $number a title."];
+            $path = $slide['image']['path'] ?? null;
+            if ($path !== null && $path !== '' && !siteMediaFileExists($path)) {
+                return [null, "The photo of slide $number was not found. Please upload it again (JPG, PNG or WebP)."];
+            }
+            // The website keys each slide by its id; a missing or repeated one gets a new id.
+            $id = (string) ($slide['id'] ?? '');
+            if (!preg_match('/^[a-z0-9-]{1,32}$/', $id) || isset($ids[$id])) $id = 'slide-' . bin2hex(random_bytes(4));
+            $ids[$id] = true;
+            $clean[] = [
+                'id' => $id,
+                'title' => $title,
+                'text' => cleanSiteText($slide['text'] ?? '', SITE_SLIDE_TEXT_MAX),
+                'image' => $path ? ['path' => $path, 'type' => 'image'] : null,
+                'position' => in_array($slide['position'] ?? '', SITE_SLIDE_POSITIONS, true) ? $slide['position'] : 'center',
+            ];
+        }
+        return [['slides' => $clean], ''];
+    }
+
+    if ($section === 'bookingSteps') {
+        $heading = cleanSiteText($values['heading'] ?? '', SITE_STEPS_HEADING_MAX);
+        if ($heading === '') return [null, 'Write the heading above the steps.'];
+        $steps = is_array($values['steps'] ?? null) ? array_values($values['steps']) : [];
+        if (count($steps) !== SITE_BOOKING_STEPS) return [null, 'The booking steps are always ' . SITE_BOOKING_STEPS . '.'];
+        $clean = [];
+        foreach ($steps as $index => $step) {
+            $step = is_array($step) ? $step : [];
+            $title = cleanSiteText($step['title'] ?? '', SITE_STEP_TITLE_MAX);
+            $text = cleanSiteText($step['text'] ?? '', SITE_STEP_TEXT_MAX);
+            if ($title === '' || $text === '') return [null, 'Give step ' . ($index + 1) . ' a title and a text.'];
+            $clean[] = ['title' => $title, 'text' => $text];
+        }
+        return [['heading' => $heading, 'steps' => $clean], ''];
+    }
+
+    if ($section === 'footer') {
+        // May be left empty: the footer then shows the name and the hours only.
+        return [['tagline' => cleanSiteText($values['tagline'] ?? '', SITE_FOOTER_MAX)], ''];
     }
 
     return [null, 'Unknown website section.'];

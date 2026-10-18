@@ -5,6 +5,9 @@ require_once '../config/auth.php';
 require_once '../config/collection.php';
 require_once '../config/notices.php';
 require_once '../config/site_settings.php';
+require_once '../config/online_payments.php';
+require_once '../config/customer_texts.php';
+require_once '../config/website_requests.php';
 
 function readJsonBody() {
     return json_decode(file_get_contents('php://input'), true) ?: [];
@@ -298,10 +301,36 @@ $pdo = getDBConnection();
 ensureReservationsTable($pdo);
 ensureReservationSettingsTable($pdo);
 ensureTournamentEventsTable($pdo);
+ensureOnlinePaymentsTable($pdo);
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
     expirePastReservations($pdo);
+
+    // The website (no sign-in) sees only which tables are taken when, to offer
+    // the free times: never who booked, their number, email, notes or GCash
+    // details. A sign-in that has ended gets 401, not this list, so a staff
+    // screen is sent back to the login instead of losing its bookings' details.
+    $staff = currentStaff($pdo);
+    if (!$staff && readAuthToken() !== '') {
+        requireStaff($pdo);
+    }
+    if (!$staff) {
+        // From yesterday (Manila), so a booking near midnight is still counted.
+        $from = (new DateTime('now', new DateTimeZone('Asia/Manila')))->modify('-1 day')->format('Y-m-d');
+        $stmt = $pdo->prepare(
+            "SELECT id, reservation_date AS date, TIME_FORMAT(reservation_time, '%H:%i') AS time,
+                    duration_minutes AS durationMinutes, table_id AS tableId, table_name AS tableName, status
+             FROM reservations
+             WHERE status IN ('pending', 'approved', 'reserved', 'arrived', 'seated')
+               AND reservation_date >= ?
+             ORDER BY reservation_date, reservation_time"
+        );
+        $stmt->execute([$from]);
+        echo json_encode(['success' => true, 'reservations' => $stmt->fetchAll()]);
+        exit();
+    }
+
     // requestedAtMs: when the booking was sent, read by the database itself, so it
     // is right whatever time zone the database keeps (the admin's payment reminder).
     $stmt = $pdo->query(
@@ -319,7 +348,8 @@ if ($method === 'GET') {
     exit();
 }
 
-$data = normalizeReservation(readJsonBody());
+$body = readJsonBody();
+$data = normalizeReservation($body);
 if (!isValidReservation($data)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Complete reservation details are required']);
@@ -368,6 +398,35 @@ if ($method === 'POST' && !$staff) {
         echo json_encode(['success' => false, 'message' => $hoursError]);
         exit();
     }
+
+    // The payment: its reference, the GCash number it came from (where it goes
+    // back if the booking is not approved) and a screenshot of the receipt.
+    $payment = [
+        'reference' => cleanPaymentReference($data['paymentReference']),
+        'payerNumber' => cleanPayerNumber($body['payerNumber'] ?? ''),
+    ];
+    try {
+        if ($payment['reference'] === '') {
+            throw new PaymentRefusal(400, 'Please type the reference number from your GCash receipt (10 to 15 digits).');
+        }
+        if ($payment['payerNumber'] === '') {
+            throw new PaymentRefusal(400, 'Please type the GCash number you paid from, in 09XXXXXXXXX format.');
+        }
+        $payment['image'] = readReceiptDataUrl($body['receipt'] ?? '');
+    } catch (PaymentRefusal $refusal) {
+        http_response_code($refusal->status);
+        echo json_encode(['success' => false, 'message' => $refusal->getMessage()]);
+        exit();
+    }
+
+    // What the booking costs, from the table's own rate rather than the request.
+    foreach (readCollection($pdo, openCollection($pdo, 'tables'))['items'] as $table) {
+        if ((int) ($table['id'] ?? 0) === (int) $data['tableId'] && (float) ($table['rate'] ?? 0) > 0) {
+            $data['paymentAmount'] = round((float) $table['rate'] * $data['durationMinutes'] / 60, 2);
+        }
+    }
+    $data['paymentMethod'] = 'gcash';
+    $data['paymentReference'] = $payment['reference'];
 }
 
 if ($method === 'POST') {
@@ -388,11 +447,12 @@ if ($method === 'POST') {
 $movesSlot = $method === 'POST';
 if ($method === 'PUT') {
     $stmt = $pdo->prepare(
-        'SELECT reservation_date AS date, TIME_FORMAT(reservation_time, "%H:%i") AS time, table_id AS tableId
+        'SELECT reservation_date AS date, TIME_FORMAT(reservation_time, "%H:%i") AS time, table_id AS tableId, status
          FROM reservations WHERE id = ?'
     );
     $stmt->execute([$data['id']]);
     $stored = $stmt->fetch();
+    $storedStatus = $stored ? (string) $stored['status'] : '';
     $movesSlot = !$stored
         || $stored['date'] !== $data['date']
         || $stored['time'] !== $data['time']
@@ -433,14 +493,40 @@ if ($method === 'POST') {
            payment_method = VALUES(payment_method), payment_reference = VALUES(payment_reference),
            payment_amount = VALUES(payment_amount)'
     );
+    // A website booking and its held payment are saved together, or neither is.
+    $receiptFile = null;
     try {
+        if (!$staff) $receiptFile = storeReceipt($payment['image']);
+        $pdo->beginTransaction();
         $stmt->execute([
             $data['id'], $data['customerName'], $data['phone'], $data['email'],
             $data['date'], $data['time'], $data['partySize'], $data['durationMinutes'], $data['tableId'],
             $data['tableName'], $data['notes'], $data['status'], $data['source'],
             $data['paymentMethod'], $data['paymentReference'], $data['paymentAmount'],
         ]);
+        if (!$staff) {
+            createHeldPayment($pdo, [
+                'kind' => 'reservation',
+                'refId' => $data['id'],
+                'customerName' => $data['customerName'],
+                'phone' => $data['phone'],
+                'payerNumber' => $payment['payerNumber'],
+                'reference' => $payment['reference'],
+                'amount' => $data['paymentAmount'],
+                'receiptFile' => $receiptFile,
+                'playDate' => $data['date'],
+            ]);
+        }
+        $pdo->commit();
+    } catch (PaymentRefusal $refusal) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        deleteReceipt($receiptFile);
+        http_response_code($refusal->status);
+        echo json_encode(['success' => false, 'message' => $refusal->getMessage()]);
+        exit();
     } catch (PDOException $error) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        deleteReceipt($receiptFile);
         error_log('Reservation save failed: ' . $error->getMessage());
         http_response_code(500);
         $message = $error->getCode() === '22007'
@@ -452,15 +538,23 @@ if ($method === 'POST') {
 
     // A booking from the website: the staff bells hear of it from here, since the
     // website itself cannot post notices. A missed notice never fails the booking.
+    // It also gets a key, so the customer's browser can follow the booking
+    // (api/request_status.php). Without one the booking still stands.
+    $statusKey = null;
     if (!$staff) {
         try {
             addOnlineReservationNotice($pdo, $data);
         } catch (Throwable $error) {
             error_log('Online reservation notice failed: ' . $error->getMessage());
         }
+        try {
+            $statusKey = createWebsiteRequest($pdo, 'reservation', (string) $data['id']);
+        } catch (Throwable $error) {
+            error_log('Reservation status key failed: ' . $error->getMessage());
+        }
     }
 
-    echo json_encode(['success' => true, 'reservation' => $data]);
+    echo json_encode(['success' => true, 'reservation' => $data] + ($statusKey ? ['statusKey' => $statusKey] : []));
     exit();
 }
 
@@ -496,7 +590,17 @@ if ($method === 'PUT') {
         $data['partySize'], $data['durationMinutes'], $data['tableId'], $data['tableName'], $data['notes'],
         $data['status'], $data['source'], $data['id'],
     ]);
-    echo json_encode(['success' => true, 'reservation' => $data]);
+
+    // A website booking's payment follows it: kept once approved, sent back if
+    // it is turned down, or if staff cancel it and say to (`refundPayment`).
+    $settledPayment = null;
+    if ($storedStatus !== $data['status']) {
+        $refund = array_key_exists('refundPayment', $body) ? filter_var($body['refundPayment'], FILTER_VALIDATE_BOOLEAN) : null;
+        $settledPayment = settleReservationPayment($pdo, $data['id'], $data['status'], $refund, (string) $staff['username']);
+        // A website customer is texted once it is decided.
+        textSafely(fn() => textReservationDecision($pdo, (string) $data['id'], $data['status'], $settledPayment));
+    }
+    echo json_encode(['success' => true, 'reservation' => $data, 'payment' => $settledPayment]);
     exit();
 }
 

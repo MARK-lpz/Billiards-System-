@@ -1,8 +1,15 @@
 <?php
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'billiards_system');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+
+$dbLocalFile = __DIR__ . '/database.local.php';
+$dbLocal = is_file($dbLocalFile) ? require $dbLocalFile : [];
+if (!is_array($dbLocal)) {
+    $dbLocal = [];
+}
+define('DB_HOST', getenv('DB_HOST') ?: (string) ($dbLocal['host'] ?? 'localhost'));
+define('DB_NAME', getenv('DB_NAME') ?: (string) ($dbLocal['name'] ?? 'billiards_system'));
+define('DB_USER', getenv('DB_USER') ?: (string) ($dbLocal['user'] ?? 'root'));
+define('DB_PASS', getenv('DB_PASS') !== false ? (string) getenv('DB_PASS') : (string) ($dbLocal['pass'] ?? ''));
+unset($dbLocalFile, $dbLocal);
 
 function getDBConnection() {
     try {

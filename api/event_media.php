@@ -9,7 +9,7 @@ require_once '../config/site_settings.php';
 // slideshow and Tournaments page). Files are kept in backend/Media (see
 // config/media.php) under a random name, the tournament stores "Media/<name>",
 // and api/media.php sends them to the website.
-// The admin's Website page uploads the GCash QR here too.
+// The admin's Website page uploads the GCash QR and the showcase photos here too.
 // A file nothing uses is removed a day after it was uploaded (a form closed
 // without saving, or a picture taken off a tournament).
 
@@ -111,7 +111,7 @@ function usedMediaFiles($pdo) {
             if (is_array($item) && isset($item['path'])) $used[basename((string) $item['path'])] = true;
         }
     }
-    // The website's GCash QR (Admin > Website) lives in Media too.
+    // The website's GCash QR and showcase photos (Admin > Website) live in Media too.
     try {
         foreach (siteSettingMediaFiles($pdo) as $name) $used[$name] = true;
     } catch (Throwable $error) {

@@ -7,3 +7,13 @@ Media/
 # Semaphore bans an account whose key shows up in a public repo. See
 # config/sms.local.example.php.
 config/sms.local.php
+
+# The real database login (host, name, user, password), on each computer and on
+# the hosting. Never commit it: this repo is public. See
+# config/database.local.example.php.
+config/database.local.php
+
+# Customers' GCash receipt screenshots (config/online_payments.php). Private:
+# they show names and numbers, so they never leave the computer or hosting that
+# took them.
+Receipts/

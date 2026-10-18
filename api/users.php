@@ -76,16 +76,18 @@ if ($method === 'POST') {
         exit();
     }
 
-    if (mb_strlen($password) < 6) {
+    if (mb_strlen($password) < PASSWORD_MIN_LENGTH) {
         http_response_code(400);
-        echo json_encode(["success" => false, "message" => "Password must be at least 6 characters"]);
+        echo json_encode(["success" => false, "message" => "Password must be at least " . PASSWORD_MIN_LENGTH . " characters"]);
         exit();
     }
 
     checkAccountFields($pdo, $username, $phone);
 
-    $stmt = $pdo->prepare("INSERT INTO users (username, password, role, email, full_name, phone) VALUES (?, MD5(?), ?, ?, ?, ?)");
-    $stmt->execute([$username, $password, $role, $email, $fullName, $phone]);
+    // Kept with password_hash, never as the password itself (see config/auth.php).
+    ensurePasswordColumn($pdo);
+    $stmt = $pdo->prepare("INSERT INTO users (username, password, role, email, full_name, phone) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$username, hashPassword($password), $role, $email, $fullName, $phone]);
     $id = $pdo->lastInsertId();
 
     echo json_encode([
@@ -119,11 +121,10 @@ if ($method === 'PUT') {
         exit();
     }
 
-    // Same minimum as the login screen, so no account can be given a password
-    // that the login form would then refuse.
-    if ($password !== '' && mb_strlen($password) < 6) {
+    // A new password meets today's minimum; an older, shorter one still signs in.
+    if ($password !== '' && mb_strlen($password) < PASSWORD_MIN_LENGTH) {
         http_response_code(400);
-        echo json_encode(["success" => false, "message" => "New password must be at least 6 characters"]);
+        echo json_encode(["success" => false, "message" => "New password must be at least " . PASSWORD_MIN_LENGTH . " characters"]);
         exit();
     }
 
@@ -136,8 +137,12 @@ if ($method === 'PUT') {
     checkAccountFields($pdo, $username, $phone, $id, $storedUsername !== $username);
 
     if ($password !== '') {
-        $stmt = $pdo->prepare("UPDATE users SET username = ?, password = MD5(?), role = ?, email = ?, full_name = ?, phone = ? WHERE id = ?");
-        $stmt->execute([$username, $password, $role, $email, $fullName, $phone, $id]);
+        ensurePasswordColumn($pdo);
+        $stmt = $pdo->prepare("UPDATE users SET username = ?, password = ?, role = ?, email = ?, full_name = ?, phone = ? WHERE id = ?");
+        $stmt->execute([$username, hashPassword($password), $role, $email, $fullName, $phone, $id]);
+        // A new password from the admin also lifts a lock from wrong guesses.
+        clearSignInFailures($pdo, $storedUsername);
+        clearSignInFailures($pdo, $username);
     } else {
         $stmt = $pdo->prepare("UPDATE users SET username = ?, role = ?, email = ?, full_name = ?, phone = ? WHERE id = ?");
         $stmt->execute([$username, $role, $email, $fullName, $phone, $id]);

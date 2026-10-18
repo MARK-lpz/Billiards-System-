@@ -26,10 +26,14 @@ $method = $_SERVER['REQUEST_METHOD'];
 if ($method === 'GET') {
     $list = readCollection($pdo, $spec);
     $tables = $list['items'];
-    // What a table ordered is for staff; the website only needs to know if it is free.
+    // What a table ordered and who is on it are for staff; the website only
+    // needs to know if it is free. The name is blanked, not left out, so the
+    // website's copy stays the same shape as a free table's.
     if (!currentStaff($pdo)) {
         $tables = array_map(function ($table) {
-            if (is_array($table)) unset($table['orders']);
+            if (!is_array($table)) return $table;
+            unset($table['orders']);
+            if (array_key_exists('customer', $table)) $table['customer'] = '';
             return $table;
         }, $tables);
     }

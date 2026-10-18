@@ -177,8 +177,8 @@ if (!smsIsConfigured()) {
 }
 
 $newPassword = (string) ($data['newPassword'] ?? '');
-if (mb_strlen($newPassword) < 6) {
-    respond(400, ['success' => false, 'message' => 'Password must be at least 6 characters.']);
+if (mb_strlen($newPassword) < PASSWORD_MIN_LENGTH) {
+    respond(400, ['success' => false, 'message' => 'Password must be at least ' . PASSWORD_MIN_LENGTH . ' characters.']);
 }
 
 $user = findVerifiedUser($pdo, $username, $role, $mobile);
@@ -216,9 +216,11 @@ if (!password_verify($code, $codeRow['code_hash'])) {
     ]);
 }
 
+// Before the transaction: widening the column (once) would end it.
+ensurePasswordColumn($pdo);
 $pdo->beginTransaction();
 try {
-    $pdo->prepare('UPDATE users SET password = MD5(?) WHERE id = ?')->execute([$newPassword, $user['id']]);
+    $pdo->prepare('UPDATE users SET password = ? WHERE id = ?')->execute([hashPassword($newPassword), $user['id']]);
     $pdo->prepare('INSERT INTO password_reset_log (user_id, username, role) VALUES (?, ?, ?)')
         ->execute([$user['id'], $user['username'], $user['role']]);
     $logId = $pdo->lastInsertId();
@@ -228,6 +230,8 @@ try {
     $pdo->rollBack();
     respond(500, ['success' => false, 'message' => 'Unable to reset the password right now.']);
 }
+// A lock from wrong guesses ends with the new password.
+clearSignInFailures($pdo, $user['username']);
 
 // The admin's bell is told THAT it happened (who, and how), never the password.
 try {

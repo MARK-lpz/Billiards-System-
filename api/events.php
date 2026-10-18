@@ -5,10 +5,14 @@ require_once '../config/auth.php';
 require_once '../config/collection.php';
 require_once '../config/media.php';
 require_once '../config/site_settings.php';
+require_once '../config/online_payments.php';
+require_once '../config/customer_texts.php';
+require_once '../config/website_requests.php';
 
 // Tournaments: the website lists them and registers players (POST); only the
 // admin's screen changes them, one tournament at a time (see
-// config/collection.php).
+// config/collection.php). The front desk may also hide a cancelled one from
+// the website (POST action "noticeVisibility").
 
 function readJsonBody() {
     return json_decode(file_get_contents('php://input'), true) ?: [];
@@ -88,6 +92,8 @@ function normalizeEvent($event) {
         'rescheduledAt' => cleanEventText($event['rescheduledAt'] ?? '', 40),
         'rescheduleReason' => cleanEventText($event['rescheduleReason'] ?? ''),
         'media' => normalizeEventMedia($event['media'] ?? []),
+        // Staff took a cancelled tournament off the website before it dropped off on its own.
+        'noticeHidden' => $status === 'cancelled' && filter_var($event['noticeHidden'] ?? false, FILTER_VALIDATE_BOOLEAN),
     ];
 }
 
@@ -127,7 +133,64 @@ if ($method === 'PUT') {
         sendCollectionRefusal($refusal);
     }
 
+    // A cancelled tournament's entry fees go back to the players, and so does a
+    // held one whose player the admin took off the list. A miss here never
+    // undoes the save; the next save of that tournament tries again.
+    try {
+        ensureOnlinePaymentsTable($pdo);
+        foreach (is_array($data['upsert'] ?? null) ? $data['upsert'] : [] as $change) {
+            $event = normalizeEvent($change['item'] ?? null);
+            if (!$event) continue;
+            // Each player whose fee goes back is texted why.
+            foreach (settleTournamentPayments($pdo, $event, (string) $staff['username']) as $moved) {
+                if ($moved['payment']) textSafely(fn() => textTournamentDecision($pdo, $moved['payment'], $moved['why']));
+            }
+        }
+    } catch (Throwable $error) {
+        error_log('Tournament payments not settled: ' . $error->getMessage());
+    }
+
     echo json_encode(['success' => true, 'versions' => $result['versions']]);
+    exit();
+}
+
+// Hides a cancelled tournament from the website, or shows it again. The admin
+// and the front desk may, each from their own screen (the front desk cannot
+// change tournaments otherwise); nothing else about the tournament changes.
+if ($method === 'POST' && ($data['action'] ?? '') === 'noticeVisibility') {
+    requireStaff($pdo, ['admin', 'employee']);
+    $eventId = trim((string) ($data['eventId'] ?? ''));
+    $hidden = filter_var($data['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare('SELECT event_data, version FROM tournament_events WHERE id = ? FOR UPDATE');
+        $stmt->execute([$eventId]);
+        $stored = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$stored) {
+            throw new RuntimeException('Tournament not found.');
+        }
+        $event = normalizeEvent(array_merge(json_decode($stored['event_data'], true) ?: [], ['id' => $eventId]));
+        if (!$event || $event['status'] !== 'cancelled') {
+            throw new RuntimeException('Only a cancelled tournament can be hidden from the website.');
+        }
+        $event['noticeHidden'] = $hidden;
+
+        // A new version, so a staff screen holding the old copy reloads it rather than undoing this.
+        $update = $pdo->prepare('UPDATE tournament_events SET event_data = ?, version = version + 1 WHERE id = ?');
+        $update->execute([json_encode($event), $eventId]);
+        $pdo->commit();
+
+        echo json_encode(['success' => true, 'event' => $event, 'version' => (int) $stored['version'] + 1]);
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $known = ['Tournament not found.' => 404, 'Only a cancelled tournament can be hidden from the website.' => 400];
+        $message = isset($known[$error->getMessage()]) ? $error->getMessage() : 'Unable to change the tournament.';
+        http_response_code($known[$message] ?? 500);
+        echo json_encode(['success' => false, 'message' => $message]);
+    }
     exit();
 }
 
@@ -140,9 +203,31 @@ if ($method === 'POST') {
         exit();
     }
 
-    // Read before the transaction: both may create their table, which would end it.
+    // Read before the transaction: these may create their table, which would end it.
     $fromWebsite = currentStaff($pdo) === null;
     $gcashReady = gcashIsReady(readSiteSettings($pdo));
+    ensureOnlinePaymentsTable($pdo);
+
+    // A paid tournament's entry fee, sent from the website: its reference, the
+    // GCash number it came from (where it goes back if the player is turned
+    // down) and a screenshot of the receipt. The picture is checked and saved
+    // first, and removed again if the registration does not go through.
+    $receiptFile = null;
+    $payment = null;
+    if ($fromWebsite && trim((string) ($data['receipt'] ?? '')) !== '') {
+        try {
+            $payment = [
+                'reference' => cleanPaymentReference($data['paymentReference'] ?? ''),
+                'payerNumber' => cleanPayerNumber($data['payerNumber'] ?? ''),
+                'phone' => cleanPayerNumber($data['phone'] ?? ''),
+            ];
+            $receiptFile = storeReceipt(readReceiptDataUrl($data['receipt']));
+        } catch (PaymentRefusal $refusal) {
+            http_response_code($refusal->status);
+            echo json_encode(['success' => false, 'message' => $refusal->getMessage()]);
+            exit();
+        }
+    }
 
     $pdo->beginTransaction();
     try {
@@ -164,6 +249,19 @@ if ($method === 'POST') {
         if ((float) $event['entryFee'] > 0 && $fromWebsite && !$gcashReady) {
             throw new RuntimeException('Online payment is not set up yet. Please register at the hall.');
         }
+        $paid = (float) $event['entryFee'] > 0 && $fromWebsite;
+        if ($paid && $receiptFile === null) {
+            throw new PaymentRefusal(400, 'Please attach a screenshot of your GCash receipt.');
+        }
+        if ($paid && $payment['reference'] === '') {
+            throw new PaymentRefusal(400, 'Please type the reference number from your GCash receipt (10 to 15 digits).');
+        }
+        if ($paid && $payment['payerNumber'] === '') {
+            throw new PaymentRefusal(400, 'Please type the GCash number you paid from, in 09XXXXXXXXX format.');
+        }
+        if ($paid && $payment['phone'] === '') {
+            throw new PaymentRefusal(400, 'Please type your contact number in 09XXXXXXXXX format.');
+        }
         // Open through the event's own day, as on the website, but not after it.
         $today = (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d');
         if ($event['date'] !== '' && $event['date'] < $today) {
@@ -182,13 +280,49 @@ if ($method === 'POST') {
         // A new version, so a staff screen holding the old list cannot undo the registration.
         $update = $pdo->prepare('UPDATE tournament_events SET event_data = ?, version = version + 1 WHERE id = ?');
         $update->execute([json_encode($event), $eventId]);
+        if ($paid) {
+            createHeldPayment($pdo, [
+                'kind' => 'tournament',
+                'refId' => $eventId,
+                'participant' => $participant,
+                'customerName' => trim(preg_replace('/\s*\(.*\)\s*$/', '', $participant)),
+                'phone' => $payment['phone'],
+                'payerNumber' => $payment['payerNumber'],
+                'reference' => $payment['reference'],
+                'amount' => (float) $event['entryFee'],
+                'receiptFile' => $receiptFile,
+                'playDate' => $event['date'],
+            ]);
+        }
         $pdo->commit();
+        // A free tournament keeps no receipt.
+        if (!$paid) deleteReceipt($receiptFile);
 
-        echo json_encode(['success' => true, 'event' => $event, 'version' => (int) $stored['version'] + 1]);
+        // A sign-up from the website gets a key, so the player's browser can
+        // follow it (api/request_status.php). Without one it still stands.
+        $statusKey = null;
+        if ($fromWebsite) {
+            try {
+                $statusKey = createWebsiteRequest($pdo, 'tournament', $eventId, $participant);
+            } catch (Throwable $error) {
+                error_log('Tournament status key failed: ' . $error->getMessage());
+            }
+        }
+
+        echo json_encode(['success' => true, 'event' => $event, 'version' => (int) $stored['version'] + 1]
+            + ($statusKey ? ['statusKey' => $statusKey] : []));
+    } catch (PaymentRefusal $refusal) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        deleteReceipt($receiptFile);
+        http_response_code($refusal->status);
+        echo json_encode(['success' => false, 'message' => $refusal->getMessage()]);
     } catch (Throwable $error) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
+        deleteReceipt($receiptFile);
         $known = [
             'Tournament not found.' => 400,
             'Tournament registration is closed.' => 400,
