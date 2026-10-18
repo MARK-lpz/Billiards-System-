@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { appendAuditLog } from "../../utils/audit";
 import { isValidSmsNumber } from "../../utils/phone";
 import { useNotifications } from "../Global/useNotifications";
+import { useSiteSettings } from "../Global/useSiteSettings";
 import { createRemoteReservation, updateRemoteReservation } from "../../utils/reservationApi";
 import { RESERVATIONS_PAGE_SIZE as PAGE_SIZE, matchesSearch } from "../../utils/reservationList";
 import { paginate } from "../../utils/pagination";
@@ -11,7 +12,7 @@ import {
   getReservationScheduleError,
   hasReservationConflict,
 } from "../../utils/reservations";
-import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
+import { ENDED_SESSION_FIELDS, createTableCharge, endedChargeToast } from "../../utils/tableCharges";
 
 // Read only from handlers, never while rendering.
 const getCurrentTimestamp = () => Date.now();
@@ -30,6 +31,7 @@ const HISTORY_STATUSES = new Set(["completed", "rejected", "cancelled", "expired
 const statusFilters = ["all", "pending", "approved", "history"];
 
 export default function useAdminReservations({
+  initialFilter = "all",
   reservations,
   setReservations,
   tables,
@@ -39,7 +41,9 @@ export default function useAdminReservations({
   setLogs,
 }) {
   const { addNotification, showToast } = useNotifications();
-  const [filter, setFilter] = useState("all");
+  // The hall's hours (Admin > Website), which bookings must keep to.
+  const { hours } = useSiteSettings().settings;
+  const [filter, setFilter] = useState(statusFilters.includes(initialFilter) ? initialFilter : "all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState(null);
@@ -59,7 +63,7 @@ export default function useAdminReservations({
   const editedReservation = editId ? reservations.find((reservation) => reservation.id === editId) : null;
   const keepsBookedSlot =
     Boolean(editedReservation) && editedReservation.date === form.date && editedReservation.time === form.time;
-  const scheduleError = keepsBookedSlot ? "" : getReservationScheduleError(form.date, form.time);
+  const scheduleError = keepsBookedSlot ? "" : getReservationScheduleError(form.date, form.time, undefined, hours);
   // The picked table must be free then: not occupied, reserved or under
   // maintenance. A booking kept on its own slot and table is not checked against
   // itself (its guest may be the one playing there).
@@ -175,7 +179,6 @@ const releaseTable = (tableId, reservation, nextStatus) => {
       : null;
     if (charge) {
       setTableCharges?.((prev) => [charge, ...prev]);
-      addNotification({ message: describeEndedCharge(charge) });
       showToast(endedChargeToast(charge));
     }
 

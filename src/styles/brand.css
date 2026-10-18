@@ -187,13 +187,6 @@ html {
   text-transform: uppercase;
 }
 
-.pool-table-timer {
-  font-family: var(--bc-font-label);
-  font-size: 15px;
-  letter-spacing: 0.06em;
-  font-variant-numeric: tabular-nums;
-}
-
 /* The sign font has one weight: never let the browser fake a bold one. */
 :is(.page-title, .pool-tables-title, .inventory-title, .events-title, .equipment-title, .reports-title,
   .sales-pos-title, .reservations-title, .audit-trail-title, .rd-title, .qa-title, .modal-title,

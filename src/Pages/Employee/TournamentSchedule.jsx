@@ -3,9 +3,7 @@ import "../../styles/Employee/TournamentSchedule.css";
 import { registerRemoteTournamentParticipant } from "../../utils/eventApi";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import useClock from "../../Elements/Global/useClock";
-import RegistrationBell from "../../Elements/Employee/RegistrationBell";
 import ParticipantModal from "../../Elements/Employee/ParticipantModal";
-import useSeenRegistrations from "../../Elements/Employee/useSeenRegistrations";
 import { findRegistration, getRegistrations, registrationKey } from "../../utils/tournamentRegistrations";
 import {
   describeDaysAway,
@@ -108,8 +106,10 @@ const resolveAssignedTables = (assignedTables = [], tables = []) => {
 };
 
 // `focusPlayer` ({ eventId, label, key }): a player opened from the employee's
-// bell, shown as soon as the page opens.
-export default function TournamentSchedule({ events = [], setEvents, tables = [], focusPlayer = null }) {
+// bell, shown as soon as the page opens. `seen` / `markSeen`: the registrations
+// already opened, shared with that bell (the dashboard keeps them), so a player
+// opened here is no longer new there.
+export default function TournamentSchedule({ events = [], setEvents, tables = [], focusPlayer = null, seen, markSeen }) {
   const { addNotification } = useNotifications();
   // Refreshed every minute, so a tournament moves to Past once its day is over.
   const now = useClock(60000);
@@ -120,9 +120,7 @@ export default function TournamentSchedule({ events = [], setEvents, tables = []
   const [walkInForm, setWalkInForm] = useState(emptyWalkIn);
   const [walkInError, setWalkInError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  // Registrations opened on this device, and the player shown in the pop-up
-  // ({ eventId, label, fromBell }).
-  const [seen, markSeen] = useSeenRegistrations(events, focusPlayer ? [focusPlayer.key] : []);
+  // The player shown in the pop-up ({ eventId, label, fromBell }).
   const [openPlayer, setOpenPlayer] = useState(() =>
     focusPlayer ? { eventId: focusPlayer.eventId, label: focusPlayer.label, fromBell: true } : null
   );
@@ -204,24 +202,10 @@ export default function TournamentSchedule({ events = [], setEvents, tables = []
 
   const assignedTables = selectedEvent ? resolveAssignedTables(selectedEvent.tables, tables) : [];
 
-  // The page's own bell, only about players registering. It sits at the end of
-  // the tab bar; the page's name is in the top bar.
-  const bell = (
-    <div className="tourna-bell">
-      <RegistrationBell
-        registrations={registrations}
-        seen={seen}
-        onOpen={(registration) => showPlayer(registration.event.id, registration.label, true)}
-        onMarkAllSeen={() => markSeen(registrations.map((registration) => registration.key))}
-      />
-    </div>
-  );
-
   if (!events.length) {
     return (
       <>
         <div className="tourna-shell">
-          <div className="tourna-toolbar tourna-toolbar--bell-only">{bell}</div>
           <div className="tourna-empty-card">
             <i className="bi bi-trophy"></i>
             <h2>No tournament schedules yet</h2>
@@ -323,7 +307,6 @@ export default function TournamentSchedule({ events = [], setEvents, tables = []
               </button>
             ))}
           </div>
-          {bell}
         </div>
 
         <div className={`tourna-layout${selectedEvent ? "" : " tourna-layout--single"}`}>

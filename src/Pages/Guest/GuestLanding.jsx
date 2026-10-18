@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import "../../styles/Guest/GuestLanding.css";
 import "../../styles/Guest/EventMedia.css";
 import { eventMediaUrl, getEventCover } from "../../utils/eventMedia";
-import { RESERVATION_CLOSED_HOURS_MESSAGE, isOutsideReservationHours } from "../../utils/reservations";
+import { describeClosedHours, formatOpeningHours, isOutsideReservationHours } from "../../utils/reservations";
 import { formatEventWhen, getDateTile, getEventNotices, getOpenEvents, wasRescheduled } from "../../utils/eventUpdates";
-
-// Closed from 10 PM until opening, not only until midnight.
-const isOnlineReservationClosed = () => isOutsideReservationHours();
+import { hasBusinessInfo, telLink } from "../../utils/siteSettings";
+import { useSiteSettings } from "../../Elements/Global/useSiteSettings";
+import AnnouncementBar from "../../Elements/Guest/AnnouncementBar";
 
 // The showcase at the top of the page: one picture, shown with each slide's words.
 // Open tournaments with a promo picture or video come first (see promoSlides).
@@ -64,22 +64,26 @@ export default function GuestLanding({
   const [showcaseHovered, setShowcaseHovered] = useState(false);
   const [showcaseFocused, setShowcaseFocused] = useState(false);
   const showcasePaused = showcaseHovered || showcaseFocused;
-  // Refreshed every minute with the reservation check, so a past event drops off.
+  // Refreshed every minute, so the reservation check follows the clock and a past event drops off.
   const [now, setNow] = useState(() => Date.now());
-  const [automaticReservationsClosed, setAutomaticReservationsClosed] = useState(isOnlineReservationClosed);
-  const reservationsClosed = automaticReservationsClosed || !onlineReservationsOpen;
+  // The hall's hours, contacts and GCash account (Admin > Website). Bookings are
+  // paid by GCash, so none are taken until the admin has set the account.
+  const { settings, loaded } = useSiteSettings();
+  const { hours, business, gcash } = settings;
+  const paymentUnavailable = loaded && !gcash.ready;
+  // Closed from closing until opening, not only until midnight.
+  const afterHours = isOutsideReservationHours(new Date(now), hours);
+  const reservationsClosed = afterHours || !onlineReservationsOpen || paymentUnavailable;
   const reservationClosedMessage = !onlineReservationsOpen
     ? "Online reservations are temporarily closed by the owner. Please check back later."
-    : RESERVATION_CLOSED_HOURS_MESSAGE;
+    : paymentUnavailable
+      ? `Online booking is not available yet. Please book at the hall${business.phone ? ` or call ${business.phone}` : ""}.`
+      : describeClosedHours(hours);
   const reserveLabel = reservationsClosed ? "Reservations Closed" : "Reserve a Table";
   const reserveTitle = reservationsClosed ? reservationClosedMessage : "Reserve a table";
 
   useEffect(() => {
-    const refreshReservationAvailability = () => {
-      setAutomaticReservationsClosed(isOnlineReservationClosed());
-      setNow(Date.now());
-    };
-    const interval = window.setInterval(refreshReservationAvailability, 60_000);
+    const interval = window.setInterval(() => setNow(Date.now()), 60_000);
 
     return () => window.clearInterval(interval);
   }, []);
@@ -145,6 +149,8 @@ export default function GuestLanding({
           </button>
         </div>
       </header>
+
+      <AnnouncementBar />
 
       {reservationsClosed && (
         <div className="guest-reservation-closed" role="status">
@@ -420,11 +426,70 @@ export default function GuestLanding({
         </figure>
       </section>
 
+      <section className="guest-visit" id="visit" aria-labelledby="guest-visit-title">
+        <div className="guest-section-head">
+          <p className="guest-template-eyebrow">Visit us</p>
+          <h2 id="guest-visit-title">Come rack up at the hall.</h2>
+        </div>
+        <div className="guest-visit-card">
+          <dl className="guest-visit-details">
+            {business.address && (
+              <div>
+                <dt>
+                  <i className="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                  Address
+                </dt>
+                <dd>{business.address}</dd>
+              </div>
+            )}
+            <div>
+              <dt>
+                <i className="bi bi-clock-fill" aria-hidden="true"></i>
+                Open
+              </dt>
+              <dd>{formatOpeningHours(hours)}</dd>
+            </div>
+            {business.phone && (
+              <div>
+                <dt>
+                  <i className="bi bi-telephone-fill" aria-hidden="true"></i>
+                  Contact
+                </dt>
+                <dd>{business.phone}</dd>
+              </div>
+            )}
+          </dl>
+          {hasBusinessInfo(business) && (
+            <div className="guest-visit-actions">
+              {business.mapsUrl && (
+                <a className="guest-template-secondary" href={business.mapsUrl} target="_blank" rel="noopener noreferrer">
+                  <i className="bi bi-map" aria-hidden="true"></i>
+                  Open in Maps
+                </a>
+              )}
+              {business.phone && (
+                <a className="guest-template-secondary" href={telLink(business.phone)}>
+                  <i className="bi bi-telephone" aria-hidden="true"></i>
+                  Call
+                </a>
+              )}
+              {business.facebookUrl && (
+                <a className="guest-template-secondary" href={business.facebookUrl} target="_blank" rel="noopener noreferrer">
+                  <i className="bi bi-messenger" aria-hidden="true"></i>
+                  Message us
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
       <footer className="guest-template-footer">
         <span className="guest-footer-mark">
           Break &amp; Chill <small>Billiard Hall</small>
         </span>
         <span>Games, tournaments, and good breaks.</span>
+        <span className="guest-footer-hours">Open {formatOpeningHours(hours)}</span>
       </footer>
     </main>
   );

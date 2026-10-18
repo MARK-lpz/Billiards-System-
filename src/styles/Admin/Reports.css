@@ -605,55 +605,136 @@
 .sales-report-type.active { background: #10b981; color: #fff; }
 .sales-report-type:hover:not(.active) { color: #f8fafc; }
 
-/* Date range: one-tap shortcuts on their own line under the fields */
-.sales-report-presets {
-  order: 3;
-  flex-basis: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-.sales-report-preset {
-  padding: 5px 12px;
-  border: 1px solid rgba(148, 163, 184, 0.32);
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.5);
-  color: #94a3b8;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.sales-report-preset:hover:not(.active) { color: #f8fafc; border-color: rgba(148, 163, 184, 0.6); }
-.sales-report-preset.active { background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #34d399; }
-
+/* Date range: how many days, beside the To date */
 .sales-report-range-days {
-  margin-left: auto;
+  align-self: flex-end;
+  padding-bottom: 10px;
   color: #94a3b8;
   font-size: 12px;
   font-weight: 600;
 }
 
-.light .sales-report-preset { background: #fff; border-color: #cbd5e1; color: #64748b; }
-.light .sales-report-preset:hover:not(.active) { color: #0f172a; border-color: #94a3b8; }
-.light .sales-report-preset.active { background: rgba(4, 120, 87, 0.1); border-color: #047857; color: #047857; }
 .light .sales-report-range-days { color: #64748b; }
-
-.sales-report-hint p { margin: 0; color: #cbd5e1; font-size: 13px; line-height: 1.6; }
-.sales-report-hint strong { color: #f8fafc; }
 
 .light .sales-report-types { background: #fff; border-color: #cbd5e1; }
 .light .sales-report-type { color: #64748b; }
 .light .sales-report-type.active { background: #10b981; color: #fff; }
 .light .sales-report-type:hover:not(.active) { color: #0f172a; }
-.light .sales-report-hint p { color: #475569; }
-.light .sales-report-hint strong { color: #0f172a; }
 
-/* The pop-up: wide enough for the table, scrolling inside itself */
-.sales-report-modal .sales-report-dialog { max-width: min(1120px, calc(100vw - 32px)); }
-.sales-report-modal .modal-body { max-height: calc(100vh - 170px); overflow-y: auto; }
+/* A wide table scrolls inside its card instead of widening the page (Bootstrap's
+   CSS is not loaded, so .table-responsive has no rule of its own). */
+.reports-card .table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── The report on the page: breakdown and every sale (SalesReport.jsx) ──── */
+.reports-table .reports-num { text-align: right; white-space: nowrap; }
+
+.reports-table tfoot th,
+.reports-table tfoot td {
+  padding: 12px 16px;
+  border-top: 2px solid rgba(255, 255, 255, 0.12);
+  color: #f0f0f0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.reports-table tfoot th { text-align: right; }
+
+/* Compact and even: one continuous row line (no gaps between cells), the same
+   short height for every row, and less room around each table. */
+.sales-report > .reports-card { padding: 14px 16px; }
+.sales-report > .reports-card + .reports-card { margin-top: 16px; }
+.sales-report > .reports-card .reports-card-title { margin-bottom: 10px; }
+
+.sales-report-table { border-collapse: collapse; border-spacing: 0; }
+
+.sales-report-table thead th {
+  padding: 8px 12px;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.sales-report-table tbody td {
+  padding: 7px 12px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  vertical-align: top;
+}
+
+.sales-report-table tfoot th,
+.sales-report-table tfoot td {
+  padding: 8px 12px;
+  font-size: 12.5px;
+}
+
+.sales-report-table .sales-report-nowrap { white-space: nowrap; }
+.sales-report-table .sales-report-items { min-width: 220px; font-weight: 500; }
+.sales-report-table .sales-report-quiet-row td { color: #64748b; }
+
+.sales-report-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-bottom: 10px;
+}
+
+.sales-report-card-head .reports-card-title { margin-bottom: 0; }
+.sales-report-split { color: #94a3b8; font-size: 12.5px; }
+.sales-report-split strong { color: #e2e8f0; }
+
+.light .reports-table tfoot th,
+.light .reports-table tfoot td { border-top-color: var(--border-strong, #cbd5e1); color: var(--text-primary, #0f172a); }
+.light .sales-report-table .sales-report-quiet-row td { color: #64748b; }
+.light .sales-report-split { color: #64748b; }
+.light .sales-report-split strong { color: #0f172a; }
+
+/* ── Print / Download: the sheet in a pop-up (SalesReportModal.jsx) ─────────── */
+.sales-report-modal .sales-report-dialog { max-width: min(1180px, calc(100vw - 32px)); }
+.sales-report-modal .modal-body { max-height: calc(100vh - 250px); overflow-y: auto; }
+
+/* Paper size and orientation, under the title; the sheet scrolls under them */
+.srp-preview-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.srp-orientation-icon { margin-right: 6px; }
+.srp-orientation-icon--landscape { display: inline-block; transform: rotate(-90deg); }
+
+/* The desk the sheet lies on; the sheet is shrunk to fit its width */
+.srp-stage {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.45);
+  overflow: hidden;
+}
+
+.srp-stage .srp-paper {
+  width: var(--paper-w);
+  min-height: var(--paper-h);
+  padding: var(--paper-margin);
+  border: 0;
+  border-radius: 2px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.light .srp-preview-bar { border-bottom-color: var(--border, #e2e8f0); }
+.light .srp-stage { background: #e2e8f0; }
+.light .srp-stage .srp-paper { box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16); }
+
+@media (max-width: 640px) {
+  .srp-stage { padding: 10px; }
+}
 
 /* The report itself is a white sheet, the same on screen and on paper */
 .srp-paper {
@@ -734,14 +815,29 @@
 .srp-empty-row td { color: #9ca3af; }
 .srp-none { margin: 0; padding: 12px 0; }
 
-/* The light theme forces modal text to one colour; the sheet keeps its own. */
-.light .modal-body .srp-paper :is(div, span, p, h2, h3, small) { color: inherit !important; }
+/* Portrait is narrower: smaller type and tighter cells, so every column fits */
+.srp-paper--portrait { font-size: 11px; }
+.srp-paper--portrait .srp-table th,
+.srp-paper--portrait .srp-table td { padding: 5px 6px; }
+.srp-paper--portrait .srp-items { min-width: 0; }
+.srp-paper--portrait .srp-summary td { font-size: 12px; }
+.srp-paper--portrait .srp-summary tr:first-child th { white-space: normal; }
+
+/* The theme colours pop-up text; the sheet keeps its own. */
+.modal-body .srp-paper :is(div, span, p, h2, h3, small, th, td),
+.light .modal-body .srp-paper :is(div, span, p, h2, h3, small, th, td) { color: inherit !important; }
+.modal-body .srp-paper .srp-muted,
 .light .modal-body .srp-paper .srp-muted { color: #4b5563 !important; }
+.modal-body .srp-paper .srp-brand,
 .light .modal-body .srp-paper .srp-brand { color: #047857 !important; }
+.modal-body .srp-paper .srp-empty-row td,
+.light .modal-body .srp-paper .srp-empty-row td { color: #6b7280 !important; }
+.modal-body .srp-paper :is(.srp-table thead th, .srp-summary tr:first-child th),
+.light .modal-body .srp-paper :is(.srp-table thead th, .srp-summary tr:first-child th) { color: #374151 !important; }
 
 /* The copy sent to the printer (see printElement). */
 .srp-print-body { margin: 0; background: #fff; }
-.srp-print-body .srp-paper { padding: 0; border: 0; border-radius: 0; }
+.srp-print-body .srp-paper { width: auto; min-height: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; }
 .srp-print-body .srp-scroll { overflow: visible; }
 .srp-print-body .srp-table thead { display: table-header-group; }
 .srp-print-body .srp-table tr { break-inside: avoid; }

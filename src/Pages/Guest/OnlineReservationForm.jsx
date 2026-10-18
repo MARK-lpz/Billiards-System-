@@ -5,13 +5,12 @@ import "../../styles/Guest/Fill-up/Fields.css";
 import "../../styles/Guest/Fill-up/SuccessMess.css";
 import {
   MIN_RESERVATION_HOURS,
-  RESERVATION_CLOSED_HOURS_MESSAGE,
-  RESERVATION_CUTOFF_TIME,
-  RESERVATION_OPEN_TIME,
   addMinutesToTime,
   checkReservationStart,
+  describeClosedHours,
   describeReservationTime,
   formatHoursLabel,
+  formatReservationTime,
   getBookedSlotsForDate,
   getOpenTimeWindows,
   getTableReservationAvailability,
@@ -19,14 +18,14 @@ import {
   isOutsideReservationHours,
 } from "../../utils/reservations";
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
-import { useNotifications } from "../../Elements/Global/useNotifications";
 import { createRemoteReservation } from "../../utils/reservationApi";
 import GcashPayment from "../../Elements/Guest/GcashPayment";
 import { validateReference } from "../../utils/paymentReference";
 import { sendCustomerConfirmation } from "../../utils/customerMessageApi";
+import { useSiteSettings } from "../../Elements/Global/useSiteSettings";
+import AnnouncementBar from "../../Elements/Guest/AnnouncementBar";
 
 const getToday = () => new Date().toLocaleDateString("en-CA");
-const PUBLIC_RESERVATION_CUTOFF_LABEL = "10:00 PM";
 
 const initialForm = {
   customerName: "",
@@ -62,19 +61,24 @@ export default function OnlineReservationForm({
   onGoBack,
   onlineReservationsOpen = true,
 }) {
-  const { queueStaffNotification } = useNotifications();
   const [form, setForm] = useState(initialForm);
   const [submittedReservation, setSubmittedReservation] = useState(null);
   // { text, status } from the server; status says whether it was really texted.
   const [customerMessage, setCustomerMessage] = useState(null);
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // The hall's hours and GCash account (Admin > Website). Bookings are paid by
+  // GCash, so none are taken until the admin has set the account.
+  const { settings, loaded } = useSiteSettings();
+  const { hours, gcash, business } = settings;
+  const paymentUnavailable = loaded && !gcash.ready;
   // A guest who is still on this page when closing comes is stopped too, not only
   // the landing page button.
-  const [afterHours, setAfterHours] = useState(isOutsideReservationHours);
+  const [checkedAt, setCheckedAt] = useState(() => Date.now());
+  const afterHours = isOutsideReservationHours(new Date(checkedAt), hours);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setAfterHours(isOutsideReservationHours()), 60_000);
+    const interval = window.setInterval(() => setCheckedAt(Date.now()), 60_000);
     return () => window.clearInterval(interval);
   }, []);
 
@@ -111,13 +115,13 @@ export default function OnlineReservationForm({
   // When this one table is still free, so the guest knows how long they can stay
   // before typing a start time.
   const openWindows = useMemo(
-    () => getOpenTimeWindows({ table: selectedTable, reservations, events, date: form.date }),
-    [selectedTable, reservations, events, form.date]
+    () => getOpenTimeWindows({ table: selectedTable, reservations, events, date: form.date, hours }),
+    [selectedTable, reservations, events, form.date, hours]
   );
 
   // How many hours fit from the start time the guest typed.
   const startCheck = selectedTable
-    ? checkReservationStart({ windows: openWindows, date: form.date, time: form.time })
+    ? checkReservationStart({ windows: openWindows, date: form.date, time: form.time, hours })
     : { maxHours: 0, reason: "" };
   const reservationHours = Number(form.hours) || 0;
   const reservationMinutes = reservationHours * 60;
@@ -152,7 +156,7 @@ export default function OnlineReservationForm({
   // A later start can leave less room, so hours that no longer fit are trimmed to
   // what does instead of leaving the guest on a choice the list no longer offers.
   const changeStartTime = (time) => {
-    const { maxHours } = checkReservationStart({ windows: openWindows, date: form.date, time });
+    const { maxHours } = checkReservationStart({ windows: openWindows, date: form.date, time, hours });
     setSubmitError("");
     setForm((current) => ({
       ...current,
@@ -169,8 +173,13 @@ export default function OnlineReservationForm({
       return;
     }
 
-    if (isOutsideReservationHours()) {
-      setAfterHours(true);
+    if (!gcash.ready) {
+      setSubmitError("Online payment is not set up yet. Please book at the hall.");
+      return;
+    }
+
+    if (isOutsideReservationHours(new Date(), hours)) {
+      setCheckedAt(Date.now());
       return;
     }
 
@@ -247,11 +256,7 @@ export default function OnlineReservationForm({
       setIsSubmitting(true);
       const savedReservation = await createRemoteReservation(reservation);
       setReservations((current) => [...current, savedReservation]);
-      queueStaffNotification({
-        type: "online-reservation",
-        message: `New online reservation: ${savedReservation.customerName} requested ${savedReservation.tableName} on ${formatDate(savedReservation.date)}, ${describeReservationTime(savedReservation)}.`,
-        data: { reservationId: savedReservation.id, tableId: savedReservation.tableId },
-      });
+      // The staff bells hear of it from the server (reservations.php), not from here.
       // A failed text must never lose a paid reservation, so this is best effort.
       try {
         setCustomerMessage(
@@ -299,6 +304,7 @@ export default function OnlineReservationForm({
 
         <div className="tournament-card">
           <div className="card-top-line" />
+          <AnnouncementBar className="is-in-card" />
 
           {!onlineReservationsOpen ? (
             <div className="success-container success-bounce" role="status">
@@ -348,13 +354,24 @@ export default function OnlineReservationForm({
                 Reserve Another Table
               </button>
             </div>
+          ) : paymentUnavailable ? (
+            <div className="success-container success-bounce" role="status">
+              <div className="success-icon">
+                <i className="bi bi-phone-vibrate"></i>
+              </div>
+              <h2 className="success-title">Online Booking Not Available Yet</h2>
+              <p className="success-message">
+                We cannot take GCash payments online yet, so tables cannot be booked here for now. Please book at the
+                hall{business.phone ? ` or call ${business.phone}` : ""}.
+              </p>
+            </div>
           ) : afterHours ? (
             <div className="success-container success-bounce" role="status">
               <div className="success-icon">
                 <i className="bi bi-calendar-x-fill"></i>
               </div>
               <h2 className="success-title">Reservations Closed</h2>
-              <p className="success-message">{RESERVATION_CLOSED_HOURS_MESSAGE}</p>
+              <p className="success-message">{describeClosedHours(hours)}</p>
             </div>
           ) : (
             <form className="fade-in" onSubmit={handleSubmit}>
@@ -372,7 +389,7 @@ export default function OnlineReservationForm({
               <p className="section-title">Reservation Details</p>
               <p className="reservation-closing-notice">
                 <i className="bi bi-clock" aria-hidden="true"></i>
-                Break &amp; Chill closes at {PUBLIC_RESERVATION_CUTOFF_LABEL}. Each booking is {MIN_RESERVATION_HOURS} hour or more and must finish by closing.
+                Break &amp; Chill closes at {formatReservationTime(hours.close)}. Each booking is {MIN_RESERVATION_HOURS} hour or more and must finish by closing.
               </p>
               <div className="form-grid-2">
                 <div>
@@ -466,8 +483,8 @@ export default function OnlineReservationForm({
                     id="reservation-time"
                     className="field-input"
                     type="time"
-                    min={RESERVATION_OPEN_TIME}
-                    max={addMinutesToTime(RESERVATION_CUTOFF_TIME, -MIN_RESERVATION_HOURS * 60)}
+                    min={hours.open}
+                    max={addMinutesToTime(hours.close, -MIN_RESERVATION_HOURS * 60)}
                     value={form.time}
                     onChange={(event) => changeStartTime(event.target.value)}
                     disabled={!selectedTable || openWindows.length === 0}
@@ -540,7 +557,7 @@ export default function OnlineReservationForm({
               </div>
 
               {submitError && <p className="field-warning reservation-submit-error">{submitError}</p>}
-              <button type="submit" className="submit-btn" disabled={isSubmitting || !form.customerName.trim() || !isValidSmsNumber(form.phone) || !form.date || !form.time || !form.tableId || !paymentCheck.isValid || Boolean(startCheck.reason) || !hoursFit}>
+              <button type="submit" className="submit-btn" disabled={isSubmitting || !gcash.ready || !form.customerName.trim() || !isValidSmsNumber(form.phone) || !form.date || !form.time || !form.tableId || !paymentCheck.isValid || Boolean(startCheck.reason) || !hoursFit}>
                 <i className="bi bi-calendar2-check" aria-hidden="true"></i>
                 {isSubmitting ? "Sending Request..." : "Send Reservation Request"}
               </button>

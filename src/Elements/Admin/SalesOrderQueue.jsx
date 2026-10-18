@@ -50,11 +50,15 @@ export default function SalesOrderQueue({
   const describeTarget = (target) => {
     const pendingItems = target.ticket.items.filter((item) => !item.served);
 
+    // A table's order stays on the table's bill until its session ends and is paid.
+    const fromTable = Boolean(target.ticket.fromTable);
     if (target.type === "ticket") {
       return {
         title: "Mark Order as Served?",
         message: `Mark all ${pendingItems.length} pending ${pendingItems.length === 1 ? "item" : "items"} for ${ticketName(target.ticket)} as served?`,
-        detail: "The order moves to Transaction History and can no longer be changed.",
+        detail: fromTable
+          ? "The order leaves the queue. It stays on the table's bill until the session ends."
+          : "The order moves to Transaction History and can no longer be changed.",
         confirmLabel: "Yes, Mark Served",
       };
     }
@@ -63,7 +67,11 @@ export default function SalesOrderQueue({
     return {
       title: "Mark Item as Served?",
       message: `Mark ${target.item.name} ×${target.item.qty} for ${ticketName(target.ticket)} as served?`,
-      detail: isLast ? "This is the last pending item, so the whole order moves to Transaction History." : "",
+      detail: !isLast
+        ? ""
+        : fromTable
+          ? "This is the last pending item, so the order leaves the queue. It stays on the table's bill."
+          : "This is the last pending item, so the whole order moves to Transaction History.",
       confirmLabel: "Yes, Served",
     };
   };
@@ -88,7 +96,9 @@ export default function SalesOrderQueue({
       </div>
 
       {orderTickets.length === 0 ? (
-        <div className="order-history-empty">No order tickets yet. Send food or drink items from the running bill.</div>
+        <div className="order-history-empty">
+          No order tickets yet. Send food or drink items from the running bill, or use Order on a pool table.
+        </div>
       ) : (
         <div className="order-ticket-list">
           {pagination.items.map((ticket) => {
@@ -107,6 +117,11 @@ export default function SalesOrderQueue({
                   </div>
 
                   <div className="order-ticket-actions">
+                    {ticket.fromTable && (
+                      <span className="order-ticket-badge table">
+                        <i className="bi bi-grid-3x3-gap-fill"></i> Pool table
+                      </span>
+                    )}
                     {ticket.billPaid && <span className="order-ticket-badge paid">Paid</span>}
                     <span className={`order-ticket-badge ${ticket.status}`}>
                       {ticket.status === "served" ? "All served" : `${pendingCount} pending`}

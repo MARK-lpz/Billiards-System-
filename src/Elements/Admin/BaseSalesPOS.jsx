@@ -8,9 +8,13 @@ import SalesPosTabs from "./SalesPosTabs";
 import SalesSummary from "./SalesSummary";
 import SalesTransactionHistory from "./SalesTransactionHistory";
 import useSalesPOS from "./useSalesPOS";
+import useTableOrders from "./useTableOrders";
+import { isTableTicketId, toTableTicket } from "../../utils/tableOrders";
 
 export default function BaseSalesPOS({
   tables = [],
+  setTables,
+  reservations = [],
   products,
   setProducts,
   transactions,
@@ -24,6 +28,9 @@ export default function BaseSalesPOS({
   // A past sale opened from Transaction History, to see or reprint its receipt.
   const [viewedReceipt, setViewedReceipt] = useState(null);
   const salesPos = useSalesPOS({
+    tables,
+    setTables,
+    reservations,
     products,
     setProducts,
     setTransactions,
@@ -33,6 +40,22 @@ export default function BaseSalesPOS({
     cashierLabel,
     storageKeyPrefix,
   });
+
+  // Orders taken at the pool tables wait in the same queue as the ones rung up
+  // here. They live on the table, so both counters see them and either can
+  // mark them served.
+  const tableOrders = useTableOrders({ tables, setTables, products, setProducts, setLogs, staff: cashierLabel });
+  const tableTickets = tables.map(toTableTicket).filter(Boolean);
+  const queueTickets = [...tableTickets, ...salesPos.orderTickets];
+  const pendingItemsCount =
+    salesPos.pendingItemsCount +
+    tableTickets.reduce((sum, ticket) => sum + ticket.items.filter((item) => !item.served).length, 0);
+  const tableIdOf = (ticketId) => tableTickets.find((ticket) => ticket.id === ticketId)?.tableId;
+
+  const markTicketServed = (ticketId) =>
+    isTableTicketId(ticketId) ? tableOrders.serveAll(tableIdOf(ticketId)) : salesPos.markTicketServed(ticketId);
+  const setItemServed = (ticketId, itemId) =>
+    isTableTicketId(ticketId) ? tableOrders.toggleServed(tableIdOf(ticketId), itemId) : salesPos.setItemServed(ticketId, itemId);
 
   const usedReferences = useMemo(
     () =>
@@ -58,15 +81,16 @@ export default function BaseSalesPOS({
       </div>
 
       <SalesSummary
-        openBillsCount={salesPos.openBills.length}
-        openBillsTotal={salesPos.openBillsTotal}
+        runningBill={salesPos.activeBill}
+        runningTotal={salesPos.total}
+        savedBillsCount={salesPos.savedBillsCount}
         unsyncedCount={salesPos.unsyncedCount}
-        pendingItemsCount={salesPos.pendingItemsCount}
+        pendingItemsCount={pendingItemsCount}
       />
 
       <SalesPosTabs
         tab={salesPos.tab}
-        pendingItemsCount={salesPos.pendingItemsCount}
+        pendingItemsCount={pendingItemsCount}
         transactionCount={transactions.length + salesPos.servedOrderTickets.length}
         onChange={salesPos.setTab}
       />
@@ -80,17 +104,17 @@ export default function BaseSalesPOS({
           cart={salesPos.cart}
           activeBill={salesPos.activeBill}
           bills={salesPos.bills}
-          openBills={salesPos.openBills}
+          savedBillsCount={salesPos.savedBillsCount}
           tables={tables}
-          subtotal={salesPos.subtotal}
           total={salesPos.total}
           method={salesPos.method}
           waitingCount={salesPos.billWaitingQty}
-          servedCount={salesPos.billServedQty}
           unsyncedCount={salesPos.unsyncedCount}
           stockAlert={salesPos.stockAlert}
           unpaidTableCharges={salesPos.unpaidTableCharges}
           onAddTableCharge={salesPos.addTableChargeToBill}
+          liveTableBills={salesPos.liveTableBills}
+          onAddLiveTable={salesPos.addLiveTableToBill}
           onSearchChange={salesPos.setSearch}
           onSetCategory={salesPos.setCatFilter}
           onAddToCart={salesPos.addToCart}
@@ -98,21 +122,21 @@ export default function BaseSalesPOS({
           getQueuedQty={salesPos.getQueuedQty}
           onSetMethod={salesPos.setMethod}
           onProcessPayment={salesPos.processPayment}
-          onOpenBill={salesPos.openNewBill}
-          onSwitchBill={salesPos.switchBill}
           onCloseBill={salesPos.closeBill}
+          describeBillRemoval={salesPos.describeBillRemoval}
+          onRemoveBill={salesPos.removeBill}
           onUpdateBill={salesPos.updateBillDetails}
         />
       )}
 
       {salesPos.tab === "orders" && (
         <SalesOrderQueue
-          orderTickets={salesPos.orderTickets}
-          pendingItemsCount={salesPos.pendingItemsCount}
+          orderTickets={queueTickets}
+          pendingItemsCount={pendingItemsCount}
           servedItemsCount={salesPos.servedItemsCount}
-          onMarkTicketServed={salesPos.markTicketServed}
-          onSetItemServed={salesPos.setItemServed}
-          openBillIds={salesPos.bills.map((bill) => bill.id)}
+          onMarkTicketServed={markTicketServed}
+          onSetItemServed={setItemServed}
+          openBillIds={salesPos.activeBill ? [salesPos.activeBill.id] : []}
           onOpenBill={goToBill}
         />
       )}

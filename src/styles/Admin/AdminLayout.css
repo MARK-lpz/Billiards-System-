@@ -58,11 +58,14 @@
   flex-direction: column;
 }
 
+/* Every module uses the whole width beside the sidebar (it was capped at
+   1560px and centred, leaving bare strips at both sides on wide screens). The
+   side padding matches the top bar's, so content lines up under it. */
 .admin-shell .main-content {
   flex: 1;
   width: 100%;
-  max-width: 1560px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   padding: 1.75rem 2rem 3rem;
   overflow: visible;
 }
@@ -538,8 +541,16 @@
   box-shadow: var(--ax-shadow);
 }
 
+/* A few tables share the card's whole width instead of bunching at the left;
+   each keeps a pool table's shape as it grows. */
 .admin-shell .active-tables-card .active-tables-grid {
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.admin-shell .active-tables-card .mini-table-card {
+  aspect-ratio: 2 / 1;
+  justify-content: center;
+  max-height: 180px;
 }
 
 .admin-shell .admin-dashboard-grid .task-list {
@@ -623,8 +634,9 @@
   justify-content: flex-start;
 }
 
-/* Add Product / Create Event sit at the right end of their filter bars */
-.admin-shell :is(.inventory-filters, .events-toolbar) > :is(.inventory-add-btn, .events-add-btn) {
+/* The search + Add Product / Create Event sit at the right end of their filter bars */
+.admin-shell .inventory-filters > .inventory-search,
+.admin-shell .events-toolbar > .events-add-btn {
   margin-left: auto;
 }
 
@@ -881,3 +893,17 @@
   }
 }
 
+/* Settings: the cards side by side on wide screens (it was one 980px column
+   against the left edge), one under the other when there is no room. */
+.admin-shell .settings-page {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(480px, 100%), 1fr));
+  align-items: start;
+  gap: 1.25rem;
+  max-width: none;
+  padding: 0;
+}
+
+.admin-shell .settings-page > .settings-header {
+  grid-column: 1 / -1;
+}

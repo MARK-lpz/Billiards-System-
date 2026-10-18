@@ -188,7 +188,7 @@ export default function QuickActions({ tables = [], setTables, logs = [], setLog
 
     createRemoteIssue(issueEntry).catch((error) => {
       console.warn("Unable to send issue to the shared feed", error);
-      addNotification({ message: "Issue saved locally, but could not reach the shared admin feed." });
+      addNotification({ tone: "error", message: "Issue saved locally, but could not reach the shared admin feed." });
     });
 
     closeModal();

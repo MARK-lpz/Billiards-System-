@@ -2,8 +2,16 @@ import { useEffect, useState } from "react";
 import { nowStr, readStorage, todayStr } from "./salesPosConfig";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../Global/useNotifications";
-import { toTableChargeLine } from "../../utils/tableCharges";
-import { buildBillLabel, createBill, findChargeBill, getChargeTarget } from "../../utils/posBills";
+import {
+  createTableCharge,
+  getLiveChargeId,
+  toChargeOrderLines,
+  toLiveReceiptCharge,
+  toLiveTableLines,
+  toTableChargeLine,
+} from "../../utils/tableCharges";
+import { unpaidQty } from "../../utils/tableOrders";
+import { buildBillLabel, createBill, findChargeBill } from "../../utils/posBills";
 
 // One shared empty list, so "no bill picked" does not hand out a new array every render.
 const NO_ITEMS = [];
@@ -67,7 +75,13 @@ const getServedTickets = (storageKeyPrefix) => {
 
 const sumBill = (cart) => Number(cart.reduce((sum, item) => sum + item.price * item.qty, 0).toFixed(2));
 
+// Read only from click handlers, never while rendering.
+const getCurrentTimestamp = () => Date.now();
+
 export default function useSalesPOS({
+  tables = [],
+  setTables,
+  reservations = [],
   products,
   setProducts,
   setTransactions,
@@ -108,7 +122,11 @@ export default function useSalesPOS({
     }
   }, [bills, activeBillId, method, orderTickets, servedOrderTickets, storageKeyPrefix]);
 
-  const activeBill = bills.find((bill) => bill.id === activeBillId) || null;
+  // One running bill at a time. Bills saved before that (one per table) are kept
+  // and come up one after another as each is paid, so nothing on them is lost.
+  const activeBill = bills.find((bill) => bill.id === activeBillId) || bills[0] || null;
+  const currentBillId = activeBill?.id ?? null;
+  const savedBillsCount = Math.max(0, bills.length - 1);
   const cart = activeBill ? activeBill.cart : NO_ITEMS;
 
   const updateBillCart = (billId, update) =>
@@ -117,7 +135,7 @@ export default function useSalesPOS({
         bill.id === billId ? { ...bill, cart: typeof update === "function" ? update(bill.cart) : update } : bill
       )
     );
-  const setCart = (update) => updateBillCart(activeBillId, update);
+  const setCart = (update) => updateBillCart(currentBillId, update);
 
   const openNewBill = ({ table = null, customer = "" } = {}) => {
     const bill = createBill({ id: newBillId(), table, customer, bills, openedAt: nowStr() });
@@ -147,7 +165,37 @@ export default function useSalesPOS({
   // bill, so one could already have been paid at the other counter.
   const unpaidTableCharges = tableCharges.filter((charge) => charge.status === "unpaid");
   const unpaidChargeIds = new Set(unpaidTableCharges.map((charge) => charge.id));
-  const isStaleTableLine = (item) => item.isTableCharge && !unpaidChargeIds.has(item.chargeId);
+  // Tables still playing, with what each owes now. They can pay part way through
+  // and keep playing; the payment is recorded on the table.
+  const liveCharges = tables
+    .filter((table) => table.status === "occupied" && table.startTime)
+    .map((table) => ({
+      chargeId: getLiveChargeId(table),
+      table,
+      charge: createTableCharge({ table, reservations, tableCharges, endedBy: cashierLabel, now: Number(table.startTime) }),
+    }));
+  const liveTableBills = liveCharges.filter((entry) => entry.charge.amountDue > 0);
+  const liveById = new Map(liveCharges.map((entry) => [entry.chargeId, entry]));
+
+  // A playing table's line is still owed: same session, and its time or order
+  // not paid meanwhile (here, at the other counter, or by ending the session).
+  const isLiveLineDue = (item) => {
+    const live = liveById.get(item.chargeId);
+    if (!live) return false;
+    if (item.isTableCharge) return live.charge.timeDue + 0.001 >= item.price;
+    const line = live.charge.orders.find((entry) => entry.id === item.liveLineId);
+    return Boolean(line) && unpaidQty(line) >= item.qty;
+  };
+
+  // A table's bill is its time and what was ordered at the table; both go if it
+  // was paid elsewhere. A playing table's lines go together once any is not owed.
+  const staleLiveIds = new Set(
+    cart.filter((item) => item.liveTable && !isLiveLineDue(item)).map((item) => item.chargeId)
+  );
+  const isStaleTableLine = (item) =>
+    item.liveTable
+      ? staleLiveIds.has(item.chargeId)
+      : (item.isTableCharge || item.fromTableCharge) && !unpaidChargeIds.has(item.chargeId);
 
   const subtotal = sumBill(cart);
   const discAmt = 0;
@@ -170,21 +218,8 @@ export default function useSalesPOS({
       .filter((line) => !line.served)
       .reduce((sum, line) => sum + line.qty, 0);
 
-  const openBills = bills.map((bill) => ({
-    id: bill.id,
-    label: bill.label,
-    tableId: bill.tableId,
-    total: sumBill(bill.cart),
-    lineCount: bill.cart.length,
-    waitingQty: getBillWaitingQty(bill.id),
-  }));
-  const openBillsTotal = Number(openBills.reduce((sum, bill) => sum + bill.total, 0).toFixed(2));
 
   const billWaitingQty = activeBill ? getBillWaitingQty(activeBill.id) : 0;
-  const billServedQty = Math.max(
-    0,
-    inventoryCartItems.reduce((sum, item) => sum + (item.syncedQty || 0), 0) - billWaitingQty
-  );
 
   const getMaxAllowedQty = (productId, syncedQty = 0) => {
     const product = products.find((entry) => entry.id === productId);
@@ -257,7 +292,7 @@ export default function useSalesPOS({
 
   // Only this bill's tickets, so taking an item off one table's bill never
   // cancels another table's order.
-  const isBillTicket = (ticket) => ticket.billId === activeBillId;
+  const isBillTicket = (ticket) => ticket.billId === currentBillId;
 
   /** How many of a product on this bill are still waiting to be served. */
   const getQueuedQty = (productId) =>
@@ -329,8 +364,87 @@ export default function useSalesPOS({
     if (!bill || bill.cart.length) return false;
 
     setBills((prev) => prev.filter((entry) => entry.id !== billId));
-    if (activeBillId === billId) setActiveBillId(null);
+    if (currentBillId === billId) setActiveBillId(null);
     return true;
+  };
+
+  /** What removing a whole bill would do, for its confirmation: { waiting, served, tables }. */
+  const describeBillRemoval = (billId) => {
+    const bill = bills.find((entry) => entry.id === billId);
+    if (!bill) return null;
+    const waitingLines = orderTickets
+      .filter((ticket) => ticket.billId === billId)
+      .flatMap((ticket) => ticket.items)
+      .filter((line) => !line.served);
+    const waitingOf = (productId) =>
+      waitingLines.filter((line) => line.productId === productId).reduce((sum, line) => sum + line.qty, 0);
+    const served = bill.cart
+      .filter((item) => item.inventoryItem)
+      .map((item) => ({ name: item.name, qty: Math.max(0, (item.syncedQty || 0) - waitingOf(item.id)) }))
+      .filter((item) => item.qty > 0);
+    return {
+      waiting: waitingLines.reduce((sum, line) => sum + line.qty, 0),
+      served,
+      tables: [
+        ...new Set(bill.cart.filter((item) => item.isTableCharge).map((item) => item.tableName || item.name.split(" · ")[0])),
+      ],
+    };
+  };
+
+  /**
+   * Takes a whole bill off without payment (Remove Transaction). What is still
+   * waiting leaves the Order Queue and goes back to stock; what was served was
+   * handed over, so its stock is not returned. A table's time and orders simply
+   * come off: they stay unpaid on Pool Table Bills. Recorded in the Audit Trail.
+   */
+  const removeBill = (billId) => {
+    const bill = bills.find((entry) => entry.id === billId);
+    const removal = describeBillRemoval(billId);
+    if (!bill || !removal) return;
+
+    const billTickets = orderTickets.filter((ticket) => ticket.billId === billId);
+    const restock = new Map();
+    billTickets
+      .flatMap((ticket) => ticket.items)
+      .filter((line) => !line.served)
+      .forEach((line) => restock.set(line.productId, (restock.get(line.productId) || 0) + line.qty));
+    // What was served stays in the queue's history; what was waiting is cancelled.
+    const servedPart = billTickets
+      .map((ticket) => ({ ...ticket, items: ticket.items.filter((line) => line.served) }))
+      .filter((ticket) => ticket.items.length)
+      .map(toServedTicket);
+
+    setOrderTickets((prev) => prev.filter((ticket) => ticket.billId !== billId));
+    if (servedPart.length) setServedOrderTickets((prev) => [...servedPart, ...prev]);
+    if (restock.size) {
+      setProducts((prev) =>
+        prev.map((product) => (restock.has(product.id) ? { ...product, stock: product.stock + restock.get(product.id) } : product))
+      );
+    }
+    setBills((prev) => prev.filter((entry) => entry.id !== billId));
+    if (currentBillId === billId) setActiveBillId(null);
+    setStockAlert(null);
+    setPaymentReviewOpen(false);
+
+    const amount = sumBill(bill.cart);
+    appendAuditLog(setLogs, {
+      type: "sale",
+      staff: cashierLabel,
+      action: "Removed transaction",
+      detail: [
+        `${bill.label}: removed unpaid (₱${amount.toFixed(2)}): ${bill.cart.map((item) => `${item.name} ×${item.qty}`).join(", ")}.`,
+        removal.waiting ? `${removal.waiting} waiting returned to stock.` : "",
+        removal.served.length
+          ? `Already served, not charged: ${removal.served.map((item) => `${item.name} ×${item.qty}`).join(", ")}.`
+          : "",
+        removal.tables.length ? `${removal.tables.join(", ")} left unpaid on Pool Table Bills.` : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+      entity: "payment",
+      customer: null,
+    });
+    addNotification({ message: `${cashierLabel} removed the running bill for ${bill.label} (₱${amount.toFixed(2)}, unpaid).` });
   };
 
   /** Changes who a bill is for. Its waiting orders take the new name too. */
@@ -350,19 +464,61 @@ export default function useSalesPOS({
     setOrderTickets((prev) => prev.map((ticket) => (ticket.billId === billId ? { ...ticket, billLabel: label } : ticket)));
   };
 
+  /**
+   * Puts a table's bill on the running bill: it starts one for that table, joins
+   * a walk-in or empty one (which then takes the table's name), or adds to that
+   * table's own. Another table's running bill with items on it is paid first, so
+   * each table keeps a receipt of its own; tables paying together are joined in
+   * End Session at Pool Tables.
+   */
+  const placeOnRunningBill = ({ tableId, tableName, customer, lines }) => {
+    const sameTable = activeBill && String(activeBill.tableId) === String(tableId);
+    if (activeBill && activeBill.tableId !== null && !sameTable && activeBill.cart.length) {
+      setStockAlert({
+        productId: null,
+        message: `The Running Bill is for ${activeBill.label}. Pay it first; to pay tables together, join them in End Session at Pool Tables.`,
+      });
+      return;
+    }
+
+    const bill = activeBill || openNewBill({ table: { id: tableId, name: tableName }, customer });
+    if (activeBill && !sameTable) {
+      const keepName = activeBill.tableId === null && activeBill.customer;
+      updateBillDetails(activeBill.id, { table: { id: tableId, name: tableName }, customer: keepName || customer });
+    }
+    setStockAlert(null);
+    setActiveBillId(bill.id);
+    updateBillCart(bill.id, (prev) => [...prev, ...lines]);
+  };
+
   const addTableChargeToBill = (charge) => {
     if (!unpaidChargeIds.has(charge.id) || findChargeBill(bills, charge.id)) return;
 
-    const bill =
-      getChargeTarget({ charge, bills, activeBill }) ||
-      openNewBill({
-        table: { id: charge.tableId, name: charge.tableName },
-        customer: charge.customer === "Walk-in" ? "" : charge.customer,
-      });
+    placeOnRunningBill({
+      tableId: charge.tableId,
+      tableName: charge.tableName,
+      customer: charge.customer === "Walk-in" ? "" : charge.customer,
+      lines: [toTableChargeLine(charge), ...toChargeOrderLines(charge)],
+    });
+  };
 
-    setStockAlert(null);
-    setActiveBillId(bill.id);
-    updateBillCart(bill.id, (prev) => [...prev, toTableChargeLine(charge)]);
+  /** Puts what a playing table owes now on a bill, to be paid without ending its session. */
+  const addLiveTableToBill = (table) => {
+    const current = tables.find(
+      (entry) => entry.id === table.id && entry.status === "occupied" && entry.startTime === table.startTime
+    );
+    if (!current) return;
+    const chargeId = getLiveChargeId(current);
+    if (findChargeBill(bills, chargeId)) return;
+    const charge = createTableCharge({ table: current, reservations, tableCharges, endedBy: cashierLabel, now: getCurrentTimestamp() });
+    if (charge.amountDue <= 0) return;
+
+    placeOnRunningBill({
+      tableId: current.id,
+      tableName: charge.tableName,
+      customer: current.customer && current.customer !== "Walk-in Customer" ? current.customer : "",
+      lines: toLiveTableLines(current, charge),
+    });
   };
 
   // Takes off any table already paid at the other counter. Returns the bill
@@ -372,12 +528,22 @@ export default function useSalesPOS({
     if (!staleLines.length) return cart;
 
     const nextCart = cart.filter((item) => !isStaleTableLine(item));
+    const staleTables = staleLines.filter((item) => item.isTableCharge && !item.liveTable);
+    const staleLive = [...new Set(staleLines.filter((item) => item.liveTable).map((item) => item.tableName))];
+    const one = (list, single, many) => (list.length === 1 ? single : many);
     setCart(nextCart);
     setStockAlert({
       productId: null,
-      message: `${staleLines.map((item) => item.name.split(" · ")[0]).join(", ")} ${
-        staleLines.length === 1 ? "was" : "were"
-      } already paid at another counter, so ${staleLines.length === 1 ? "it was" : "they were"} taken off this bill.`,
+      message: [
+        staleTables.length
+          ? `${staleTables.map((item) => item.name.split(" · ")[0]).join(", ")} ${one(staleTables, "was", "were")} already paid at another counter, so ${one(staleTables, "it was", "they were")} taken off this bill.`
+          : "",
+        staleLive.length
+          ? `${staleLive.join(", ")} changed since ${one(staleLive, "it was", "they were")} added (paid, ended, or an order changed), so ${one(staleLive, "it was", "they were")} taken off this bill. Add ${one(staleLive, "it", "them")} again from Pool Table Bills.`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
     });
     return nextCart;
   };
@@ -424,11 +590,23 @@ export default function useSalesPOS({
 
     const requestedQty = Number.isFinite(Number(qty)) ? Math.max(0, Math.floor(Number(qty))) : item.qty;
 
+    // What was ordered at a table belongs to that ended session's bill; it comes
+    // off with the table time, not on its own. A playing table's lines come off
+    // one by one: they simply stay unpaid on the table.
+    if (item.fromTableCharge && !item.liveTable) return item.qty;
+
     if (!item.inventoryItem) {
-      // A table charge is one whole session: it is either on the bill or taken off.
+      // A table charge is one whole session: it is either on the bill or taken off,
+      // together with the orders that came with it.
       const nextQty = item.isTableCharge ? Math.min(requestedQty, 1) : requestedQty;
       setCart((prev) => {
-        if (nextQty <= 0) return prev.filter((entry) => entry.id !== id);
+        if (nextQty <= 0) {
+          return prev.filter(
+            (entry) =>
+              entry.id !== id &&
+              !(item.isTableCharge && !item.liveTable && entry.fromTableCharge && entry.chargeId === item.chargeId)
+          );
+        }
         return prev.map((entry) => (entry.id === id ? { ...entry, qty: nextQty } : entry));
       });
       setStockAlert(null);
@@ -537,11 +715,24 @@ export default function useSalesPOS({
     const paidAt = new Date().toISOString();
     const txId = Date.now();
     const billCharges = cart
-      .filter((item) => item.isTableCharge)
+      .filter((item) => item.isTableCharge && !item.liveTable)
       .map((item) => tableCharges.find((charge) => charge.id === item.chargeId))
       .filter(Boolean)
       .map((charge) => ({ ...charge, status: "paid", paidVia: method, paidAt, paidBy: cashierLabel, transactionId: txId }));
-    const customers = [...new Set(billCharges.map((charge) => charge.customer).filter(Boolean))];
+    // Tables paid while still playing: what each line paid, recorded on the table.
+    const liveGroups = [...new Set(cart.filter((item) => item.liveTable).map((item) => item.chargeId))].map((chargeId) => {
+      const lines = cart.filter((item) => item.chargeId === chargeId);
+      return {
+        chargeId,
+        table: liveById.get(chargeId).table,
+        amount: sumBill(lines),
+        time: lines.filter((item) => item.isTableCharge).reduce((sum, item) => sum + item.price, 0),
+        orders: lines.filter((item) => item.fromTableCharge).map((item) => ({ lineId: item.liveLineId, qty: item.qty })),
+      };
+    });
+    const liveReceiptCharges = liveGroups.map((group) => toLiveReceiptCharge(group.table, group.chargeId));
+    const customers = [...new Set([...billCharges, ...liveReceiptCharges].map((charge) => charge.customer).filter(Boolean))];
+    const paidTables = [...billCharges, ...liveReceiptCharges].map((charge) => charge.tableName);
 
     const tx = {
       id: txId,
@@ -555,11 +746,12 @@ export default function useSalesPOS({
         category: item.category,
         isExtra: Boolean(item.isExtra),
         ...(item.isTableCharge ? { isTableCharge: true, chargeId: item.chargeId } : {}),
+        ...(item.fromTableCharge ? { fromTableCharge: true, chargeId: item.chargeId } : {}),
       })),
       // The full session details, so the receipt can show time in, time out and hours.
-      tableCharges: billCharges,
+      tableCharges: [...billCharges, ...liveReceiptCharges],
       billLabel: activeBill.label,
-      tableName: billCharges.map((charge) => charge.tableName).join(", ") || activeBill.tableName,
+      tableName: paidTables.join(", ") || activeBill.tableName,
       customerName: customers.join(", ") || activeBill.customer,
       extraCharges: [],
       subtotal,
@@ -575,6 +767,28 @@ export default function useSalesPOS({
       const paidCharges = new Map(billCharges.map((charge) => [charge.id, charge]));
       setTableCharges?.((prev) => prev.map((charge) => paidCharges.get(charge.id) || charge));
     }
+    if (liveGroups.length) {
+      const paidAtMs = getCurrentTimestamp();
+      setTables?.((prev) =>
+        prev.map((table) => {
+          const group = liveGroups.find(
+            (entry) => entry.table.id === table.id && entry.table.startTime === table.startTime
+          );
+          if (!group) return table;
+          return {
+            ...table,
+            payments: [
+              ...(table.payments || []),
+              { transactionId: txId, amount: group.amount, time: group.time, method, at: paidAtMs, by: cashierLabel },
+            ],
+            orders: (table.orders || []).map((line) => {
+              const paid = group.orders.find((entry) => entry.lineId === line.id);
+              return paid ? { ...line, paidQty: Number(line.paidQty || 0) + paid.qty } : line;
+            }),
+          };
+        })
+      );
+    }
 
     setTransactions((prev) => [tx, ...prev]);
     appendAuditLog(setLogs, {
@@ -583,6 +797,10 @@ export default function useSalesPOS({
       action: "Processed sale",
       detail: `${activeBill.label}: ${cart.length} line items${
         billCharges.length ? ` (incl. ${billCharges.map((charge) => charge.tableName).join(", ")} table time)` : ""
+      }${
+        liveGroups.length
+          ? ` (incl. ${liveGroups.map((group) => group.table.name).join(", ")}, paid while still playing)`
+          : ""
       } paid via ${method} for ₱${total.toFixed(2)}`,
       entity: "payment",
       payment: {
@@ -611,8 +829,7 @@ export default function useSalesPOS({
   return {
     cart,
     activeBill,
-    openBills,
-    openBillsTotal,
+    savedBillsCount,
     method,
     receipt,
     paymentReviewOpen,
@@ -627,11 +844,11 @@ export default function useSalesPOS({
     discAmt,
     total,
     unpaidTableCharges,
+    liveTableBills,
     unsyncedCount,
     pendingItemsCount,
     servedItemsCount,
     billWaitingQty,
-    billServedQty,
     stockAlert,
     bills,
     setReceipt,
@@ -643,9 +860,12 @@ export default function useSalesPOS({
     openNewBill,
     switchBill,
     closeBill,
+    describeBillRemoval,
+    removeBill,
     updateBillDetails,
     addToCart,
     addTableChargeToBill,
+    addLiveTableToBill,
     updateQty,
     getQueuedQty,
     sendOrderToInventory,

@@ -1,7 +1,20 @@
 import { useEffect, useRef } from "react";
+import { markMatches } from "../../utils/inventorySearch";
+import { daysUntil, describeDaysLeft, expiryStageOf } from "../../utils/expiryAlerts";
 
 // `highlightId`: a product opened from the admin's bell, marked and scrolled into view.
-export default function InventoryTable({ products, onEdit, onDelete, onRestock, highlightId = null }) {
+// `searchTerms`: the searched words, marked in each name.
+// `today` (YYYY-MM-DD): to tag an expiry date within 5 days, or past.
+export default function InventoryTable({
+  products,
+  onEdit,
+  onDelete,
+  onRestock,
+  highlightId = null,
+  searchTerms = [],
+  emptyMessage = "No products yet.",
+  today = "",
+}) {
   const highlightedRow = useRef(null);
 
   useEffect(() => {
@@ -27,6 +40,14 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock, 
               </tr>
             </thead>
             <tbody>
+              {products.length === 0 && (
+                <tr className="inventory-empty-row">
+                  <td colSpan={9}>
+                    <i className="bi bi-search" aria-hidden="true"></i>
+                    {emptyMessage}
+                  </td>
+                </tr>
+              )}
               {products.map(product => {
                 const stockLeft = Number(product.stock) || 0;
                 const minStock = Number(product.minStock) || 0;
@@ -36,6 +57,7 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock, 
                 const stockCeiling = Math.max(minStock, 1) * 2;
                 const stockPercent = Math.max(0, Math.min(100, (stockLeft / stockCeiling) * 100));
                 const isHighlighted = highlightId !== null && String(product.id) === String(highlightId);
+                const expiryStage = today ? expiryStageOf(product, today) : null;
 
                 return (
                   <tr
@@ -52,7 +74,9 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock, 
                     <td>
                       <div className="inventory-product-name">
                         <i className="bi bi-box me-2"></i>
-                        {product.name}
+                        {markMatches(product.name, searchTerms).map((part, index) =>
+                          part.hit ? <mark key={index} className="inventory-search-hit">{part.text}</mark> : part.text
+                        )}
                       </div>
                     </td>
                     <td>
@@ -84,7 +108,15 @@ export default function InventoryTable({ products, onEdit, onDelete, onRestock, 
                       </div>
                     </td>
                     <td className="text-muted">{product.minStock} pcs</td>
-                    <td className="inventory-detail-cell">{product.expiryDate || "N/A"}</td>
+                    <td className="inventory-detail-cell">
+                      {product.expiryDate || "N/A"}
+                      {expiryStage && (
+                        <span className={`inventory-expiry-tag is-${expiryStage}`}>
+                          <i className={`bi ${expiryStage === "soon" ? "bi-hourglass-split" : "bi-calendar-x-fill"}`} aria-hidden="true"></i>
+                          {describeDaysLeft(daysUntil(product.expiryDate, today))}
+                        </span>
+                      )}
+                    </td>
                     <td>
                       {isOutOfStock ? (
                         <span className="badge inventory-badge-danger">

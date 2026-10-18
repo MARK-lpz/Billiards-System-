@@ -4,19 +4,16 @@ import PoolTableStats from "../../Elements/Admin/PoolTableStats.jsx";
 import PoolTableCard from "../../Elements/Admin/PoolTableCards";
 import PoolTableModal from "../../Elements/Admin/PoolTableModal";
 import WalkInModal from "../../Elements/Admin/WalkInModal";
-import EndSessionModal from "../../Elements/Admin/EndSessionModal";
+import TableOrderModal from "../../Elements/Admin/TableOrderModal";
+import useTableOrders from "../../Elements/Admin/useTableOrders";
 import CancelReservationModal from "../../Elements/Admin/CancelReservationModal";
 import ConfirmDialog from "../../Elements/Global/ConfirmDialog";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import { findTableReservation, formatHoursLabel, getExtensionBlock, getTodayDate } from "../../utils/reservations";
 import { getPoolTableErrors } from "../../utils/formValidation";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
-import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
 import { getCheckInBlock, hasTableReservation } from "../../utils/tableHolds";
 import useClock from "../../Elements/Global/useClock";
-
-// Read only from click handlers, never while rendering.
-const getCurrentTimestamp = () => Date.now();
 
 const UPCOMING_BOOKING = new Set(["pending", "approved", "reserved", "arrived"]);
 
@@ -37,15 +34,27 @@ const getDeleteBlock = (table, reservations, today) => {
   return "";
 };
 
-export default function PoolTables({ tables, setTables, reservations = [], setReservations, tableCharges = [], setTableCharges }) {
+// Ending a session takes its payment, which the dashboard handles (`onEndSession`)
+// so the time's up pop-up on any page can end one the same way.
+export default function PoolTables({
+  tables,
+  setTables,
+  reservations = [],
+  setReservations,
+  products = [],
+  setProducts,
+  setLogs,
+  onEndSession,
+}) {
   const { addNotification, showToast } = useNotifications();
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ name: "", rate: 15, durationMinutes: 60 });
   const [editId, setEditId] = useState(null);
   const [walkInTableId, setWalkInTableId] = useState(null);
-  const [endingTable, setEndingTable] = useState(null);
-  // When End Session was pressed, so the total shown is the one charged.
-  const [endingAt, setEndingAt] = useState(null);
+  // The table whose Order pop-up is open; gone once its session ends.
+  const [orderTableId, setOrderTableId] = useState(null);
+  const orderTable = tables.find(t => t.id === orderTableId && t.status === "occupied") || null;
+  const tableOrders = useTableOrders({ tables, setTables, products, setProducts, setLogs, staff: "Admin" });
   // The reserved table whose Cancel pop-up is open; gone if it is no longer reserved.
   const [cancelTableId, setCancelTableId] = useState(null);
   const cancelTable = tables.find(t => t.id === cancelTableId && t.status === "reserved") || null;
@@ -68,28 +77,6 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
     });
     setModal(null);
     setWalkInTableId(null);
-  };
-
-  const requestEndSession = (id) => {
-    setEndingAt(getCurrentTimestamp());
-    setEndingTable(tables.find(t => t.id === id) || null);
-  };
-
-  // The session's bill goes to Sales / POS, where it is paid with any food and drinks.
-  const endSession = () => {
-    if (!endingTable) return;
-    const table = tables.find(t => t.id === endingTable.id) || endingTable;
-    const charge = createTableCharge({ table, reservations, tableCharges, endedBy: "Admin", now: getCurrentTimestamp() });
-    setTables(prev => prev.map(t =>
-      t.id === table.id ? { ...t, ...ENDED_SESSION_FIELDS } : t
-    ));
-    saveTableReservationStatus({ table, reservations, setReservations, from: ["seated"], status: "completed" });
-    if (charge) {
-      setTableCharges?.(prev => [charge, ...prev]);
-      addNotification({ message: describeEndedCharge(charge) });
-      showToast(endedChargeToast(charge));
-    }
-    setEndingTable(null);
   };
 
   const checkIn = (id) => {
@@ -264,7 +251,8 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
       table={table}
       reservations={reservations}
       onWalkIn={() => openWalkInModal(table.id)}
-      onEndSession={() => requestEndSession(table.id)}
+      onEndSession={() => onEndSession?.(table.id)}
+      onOrder={() => setOrderTableId(table.id)}
       onCheckIn={() => checkIn(table.id)}
       onCancelReserve={() => setCancelTableId(table.id)}
       onAddTime={(minutes) => addTime(table.id, minutes)}
@@ -332,12 +320,13 @@ export default function PoolTables({ tables, setTables, reservations = [], setRe
         />
       )}
 
-      {endingTable && (
-        <EndSessionModal
-          table={endingTable}
-          endingAt={endingAt}
-          onClose={() => setEndingTable(null)}
-          onConfirm={endSession}
+      {orderTable && (
+        <TableOrderModal
+          table={orderTable}
+          products={products}
+          onPlace={(draft) => tableOrders.placeOrder(orderTable, draft)}
+          onTakeOff={(lineId) => tableOrders.takeOffOrder(orderTable, lineId)}
+          onClose={() => setOrderTableId(null)}
         />
       )}
 

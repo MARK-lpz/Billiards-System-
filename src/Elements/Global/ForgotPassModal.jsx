@@ -77,29 +77,6 @@ export default function ForgotPassModal({ visible, onClose }) {
   const showPasswordFields = !resetOff && codeSent;
   const phoneWarning = getSmsWarning(phone);
 
-  // Tells the admin that a reset happened. Carries no password, by design.
-  const notifyAdminOfReset = (resetUsername) => {
-    try {
-      const existing = JSON.parse(localStorage.getItem("adminNotifications") || "[]");
-      localStorage.setItem(
-        "adminNotifications",
-        JSON.stringify([
-          {
-            id: Date.now(),
-            time: "Just now",
-            unread: true,
-            type: "password-reset",
-            message: `${resetUsername} reset their own password.`,
-            username: resetUsername,
-          },
-          ...existing,
-        ])
-      );
-    } catch {
-      // A missing notification must never block the user from signing in.
-    }
-  };
-
   const validateIdentity = () => {
     if (!username.trim()) {
       setError(`Please enter your ${accountType} username.`);
@@ -145,9 +122,8 @@ export default function ForgotPassModal({ visible, onClose }) {
     }
     if (!validateNewPassword()) return;
 
+    // The server tells the admin's bell that it happened (never the password).
     await resetPassword({ username: username.trim(), role: accountType, phone, code, newPassword });
-
-    notifyAdminOfReset(username.trim());
     setResetSuccess(true);
   };
 

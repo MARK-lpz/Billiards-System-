@@ -1,0 +1,41 @@
+/* The admin's announcement on the customer pages (AnnouncementBar.jsx). Dark
+   in both themes, like the rest of the website. */
+.guest-announcement {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: min(100% - 2.5rem, 1120px);
+  margin: 1rem auto 0;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid rgba(255, 210, 63, 0.28);
+  border-left: 4px solid var(--bc-yellow, #ffd23f);
+  border-radius: 10px;
+  background: #1a1a12;
+  color: #f6ecc4;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.guest-announcement i {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  color: var(--bc-yellow, #ffd23f);
+  font-size: 1.1rem;
+}
+
+.guest-announcement p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Inside a form card (reservation and registration pages) it fills the card. */
+.guest-announcement.is-in-card {
+  width: auto;
+  margin: 0 0 18px;
+  text-align: left;
+}
+
+@media (max-width: 680px) {
+  .guest-announcement { width: calc(100% - 1.5rem); }
+  .guest-announcement.is-in-card { width: auto; }
+}

@@ -58,7 +58,16 @@ export const columnLetter = (index) => {
 const isNumeric = (value) =>
   typeof value === "number" && Number.isFinite(value);
 
-const buildSheet = (rows) => {
+// How the sheet prints: the paper (`paperSize`, an Excel paper code) and its
+// `orientation`, fitted to one page wide with as many pages down as it needs.
+const buildPageSetup = (pageSetup) =>
+  pageSetup
+    ? `<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="${Number(pageSetup.paperSize) || 9}" orientation="${
+        pageSetup.orientation === "landscape" ? "landscape" : "portrait"
+      }" fitToWidth="1" fitToHeight="0"/>`
+    : "";
+
+const buildSheet = (rows, pageSetup = null) => {
   const widths = [];
   const body = rows
     .map((row, rowIndex) => {
@@ -87,7 +96,9 @@ const buildSheet = (rows) => {
     : "";
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${cols}<sheetData>${body}</sheetData></worksheet>`;
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${
+    pageSetup ? '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' : ""
+  }${cols}<sheetData>${body}</sheetData>${buildPageSetup(pageSetup)}</worksheet>`;
 };
 
 const CONTENT_TYPES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -177,22 +188,22 @@ const zipStore = (files) => {
   return output;
 };
 
-/** Builds the raw bytes of a single-sheet .xlsx file. */
-export const buildWorkbook = ({ sheetName = "Sheet1", rows = [] } = {}) =>
+/** Builds the raw bytes of a single-sheet .xlsx file. `pageSetup`: see buildPageSetup. */
+export const buildWorkbook = ({ sheetName = "Sheet1", rows = [], pageSetup = null } = {}) =>
   zipStore([
     { name: "[Content_Types].xml", content: CONTENT_TYPES },
     { name: "_rels/.rels", content: ROOT_RELS },
     { name: "xl/workbook.xml", content: buildWorkbookXml(sheetName) },
     { name: "xl/_rels/workbook.xml.rels", content: WORKBOOK_RELS },
-    { name: "xl/worksheets/sheet1.xml", content: buildSheet(rows) },
+    { name: "xl/worksheets/sheet1.xml", content: buildSheet(rows, pageSetup) },
   ]);
 
 export const safeFileName = (name) =>
   `${String(name || "report").replace(/[^a-z0-9._-]+/gi, "-").replace(/^-+|-+$/g, "") || "report"}.xlsx`;
 
 /** Builds the workbook and hands it to the browser as a download. */
-export const downloadExcel = ({ fileName, sheetName, rows }) => {
-  const bytes = buildWorkbook({ sheetName, rows });
+export const downloadExcel = ({ fileName, sheetName, rows, pageSetup = null }) => {
+  const bytes = buildWorkbook({ sheetName, rows, pageSetup });
   const blob = new Blob([bytes], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });

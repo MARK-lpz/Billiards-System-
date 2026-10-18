@@ -3,28 +3,37 @@ import SalesReportModal from "./SalesReportModal";
 import {
   MONTHS,
   PERIOD_TYPES,
-  RANGE_PRESETS,
   countRangeDays,
+  describeItems,
   describePeriod,
   formatPesoAmount as peso,
   getPeriodTransactions,
   getSalesBreakdown,
+  methodLabel,
   normalizeRange,
+  receiptNumber,
   summarizeSales,
 } from "../../utils/salesReport";
 
 const today = () => new Date().toLocaleDateString("en-CA");
 
+const formatDay = (date) => {
+  const day = new Date(`${date}T00:00:00`);
+  return Number.isNaN(day.getTime()) ? date || "" : day.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+};
+
 /**
- * Daily, monthly, yearly and date-range sales in one report. Staff pick the period here and
- * see its totals; View Report opens the full report as tables in a pop-up.
+ * Daily, monthly, yearly and date-range sales in one report. Staff pick the period here
+ * and see it on the page: its totals, a breakdown by day or month, and every sale.
+ * Print / Download opens the report as the sheet it prints on (SalesReportModal), with
+ * the paper size and orientation.
  */
 export default function SalesReport({ transactions = [] }) {
   const [period, setPeriod] = useState(() => {
     const date = today();
     return { type: "daily", date, month: date.slice(5, 7), year: date.slice(0, 4), from: `${date.slice(0, 7)}-01`, to: date };
   });
-  const [reportOpen, setReportOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
 
   const years = [
     ...new Set([period.year, today().slice(0, 4), ...transactions.map((tx) => String(tx.date || "").slice(0, 4)).filter(Boolean)]),
@@ -33,7 +42,6 @@ export default function SalesReport({ transactions = [] }) {
   const periodTransactions = getPeriodTransactions(transactions, period);
   const summary = summarizeSales(periodTransactions);
   const breakdown = getSalesBreakdown(periodTransactions, period);
-  const periodLabel = describePeriod(period);
 
   const update = (changes) => setPeriod((current) => ({ ...current, ...changes }));
 
@@ -41,11 +49,8 @@ export default function SalesReport({ transactions = [] }) {
   const updateRange = (changes) =>
     setPeriod((current) => ({ ...current, ...normalizeRange({ from: current.from, to: current.to, ...changes }, today()) }));
 
-  const activePreset = RANGE_PRESETS.find((preset) => {
-    const range = preset.range(today());
-    return range.from === period.from && range.to === period.to;
-  })?.key;
   const rangeDays = countRangeDays(period.from, period.to);
+  const periodLabel = describePeriod(period);
 
   const stats = [
     { label: `Revenue · ${periodLabel}`, value: peso(summary.revenue), icon: "bi-currency-dollar", tone: "green" },
@@ -129,6 +134,9 @@ export default function SalesReport({ transactions = [] }) {
                   onChange={(event) => event.target.value && updateRange({ to: event.target.value })}
                 />
               </div>
+              <span className="sales-report-range-days">
+                {rangeDays} {rangeDays === 1 ? "day" : "days"}
+              </span>
             </>
           )}
 
@@ -149,28 +157,9 @@ export default function SalesReport({ transactions = [] }) {
           )}
         </div>
 
-        {period.type === "range" && (
-          <div className="sales-report-presets" role="group" aria-label="Quick date ranges">
-            {RANGE_PRESETS.map((preset) => (
-              <button
-                key={preset.key}
-                type="button"
-                className={`sales-report-preset ${activePreset === preset.key ? "active" : ""}`}
-                aria-pressed={activePreset === preset.key}
-                onClick={() => updateRange(preset.range(today()))}
-              >
-                {preset.label}
-              </button>
-            ))}
-            <span className="sales-report-range-days">
-              {rangeDays} {rangeDays === 1 ? "day" : "days"}
-            </span>
-          </div>
-        )}
-
-        <button type="button" className="reports-export-btn sales-report-open" onClick={() => setReportOpen(true)}>
-          <i className="bi bi-table me-2"></i>
-          View Report
+        <button type="button" className="reports-export-btn sales-report-open" onClick={() => setPrintOpen(true)}>
+          <i className="bi bi-printer me-2"></i>
+          Print / Download
         </button>
       </div>
 
@@ -188,27 +177,108 @@ export default function SalesReport({ transactions = [] }) {
         ))}
       </div>
 
+      {breakdown && (
+        <div className="card reports-card mb-4">
+          <div className="card-body">
+            <div className="reports-card-title">{breakdown.title}</div>
+            <div className="table-responsive">
+              <table className="table reports-table sales-report-table">
+                <thead>
+                  <tr>
+                    <th scope="col">{breakdown.firstColumn}</th>
+                    <th scope="col" className="reports-num">Sales</th>
+                    <th scope="col" className="reports-num">Cash</th>
+                    <th scope="col" className="reports-num">GCash</th>
+                    <th scope="col" className="reports-num">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {breakdown.rows.map((row) => (
+                    <tr key={row.key} className={row.count ? "" : "sales-report-quiet-row"}>
+                      <td className="reports-table-name">{row.label}</td>
+                      <td className="reports-num">{row.count}</td>
+                      <td className="reports-num">{peso(row.cash)}</td>
+                      <td className="reports-num">{peso(row.gcash)}</td>
+                      <td className="reports-num reports-table-price">{peso(row.revenue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th scope="row">Total</th>
+                    <td className="reports-num">{summary.count}</td>
+                    <td className="reports-num">{peso(summary.cash)}</td>
+                    <td className="reports-num">{peso(summary.gcash)}</td>
+                    <td className="reports-num">{peso(summary.revenue)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="card reports-card">
-        <div className="card-body sales-report-hint">
-          {summary.count ? (
-            <p>
-              <strong>{summary.count}</strong> {summary.count === 1 ? "sale" : "sales"} for {periodLabel}: {peso(summary.tableTime)} table time and{" "}
-              {peso(summary.items)} food &amp; items, an average of {peso(summary.average)} per sale. Open <strong>View Report</strong> for
-              the full table{breakdown ? ` with the ${breakdown.title.toLowerCase()}` : ""}, then print it or download it as Excel.
-            </p>
-          ) : (
+        <div className="card-body">
+          <div className="sales-report-card-head">
+            <div className="reports-card-title">Transactions ({periodTransactions.length})</div>
+            {summary.count > 0 && (
+              <div className="sales-report-split">
+                Table time <strong>{peso(summary.tableTime)}</strong> · Food &amp; items <strong>{peso(summary.items)}</strong> ·
+                Average sale <strong>{peso(summary.average)}</strong>
+              </div>
+            )}
+          </div>
+          {periodTransactions.length === 0 ? (
             <p className="reports-empty-note">No sales recorded for {periodLabel}.</p>
+          ) : (
+            <div className="table-responsive">
+              <table className="table reports-table sales-report-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Time</th>
+                    <th scope="col">Receipt</th>
+                    <th scope="col">Cashier</th>
+                    <th scope="col">Items</th>
+                    <th scope="col">Paid by</th>
+                    <th scope="col">Reference</th>
+                    <th scope="col" className="reports-num">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {periodTransactions.map((tx) => (
+                    <tr key={tx.id}>
+                      <td className="sales-report-nowrap">{formatDay(tx.date)}</td>
+                      <td className="sales-report-nowrap">{tx.time}</td>
+                      <td className="sales-report-nowrap">{receiptNumber(tx)}</td>
+                      <td>{tx.cashier}</td>
+                      <td className="reports-table-name sales-report-items">{describeItems(tx)}</td>
+                      <td>{methodLabel(tx.method)}</td>
+                      <td className="sales-report-nowrap">{tx.paymentDetails?.referenceNumber || "—"}</td>
+                      <td className="reports-num reports-table-price">{peso(tx.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th scope="row" colSpan={7}>Total</th>
+                    <td className="reports-num">{peso(summary.revenue)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           )}
         </div>
       </div>
 
-      {reportOpen && (
+      {printOpen && (
         <SalesReportModal
           period={period}
           transactions={periodTransactions}
           summary={summary}
           breakdown={breakdown}
-          onClose={() => setReportOpen(false)}
+          onClose={() => setPrintOpen(false)}
         />
       )}
     </div>

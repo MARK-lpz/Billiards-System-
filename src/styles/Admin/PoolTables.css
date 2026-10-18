@@ -188,35 +188,26 @@
   font-size: 12px;
 }
 
-/* Timer */
-.pool-table-timer-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
+/* Occupied: the time left across the top, then when it ends and the total side
+   by side. A grid, so every card lays them out the same way whatever its width,
+   and nothing moves as the seconds tick. */
 .pool-table-occupied-metrics {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  flex-wrap: wrap;
   margin-bottom: 12px;
 }
 
-.pool-table-occupied-metrics .pool-table-timer-section {
-  margin: 0;
-}
-
-.pool-table-occupied-metrics .pool-table-timer-section {
-  flex: 0 0 auto;
-  gap: 8px;
+.pool-table-occupied-metrics .pool-table-remaining {
+  grid-column: 1 / -1;
 }
 
 .pool-table-remaining {
   display: flex;
   align-items: center;
   min-width: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
   border: 1px solid rgba(59, 130, 246, 0.22);
   border-radius: 8px;
   background: rgba(59, 130, 246, 0.1);
@@ -261,23 +252,52 @@
   white-space: nowrap;
 }
 
-.pool-table-timer {
-  background: rgba(251, 191, 36, 0.12);
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  border-radius: 6px;
-  padding: 6px 12px;
-  color: #fbbf24;
-  font-size: 13px;
-  font-weight: 700;
-  font-family: 'Courier New', monospace;
+.pool-table-charge {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #10b981;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
-.pool-table-charge {
-  color: #10b981;
-  font-size: 14px;
+.pool-table-charge-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Paid in Sales / POS while playing (or online): nothing left to pay. */
+.pool-table-charge.is-paid {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.16);
+}
+
+.pool-table-charge.is-paid .pool-table-charge-label {
+  color: #6ee7b7;
+  font-weight: 700;
+}
+
+/* Paid before, but time or orders were added since. */
+.pool-table-charge.is-due {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+}
+
+.pool-table-charge.is-due .pool-table-charge-label {
+  color: #fcd34d;
   font-weight: 700;
 }
 
@@ -365,13 +385,14 @@
   opacity: 0.8;
 }
 
-/* Actions */
+/* Actions: the main buttons share one full row, so their labels never break in
+   two; edit and delete sit on their own row under them, at the right. The same
+   on every card, whatever the table's status. */
 .pool-table-actions {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
   gap: 8px;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .pool-table-primary-actions,
@@ -387,8 +408,15 @@
   flex-wrap: wrap;
 }
 
+/* Order at the left, edit and delete at the right, under the main buttons. */
+.pool-table-secondary-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .pool-table-utility-actions {
-  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .pool-table-actions .btn {
@@ -496,13 +524,29 @@
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-.pool-table-end-btn { flex: 1 1 auto !important; }
+.pool-table-end-btn { flex: 1 1 0 !important; }
 .pool-table-maintenance-btn { flex: 1 1 100% !important; opacity: 0.8; }
 
 .pool-table-extension-control {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   gap: 0.5rem;
+}
+
+/* Equal shares of the row, one line each, and the same height whether or not a
+   button has a border. */
+.pool-table-primary-actions {
+  align-items: stretch;
+}
+
+.pool-table-primary-actions > .btn {
+  flex: 1 1 0;
+  max-width: none;
+}
+
+.pool-table-primary-actions .btn {
+  white-space: nowrap;
+  padding: 8px 10px;
 }
 
 .pool-table-extension-control .btn {
@@ -712,25 +756,13 @@
   .pool-end-actions { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 430px) {
-  .pool-table-occupied .pool-table-actions {
-    flex-wrap: wrap;
-  }
-
-  .pool-table-occupied .pool-table-primary-actions {
-    flex-basis: 100%;
-  }
-
-  .pool-table-occupied .pool-table-utility-actions {
-    margin-left: auto;
-  }
-}
-
 /* When an occupied table's chosen hours run out */
 .pool-table-ends {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
   border: 1px solid rgba(16, 185, 129, 0.28);
   border-radius: 8px;
   background: rgba(16, 185, 129, 0.1);
@@ -793,11 +825,16 @@
 }
 
 /* Light theme: the session pills used the dark theme's pale colors on a light card. */
-.light .pool-table-timer { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
 .light .pool-table-remaining { background: #e0f2fe; border-color: #7dd3fc; color: #075985; }
 .light .pool-table-remaining.warning { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
 .light .pool-table-session-status { background: #fee2e2; border-color: #fca5a5; color: #b91c1c; }
 .light .pool-table-ends { background: #d1fae5; border-color: #6ee7b7; color: #065f46; }
+.light .pool-table-charge { background: #f8fafc; border-color: #cbd5e1; }
+.light .pool-table-charge-label { color: #64748b; }
+.light .pool-table-charge.is-paid { background: #d1fae5; border-color: #6ee7b7; }
+.light .pool-table-charge.is-paid .pool-table-charge-label { color: #065f46; }
+.light .pool-table-charge.is-due { background: #fef3c7; border-color: #fcd34d; color: #92400e !important; }
+.light .pool-table-charge.is-due .pool-table-charge-label { color: #92400e; }
 
 /* Why a Reserved table's guest cannot be checked in yet */
 .pool-table-checkin-block {
@@ -832,3 +869,573 @@
 
 .light .pool-table-upcoming { color: #075985; }
 .light .pool-table-upcoming-sub { color: #0c4a6e; }
+
+/* ================================================================
+   Orders at the table and paying when the session ends
+   ================================================================ */
+
+/* After the phone rule that makes every card button full width. */
+.pool-table-actions .pool-table-order-btn {
+  width: auto;
+  background: transparent;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.55);
+  padding: 8px 12px;
+}
+
+.pool-table-actions .pool-table-order-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+  color: #93c5fd;
+}
+
+.pool-table-order-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* The Order pop-up: products to pick from, then what the table already has. */
+.table-order-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+}
+
+.table-order-modal .modal-body {
+  display: grid;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.table-order-for {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.table-order-filters {
+  display: grid;
+  gap: 10px;
+}
+
+.table-order-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.table-order-cat {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: transparent;
+  color: #cbd5e1;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.table-order-cat.active {
+  border-color: #10b981;
+  background: #10b981;
+  color: #04130d;
+}
+
+.table-order-products {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+  align-items: start;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.table-order-product {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.table-order-product.is-picked {
+  border-color: rgba(16, 185, 129, 0.55);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+/* Out of stock: set apart by its outline and a red note, not by fading, so it
+   stays readable. */
+.table-order-product.is-out {
+  border-style: dashed;
+  background: transparent;
+}
+
+.table-order-product.is-out .table-order-product-meta {
+  color: #fca5a5;
+}
+
+.table-order-product-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.table-order-product-name {
+  overflow: hidden;
+  color: #f1f5f9;
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-order-product-meta {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.table-order-stepper {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.table-order-stepper button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: transparent;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.table-order-stepper button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.table-order-stepper span {
+  min-width: 22px;
+  color: #f8fafc;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.table-order-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #94a3b8;
+}
+
+.table-order-placed {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.table-order-placed-head {
+  display: flex;
+  justify-content: space-between;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.table-order-placed-line {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 10px;
+  color: #e2e8f0;
+  font-size: 13px;
+}
+
+.table-order-status {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.table-order-status.waiting {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.table-order-status.served {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+/* Paid in Sales / POS while the customer kept playing */
+.table-order-status.paid {
+  background: rgba(96, 165, 250, 0.16);
+  color: #93c5fd;
+}
+
+.table-order-tags {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.table-order-placed-price {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.table-order-remove {
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.table-order-remove:hover:not(:disabled) {
+  color: #f87171;
+}
+
+.table-order-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.table-order-footer {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.table-order-summary {
+  margin-right: auto;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+/* End Session: the whole bill, then how it is paid. */
+.pool-end-bill {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.pool-end-bill-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #e2e8f0;
+  font-size: 14px;
+}
+
+.pool-end-bill-row span {
+  display: flex;
+  flex-direction: column;
+}
+
+.pool-end-bill-row small {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.pool-end-bill-row strong {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pool-end-bill-row.is-credit {
+  color: #6ee7b7;
+}
+
+.pool-end-bill-heading {
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pool-end-bill-total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.18);
+  color: #f8fafc;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.pool-end-bill-total strong {
+  color: #34d399;
+  font-variant-numeric: tabular-nums;
+}
+
+.pool-end-waiting {
+  margin: 0 0 14px;
+}
+
+/* A long bill (several tables joined) scrolls inside the pop-up. */
+.pool-end-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+}
+
+.pool-end-modal .modal-body {
+  overflow-y: auto;
+}
+
+/* Joined tables: each one's own part of the bill */
+.pool-end-section {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.pool-end-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.pool-end-section-head > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.pool-end-section-head strong {
+  color: #f8fafc;
+}
+
+.pool-end-section-due {
+  color: #34d399;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pool-end-unjoin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.pool-end-unjoin:hover {
+  background: rgba(248, 113, 113, 0.12);
+  color: #fca5a5;
+}
+
+/* End too / Keep playing */
+.pool-end-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.pool-end-mode button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pool-end-mode button.active {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.16);
+  color: #bfdbfe;
+}
+
+.pool-end-mode-note {
+  margin: 0;
+  color: #93c5fd;
+  font-size: 12px;
+}
+
+/* Join Table: the other playing tables that can be added */
+.pool-end-join {
+  margin-bottom: 14px;
+}
+
+.pool-end-join-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px dashed rgba(96, 165, 250, 0.6);
+  border-radius: 8px;
+  background: transparent;
+  color: #93c5fd;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pool-end-join-toggle:hover {
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.pool-end-join-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.pool-end-join-list p {
+  margin: 0 0 2px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.pool-end-join-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.pool-end-join-option > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.pool-end-join-option strong {
+  color: #f8fafc;
+}
+
+.pool-end-join-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pool-end-join-btn:hover {
+  background: #1d4ed8;
+}
+
+.pool-end-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pool-end-methods .payment-method-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  font-size: 12px;
+}
+
+.pool-end-methods .payment-method-btn i {
+  margin: 0 !important;
+}
+
+/* Light theme */
+.light .pool-table-actions .pool-table-order-btn { color: #1d4ed8; border-color: #93c5fd; }
+.light .pool-table-actions .pool-table-order-btn:hover { background: #eff6ff; color: #1e40af; }
+.light .pool-end-copy,
+.light .table-order-for,
+.light .table-order-product-meta,
+.light .table-order-empty,
+.light .table-order-summary,
+.light .pool-end-bill-row small,
+.light .pool-end-bill-heading { color: var(--text-muted); }
+.light .table-order-cat { border-color: var(--border-strong); color: var(--text-primary); }
+.light .table-order-cat.active { border-color: #047857; background: #047857; color: #fff; }
+.light .table-order-product,
+.light .table-order-placed,
+.light .pool-end-bill { border-color: var(--border); background: var(--bg-subtle); }
+.light .table-order-product.is-picked { border-color: #34d399; background: #ecfdf5; }
+.light .table-order-product.is-out { background: transparent; }
+.light .table-order-product.is-out .table-order-product-meta { color: #b91c1c; }
+.light .table-order-product-name,
+.light .table-order-stepper span,
+.light .table-order-placed-line,
+.light .pool-end-bill-row,
+.light .pool-end-bill-total { color: var(--text-primary); }
+.light .table-order-stepper button { border-color: var(--border-strong); color: var(--text-primary); }
+.light .table-order-placed-head { color: var(--text-muted); }
+.light .table-order-status.waiting { background: #fef3c7; color: #92400e; }
+.light .table-order-status.served { background: #d1fae5; color: #065f46; }
+.light .table-order-status.paid { background: #dbeafe; color: #1e40af; }
+.light .table-order-remove { color: #64748b; }
+.light .table-order-remove:hover:not(:disabled) { color: #b91c1c; }
+.light .pool-end-bill-row.is-credit { color: #047857; }
+.light .pool-end-bill-total { border-top-color: var(--border-strong); }
+.light .pool-end-bill-total strong { color: #047857; }
+.light .pool-end-section { border-top-color: var(--border); }
+.light .pool-end-section-head,
+.light .pool-end-join-option { color: var(--text-muted); }
+.light .pool-end-section-head strong,
+.light .pool-end-join-option strong { color: var(--text-primary); }
+.light .pool-end-section-due { color: #047857; }
+.light .pool-end-unjoin { color: #64748b; }
+.light .pool-end-unjoin:hover { background: #fef2f2; color: #b91c1c; }
+.light .pool-end-mode button { border-color: var(--border-strong); color: var(--text-primary); }
+.light .pool-end-mode button.active { border-color: #1d4ed8; background: #dbeafe; color: #1e3a8a; }
+.light .pool-end-mode-note { color: #1d4ed8; }
+.light .pool-end-join-toggle { border-color: #93c5fd; color: #1d4ed8; }
+.light .pool-end-join-toggle:hover { background: #eff6ff; }
+.light .pool-end-join-list { border-color: var(--border); background: var(--bg-subtle); }
+.light .pool-end-join-list p { color: var(--text-muted); }

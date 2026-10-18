@@ -1,6 +1,8 @@
 ﻿import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatPeso, getSessionTotal } from "../../utils/tableSession";
+import { countOrderItems, getTableBillTotal, getTableOrders, sumOrders } from "../../utils/tableOrders";
+import { createTableCharge } from "../../utils/tableCharges";
 import {
   RESERVATION_GRACE_MINUTES,
   addMinutesToTime,
@@ -31,6 +33,8 @@ export default function PoolTableCard({
   onUndoTime,
   onEdit,
   onDelete,
+  // Opens the food and drinks order pop-up for a table that is playing.
+  onOrder,
   // Used to stop Add Time from running into the table's next booking.
   reservations = [],
 }) {
@@ -110,8 +114,29 @@ export default function PoolTableCard({
     : 0;
   const remainingSeconds = plannedSeconds ? Math.max(0, plannedSeconds - elapsedSeconds) : null;
   const isEndingSoon = isOccupied && remainingSeconds !== null && remainingSeconds > 0 && remainingSeconds <= 600;
-  // Fixed for the booked hours; it moves only when time is added or undone.
-  const total = getSessionTotal(table);
+  // The booked hours (they move only when time is added or undone) plus what was
+  // ordered at the table: the bill so far.
+  const timeTotal = getSessionTotal(table);
+  const orders = getTableOrders(table);
+  const ordersTotal = sumOrders(orders);
+  const orderCount = countOrderItems(orders);
+  const total = getTableBillTotal(table);
+  const showOrder = isOccupied && Boolean(onOrder);
+  // What is still owed, less an online booking's payment and anything paid in
+  // Sales / POS while playing: the pill says Paid once nothing is, and Due when
+  // time or orders were added after paying.
+  const bill =
+    isOccupied && table.startTime
+      ? createTableCharge({ table, reservations, tableCharges: [], endedBy: "", now: Number(table.startTime) })
+      : null;
+  const paidSoFar = bill ? bill.paidEarlier + (bill.prepaid?.amount || 0) : 0;
+  const billState = !bill || paidSoFar === 0 ? "total" : bill.amountDue > 0 ? "due" : "paid";
+  const billTitle =
+    billState === "total"
+      ? ordersTotal
+        ? `${formatPeso(timeTotal)} table time + ${formatPeso(ordersTotal)} orders`
+        : `${formatPeso(table.rate)}/hr for the booked time`
+      : `${formatPeso(paidSoFar)} paid of ${formatPeso(total)}${billState === "due" ? `, ${formatPeso(bill.amountDue)} still to pay` : ""}`;
 
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
@@ -132,12 +157,6 @@ export default function PoolTableCard({
       {isOccupied && (
         <>
           <div className="pool-table-occupied-metrics">
-            <div className="pool-table-timer-section">
-              <div className="pool-table-timer">
-                <i className="bi bi-clock me-2"></i>
-                {formatTime(elapsedSeconds)}
-              </div>
-            </div>
             {remainingSeconds !== null && (
               <div className={`pool-table-remaining ${isEndingSoon ? "warning" : ""}`}>
                 <i className={`bi ${remainingSeconds === 0 ? "bi-stopwatch" : "bi-hourglass-split"} me-2`}></i>
@@ -150,8 +169,12 @@ export default function PoolTableCard({
                 Ends {formatClock(table.startTime + plannedSeconds * 1000)}
               </div>
             )}
-            <div className="pool-table-charge" title={`${formatPeso(table.rate)}/hr for the booked time`}>
-              {formatPeso(total)}
+            <div className={`pool-table-charge ${billState === "total" ? "" : `is-${billState}`}`} title={billTitle}>
+              <span className="pool-table-charge-label">
+                {billState === "paid" && <i className="bi bi-check-circle-fill" aria-hidden="true"></i>}
+                {billState === "paid" ? "Paid" : billState === "due" ? "Due" : "Total"}
+              </span>
+              {formatPeso(billState === "due" ? bill.amountDue : total)}
             </div>
           </div>
 
@@ -285,17 +308,32 @@ export default function PoolTableCard({
           )}
         </div>
 
-        {(onEdit || onDelete) && (
-          <div className="pool-table-utility-actions">
-            {onEdit && (
-              <button className="btn btn-sm btn-outline-secondary pool-table-edit-btn" onClick={onEdit} aria-label={`Edit ${table.name}`} title="Edit table">
-                <i className="bi bi-pencil"></i>
+        {(showOrder || onEdit || onDelete) && (
+          <div className="pool-table-secondary-actions">
+            {showOrder && (
+              <button
+                className="btn btn-sm pool-table-order-btn"
+                onClick={onOrder}
+                aria-label={orderCount ? `Order for ${table.name} (${orderCount} ordered)` : `Order for ${table.name}`}
+              >
+                <i className="bi bi-cup-hot me-1"></i>
+                Order
+                {orderCount > 0 && <span className="pool-table-order-count">{orderCount}</span>}
               </button>
             )}
-            {onDelete && (
-              <button className="btn btn-sm btn-outline-secondary pool-table-delete-btn" onClick={onDelete} aria-label={`Delete ${table.name}`} title="Delete table">
-                <i className="bi bi-trash"></i>
-              </button>
+            {(onEdit || onDelete) && (
+              <div className="pool-table-utility-actions">
+                {onEdit && (
+                  <button className="btn btn-sm btn-outline-secondary pool-table-edit-btn" onClick={onEdit} aria-label={`Edit ${table.name}`} title="Edit table">
+                    <i className="bi bi-pencil"></i>
+                  </button>
+                )}
+                {onDelete && (
+                  <button className="btn btn-sm btn-outline-secondary pool-table-delete-btn" onClick={onDelete} aria-label={`Delete ${table.name}`} title="Delete table">
+                    <i className="bi bi-trash"></i>
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}

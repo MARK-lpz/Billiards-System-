@@ -24,11 +24,12 @@ import {
 import { isValidSmsNumber } from "../../utils/phone";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../../Elements/Global/useNotifications";
+import { useSiteSettings } from "../../Elements/Global/useSiteSettings";
 import {
   createRemoteReservation,
   updateRemoteReservation,
 } from "../../utils/reservationApi";
-import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
+import { ENDED_SESSION_FIELDS, createTableCharge, endedChargeToast } from "../../utils/tableCharges";
 
 const getCurrentTimestamp = () => Date.now();
 const todayStr = () => new Date().toLocaleDateString("en-CA");
@@ -47,7 +48,9 @@ export default function ReservationDesk({
   setTableCharges,
   setLogs,
 }) {
-  const { addNotification, queueAdminNotification, showToast } = useNotifications();
+  const { addNotification, showToast } = useNotifications();
+  // The hall's hours (Admin > Website), which bookings must keep to.
+  const { hours } = useSiteSettings().settings;
   // Problems are shown in the app, not in the browser's own alert box.
   const showError = (title, message) =>
     showToast({ tone: "error", icon: "bi-exclamation-octagon-fill", title, message });
@@ -205,7 +208,9 @@ const closeModal = () => setActiveModal(null);
 
     const reservationValidationMessage = getReservationValidationMessage(
       reservationForm.date,
-      reservationForm.time
+      reservationForm.time,
+      new Date(),
+      hours
     );
     if (reservationValidationMessage) {
       showError("Check the date and time", reservationValidationMessage);
@@ -346,13 +351,8 @@ const closeModal = () => setActiveModal(null);
       ...bookingAudit(booking, "approved"),
       table: { id: booking.tableId, name: booking.tableName, previousStatus: table?.status, currentStatus: "reserved" },
     });
+    // The admin finds approvals, rejections and cancellations in the Audit Trail, not the bell.
     addNotification({ message: `${booking.customerName}'s payment was verified. ${booking.tableName} is reserved.` });
-    // The admin used to be the only one approving, so they are told it happened.
-    queueAdminNotification({
-      type: "reservation-approved",
-      message: `Front desk approved ${booking.customerName}'s online reservation for ${booking.tableName} on ${booking.date} after finding the GCash payment.`,
-      data: { reservationId: booking.id, tableId: booking.tableId },
-    });
     setPaymentCheckTarget(null);
   };
 
@@ -374,11 +374,6 @@ const closeModal = () => setActiveModal(null);
       table: { id: booking.tableId, name: booking.tableName, previousStatus: table?.status, currentStatus: table?.status },
     });
     addNotification({ message: `${booking.customerName}'s reservation was rejected. ${booking.tableName} is free for that time again.` });
-    queueAdminNotification({
-      type: "reservation-rejected",
-      message: `Front desk rejected ${booking.customerName}'s online reservation for ${booking.tableName} on ${booking.date}: the GCash payment could not be found.`,
-      data: { reservationId: booking.id, tableId: booking.tableId },
-    });
     setPaymentCheckTarget(null);
   };
 
@@ -464,7 +459,6 @@ const closeModal = () => setActiveModal(null);
         updateBookingTable(booking, ENDED_SESSION_FIELDS);
         if (charge) {
           setTableCharges?.((prev) => [charge, ...prev]);
-          addNotification({ message: describeEndedCharge(charge) });
           showToast(endedChargeToast(charge));
         }
       }
@@ -479,14 +473,6 @@ const closeModal = () => setActiveModal(null);
         table: { id: booking.tableId, name: booking.tableName, previousStatus: currentTable?.status, currentStatus: currentTable?.status === "occupied" ? "available" : currentTable?.status },
       });
       addNotification({ message: `${booking.customerName} booking was ${nextStatus}.` });
-
-      if (nextStatus === "cancelled") {
-        queueAdminNotification({
-          type: "reservation-cancellation",
-          message: `Cancellation request: ${booking.customerName}'s booking for ${booking.tableName} on ${booking.date} at ${booking.time}.`,
-          data: { reservationId: booking.id, tableId: booking.tableId },
-        });
-      }
     }
   };
 

@@ -6,27 +6,36 @@ import ConfirmDialog from "../Global/ConfirmDialog";
 // it its own layer, so a pop-up inside it could end up under the product grid.
 const getModalRoot = () => document.querySelector("#root > .dark, #root > .light") || document.body;
 
+/**
+ * The Running Bill: one bill at a time, as a table of Item, Qty and Amount, with
+ * the total and the payment method under it. The trash button in its header
+ * removes the whole transaction unpaid, after a check that says what happens
+ * to each kind of line (`describeBillRemoval`).
+ */
 export default function CartPanel({
   cart,
   activeBill = null,
-  subtotal,
   total,
   method,
   waitingCount,
-  servedCount,
   unsyncedCount,
   stockAlert,
+  savedBillsCount = 0,
   onUpdateQty,
   getQueuedQty = () => 0,
   onSetMethod,
   onProcessPayment,
   onEditBill,
   onCloseBill,
+  describeBillRemoval = () => null,
+  onRemoveBill,
 }) {
   // A quantity being typed, until it is applied (or left empty while typing).
   const [qtyDrafts, setQtyDrafts] = useState({});
   // An item about to come off the bill, waiting for staff to confirm.
   const [removeTarget, setRemoveTarget] = useState(null);
+  // The whole bill about to be removed (Remove Transaction), waiting for staff to confirm.
+  const [removingBill, setRemovingBill] = useState(null);
 
   const askToRemove = (item, nextQty) => {
     const removing = item.qty - nextQty;
@@ -54,11 +63,22 @@ export default function CartPanel({
 
   const describeRemoval = (target) => {
     const { item, nextQty, removing, servedQty } = target;
-    if (item.isTableCharge) {
+    if (item.liveTable) {
       return {
         title: "Remove from Bill?",
         message: `Take ${item.name} off this bill?`,
-        detail: "It stays unpaid and goes back to the Pool Table Bills list.",
+        detail: `It stays unpaid on ${item.tableName} while they play. Add it again from Pool Table Bills, or it is paid when the session ends.`,
+      };
+    }
+
+    if (item.isTableCharge) {
+      const withOrders = cart.some((entry) => entry.fromTableCharge && entry.chargeId === item.chargeId);
+      return {
+        title: "Remove from Bill?",
+        message: `Take ${item.name} off this bill?`,
+        detail: `It stays unpaid and goes back to the Pool Table Bills list${
+          withOrders ? ", with what was ordered at the table" : ""
+        }.`,
       };
     }
 
@@ -87,6 +107,35 @@ export default function CartPanel({
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
+
+  const fmtCount = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+  // What removing the whole bill does, line kind by line kind.
+  const describeBillRemovalCheck = (bill) => {
+    const effect = describeBillRemoval(bill.id) || { waiting: 0, served: [], tables: [] };
+    return {
+      message: `Remove the running bill for ${bill.label} (${fmtPeso(total)}) without payment?`,
+      detail: [
+        effect.waiting
+          ? `${fmtCount(effect.waiting, "item")} still waiting ${effect.waiting === 1 ? "leaves" : "leave"} the Order Queue and ${effect.waiting === 1 ? "goes" : "go"} back to stock.`
+          : "",
+        effect.served.length
+          ? `Already served, so not returned to stock and not charged: ${effect.served.map((item) => `${item.name} ×${item.qty}`).join(", ")}.`
+          : "",
+        effect.tables.length ? `${effect.tables.join(", ")} stays unpaid on Pool Table Bills.` : "",
+        "This is recorded in the Audit Trail.",
+      ]
+        .filter(Boolean)
+        .join(" "),
+    };
+  };
+  const billRemoval = removingBill ? describeBillRemovalCheck(removingBill) : null;
+
+  // Takes the bill as an argument for the same React Compiler reason as confirmRemove.
+  const confirmBillRemoval = (bill) => {
+    onRemoveBill(bill.id);
+    setRemovingBill(null);
+  };
 
   // Once applied, the draft is dropped so the box shows the bill's own quantity
   // again; a kept draft went stale when + or − changed the quantity afterwards.
@@ -119,17 +168,21 @@ export default function CartPanel({
     clearDraft(item);
   };
 
+  // Table time and what came from a table's bill are one fixed quantity each;
+  // an ended session's orders come off only with its table time.
+  const isFixed = (item) => item.isTableCharge || item.fromTableCharge;
+  const canRemove = (item) => !(item.fromTableCharge && !item.liveTable);
+
   return (
     <div className="cart-panel">
       <div className="card cart-card">
         <div className="card-body">
           <div className="cart-header">
-            <i className="bi bi-cart3 me-2"></i>
+            <i className="bi bi-receipt-cutoff"></i>
             <span className="cart-header-title">
               <span className="cart-header-label">Running Bill</span>
-              <span className="cart-header-bill">{activeBill ? activeBill.label : "No bill picked"}</span>
+              <span className="cart-header-bill">{activeBill ? activeBill.label : "No bill yet"}</span>
             </span>
-            {cart.length > 0 && <span className="cart-count">{cart.length}</span>}
             {activeBill && (
               <button
                 type="button"
@@ -141,26 +194,45 @@ export default function CartPanel({
                 <i className="bi bi-pencil"></i>
               </button>
             )}
+            {activeBill && cart.length > 0 && onRemoveBill && (
+              <button
+                type="button"
+                className="cart-bill-remove"
+                onClick={() => setRemovingBill(activeBill)}
+                aria-label={`Remove transaction: ${activeBill.label}`}
+                title="Remove this transaction (unpaid)"
+              >
+                <i className="bi bi-trash3"></i>
+              </button>
+            )}
           </div>
 
-          <div className="cart-service-strip">
-            <div className="cart-service-pill">
-              <span className="cart-service-label">Waiting</span>
-              <strong>{waitingCount}</strong>
+          {(waitingCount > 0 || unsyncedCount > 0 || savedBillsCount > 0) && (
+            <div className="cart-notes">
+              {waitingCount > 0 && (
+                <span>
+                  <i className="bi bi-hourglass-split"></i>
+                  {waitingCount} waiting to be served (Order Queue)
+                </span>
+              )}
+              {unsyncedCount > 0 && (
+                <span className="is-attention">
+                  <i className="bi bi-arrow-repeat"></i>
+                  {unsyncedCount} still syncing to inventory
+                </span>
+              )}
+              {savedBillsCount > 0 && (
+                <span>
+                  <i className="bi bi-collection"></i>
+                  {savedBillsCount} saved {savedBillsCount === 1 ? "bill" : "bills"} from before, shown after this one is paid
+                </span>
+              )}
             </div>
-            <div className="cart-service-pill">
-              <span className="cart-service-label">Served</span>
-              <strong>{servedCount}</strong>
-            </div>
-            <div className={`cart-service-pill ${unsyncedCount > 0 ? "attention" : ""}`}>
-              <span className="cart-service-label">Inventory</span>
-              <strong>{unsyncedCount > 0 ? unsyncedCount : "Auto"}</strong>
-            </div>
-          </div>
+          )}
 
           {cart.length === 0 ? (
             <div className="cart-empty">
-              <i className="bi bi-cart3"></i>
+              <i className="bi bi-receipt"></i>
               {activeBill ? (
                 <>
                   <p>Nothing on {activeBill.label} yet. Tap food or drinks to add them.</p>
@@ -170,37 +242,95 @@ export default function CartPanel({
                   </button>
                 </>
               ) : (
-                <p>Pick an open bill above, or tap an item to start a new walk-in bill.</p>
+                <p>Tap an item, or Add to Bill from Pool Table Bills, to start the bill.</p>
               )}
             </div>
           ) : (
-            <div className="cart-items">
-              {cart.map((item) => (
-                <div
-                  key={item.id}
-                  className={`cart-item ${item.isTableCharge ? "cart-item--table" : ""}`}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr auto auto auto",
-                    alignItems: "center",
-                    gap: "12px",
-                  }}
-                >
-                  <div className="cart-item-details">
-                    <div className="cart-item-name">{item.name}</div>
-                    <div className="cart-item-type">{item.category || "Uncategorized"}</div>
-                    {item.isTableCharge ? (
-                      <div className="cart-item-meta">{item.detail}</div>
-                    ) : (
-                      <>
-                        <div className="cart-item-price">{fmtPeso(item.price)} each</div>
-                        <div className="cart-item-meta">
-                          {item.syncedQty === item.qty
-                            ? "Sent to inventory automatically"
-                            : `${Math.max(0, item.qty - (item.syncedQty || 0))} syncing to inventory`}
-                        </div>
-                      </>
-                    )}
+            <div className="cart-table" role="table" aria-label="Running bill items">
+              <div className="cart-table-head" role="row">
+                <span role="columnheader">Item</span>
+                <span role="columnheader">Qty</span>
+                <span role="columnheader">Amount</span>
+                <span role="columnheader" aria-label="Remove"></span>
+              </div>
+
+              <div className="cart-items">
+                {cart.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`cart-item ${isFixed(item) ? "cart-item--table" : ""}`}
+                    role="row"
+                  >
+                    <span
+                      className="cart-item-name"
+                      role="cell"
+                      title={[item.name, item.detail || `${fmtPeso(item.price)} each`].filter(Boolean).join(" · ")}
+                    >
+                      {isFixed(item) && (
+                        <i className="bi bi-grid-3x3-gap-fill cart-item-origin" aria-label="From a pool table"></i>
+                      )}
+                      {item.name}
+                    </span>
+
+                    <span className="cart-item-qty" role="cell">
+                      {isFixed(item) ? (
+                        <span className="cart-item-session">{item.qty}</span>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="qty-btn"
+                            onClick={() => decreaseQty(item)}
+                            aria-label={`One less ${item.name}`}
+                          >
+                            <i className="bi bi-dash"></i>
+                          </button>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            inputMode="numeric"
+                            className="qty-input"
+                            aria-label={`${item.name} quantity`}
+                            value={qtyDrafts[item.id] ?? String(item.qty)}
+                            onChange={(event) => handleQtyChange(item, event.target.value)}
+                            onBlur={() => commitQty(item)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                commitQty(item);
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="qty-btn"
+                            onClick={() => onUpdateQty(item.id, item.qty + 1)}
+                            aria-label={`One more ${item.name}`}
+                          >
+                            <i className="bi bi-plus"></i>
+                          </button>
+                        </>
+                      )}
+                    </span>
+
+                    <span className="cart-item-total" role="cell">
+                      {fmtPeso(item.price * item.qty)}
+                    </span>
+
+                    <span role="cell">
+                      {canRemove(item) && (
+                        <button
+                          type="button"
+                          className="cart-item-remove"
+                          onClick={() => askToRemove(item, 0)}
+                          aria-label={`Remove ${item.name}`}
+                        >
+                          <i className="bi bi-x-lg"></i>
+                        </button>
+                      )}
+                    </span>
+
                     {stockAlert?.productId === item.id && (
                       <div className="cart-stock-warning" role="alert">
                         <i className="bi bi-exclamation-triangle-fill"></i>
@@ -208,91 +338,36 @@ export default function CartPanel({
                       </div>
                     )}
                   </div>
-
-                  {item.isTableCharge ? (
-                    <div className="cart-item-session">1 session</div>
-                  ) : (
-                    <div className="cart-item-qty">
-                      <button type="button" className="qty-btn" onClick={() => decreaseQty(item)}>
-                        <i className="bi bi-dash"></i>
-                      </button>
-
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        inputMode="numeric"
-                        className="qty-input"
-                        value={qtyDrafts[item.id] ?? String(item.qty)}
-                        onChange={(event) => handleQtyChange(item, event.target.value)}
-                        onBlur={() => commitQty(item)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            commitQty(item);
-                          }
-                        }}
-                      />
-
-                      <button type="button" className="qty-btn" onClick={() => onUpdateQty(item.id, item.qty + 1)}>
-                        <i className="bi bi-plus"></i>
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="cart-item-total">{fmtPeso(item.price * item.qty)}</div>
-
-                  <button
-                    type="button"
-                    onClick={() => askToRemove(item, 0)}
-                    aria-label={`Remove ${item.name}`}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "#94a3b8",
-                      fontSize: "14px",
-                      cursor: "pointer",
-                      padding: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <i className="bi bi-x-lg"></i>
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
 
           <div className="cart-footer">
-            <div className="cart-totals">
-              <div className="cart-subtotal-row">
-                <span>Subtotal</span>
-                <span>{fmtPeso(subtotal)}</span>
-              </div>
-
-              <div className="cart-total">
-                <span>Total</span>
-                <span className="cart-total-amount">{fmtPeso(total)}</span>
-              </div>
+            <div className="cart-total">
+              <span>Total</span>
+              <span className="cart-total-amount">{fmtPeso(total)}</span>
             </div>
 
-            <div className="payment-methods">
+            <div className="payment-methods" role="group" aria-label="Payment method">
               <button
+                type="button"
                 className={`payment-method-btn ${method === "cash" ? "active" : ""}`}
+                aria-pressed={method === "cash"}
                 onClick={() => onSetMethod("cash")}
               >
-                <i className="bi bi-cash me-2"></i>
+                <i className="bi bi-cash"></i>
                 Cash
               </button>
 
               <button
+                type="button"
                 className={`payment-method-btn ${method === "ewallet" ? "active" : ""}`}
+                aria-pressed={method === "ewallet"}
                 onClick={() => onSetMethod("ewallet")}
               >
-                <i className="bi bi-phone me-2"></i>
-                eWallet
+                <i className="bi bi-phone"></i>
+                GCash
               </button>
             </div>
 
@@ -310,12 +385,26 @@ export default function CartPanel({
             )}
 
             <button className="process-payment-btn" onClick={onProcessPayment} disabled={cart.length === 0}>
-              <i className="bi bi-credit-card me-2"></i>
-              {activeBill && cart.length ? `Pay ${activeBill.label}` : "Send Total To Payment"}
+              <i className="bi bi-credit-card"></i>
+              {cart.length ? `Pay ${fmtPeso(total)}` : "Pay"}
             </button>
           </div>
         </div>
       </div>
+
+      {removingBill && billRemoval && createPortal(
+        <ConfirmDialog
+          title="Remove Transaction?"
+          message={billRemoval.message}
+          detail={billRemoval.detail}
+          confirmLabel="Yes, Remove"
+          cancelLabel="Keep it"
+          icon="bi-trash3"
+          onConfirm={() => confirmBillRemoval(removingBill)}
+          onClose={() => setRemovingBill(null)}
+        />,
+        getModalRoot()
+      )}
 
       {removeTarget && removal && createPortal(
         <ConfirmDialog

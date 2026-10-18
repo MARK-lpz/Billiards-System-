@@ -10,10 +10,13 @@ const OTHERS_SHOWN = 30;
  * The staff bell, shared by the admin's and the employee's dashboards
  * (AdminBell, EmployeeBell). On top, the `sections` each role focuses on, every
  * item opening its module:
- *   { key, title, icon, newCount, empty, items: [{ key, unread, icon, title, meta, state, onOpen }] }
- * Under them, when `others` ({ title, filter }) is given, the rest of the
- * notices the role still gets (`filter` picks them), which can be read or
- * dismissed as before. The badge counts everything new in both.
+ *   { key, title, icon, newCount, empty, items: [{ key, unread, icon, title, meta, state, onOpen, actions }] }
+ * `actions` (optional): buttons under the item, [{ label, icon, tone, onClick }].
+ * Under them, when `others` ({ title, filter, openerOf }) is given, the rest of
+ * the notices the role still gets (`filter` picks them), which can be read or
+ * dismissed as before. `openerOf(notice)` (optional) gives what opening one
+ * does, e.g. go to its page, or null to only mark it read. The badge counts
+ * everything new in both.
  */
 export default function Notification({ sections = [], others = null, onMarkAllSeen, title = "Notifications" }) {
   const [show, setShow] = useState(false);
@@ -41,9 +44,38 @@ export default function Notification({ sections = [], others = null, onMarkAllSe
     item.onOpen();
   };
 
+  const runAction = (action) => {
+    setShow(false);
+    action.onClick();
+  };
+
+  const itemBody = (item) => (
+    <>
+      <i className={`bi ${item.icon} staff-bell-icon`} aria-hidden="true"></i>
+      <span className="notification-content">
+        <span className="notification-message">{item.title}</span>
+        <span className="notification-time">
+          {item.meta}
+          {item.state && (
+            <span className={`staff-bell-state staff-bell-state--${item.state.tone}`}>{item.state.label}</span>
+          )}
+        </span>
+      </span>
+      {item.unread && <span className="notification-dot" aria-label="New" />}
+    </>
+  );
+
   const markAll = () => {
     onMarkAllSeen?.();
     if (unreadOthers) markAllAsRead();
+  };
+
+  const openOther = (notice) => {
+    if (notice.unread) markAsRead(notice.id);
+    const open = others.openerOf?.(notice);
+    if (!open) return;
+    setShow(false);
+    open();
   };
 
   const dismiss = (notice, clickEvent) => {
@@ -90,26 +122,40 @@ export default function Notification({ sections = [], others = null, onMarkAllSe
                     {section.newCount > 0 && <span className="staff-bell-count">{section.newCount} new</span>}
                   </p>
                   {section.items.length ? (
-                    section.items.map((item) => (
-                      <button
-                        key={item.key}
-                        type="button"
-                        className={`menu-item staff-bell-item ${item.unread ? "unread" : ""}`}
-                        onClick={() => openItem(item)}
-                      >
-                        <i className={`bi ${item.icon} staff-bell-icon`} aria-hidden="true"></i>
-                        <span className="notification-content">
-                          <span className="notification-message">{item.title}</span>
-                          <span className="notification-time">
-                            {item.meta}
-                            {item.state && (
-                              <span className={`staff-bell-state staff-bell-state--${item.state.tone}`}>{item.state.label}</span>
-                            )}
-                          </span>
-                        </span>
-                        {item.unread && <span className="notification-dot" aria-label="New" />}
-                      </button>
-                    ))
+                    section.items.map((item) =>
+                      item.actions?.length ? (
+                        <div
+                          key={item.key}
+                          className={`menu-item staff-bell-item staff-bell-item--actions ${item.unread ? "unread" : ""}`}
+                        >
+                          <button type="button" className="staff-bell-item-open" onClick={() => openItem(item)}>
+                            {itemBody(item)}
+                          </button>
+                          <div className="staff-bell-actions">
+                            {item.actions.map((action) => (
+                              <button
+                                key={action.label}
+                                type="button"
+                                className={`staff-bell-action staff-bell-action--${action.tone || "plain"}`}
+                                onClick={() => runAction(action)}
+                              >
+                                <i className={`bi ${action.icon}`} aria-hidden="true"></i>
+                                {action.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          key={item.key}
+                          type="button"
+                          className={`menu-item staff-bell-item ${item.unread ? "unread" : ""}`}
+                          onClick={() => openItem(item)}
+                        >
+                          {itemBody(item)}
+                        </button>
+                      )
+                    )
                   ) : (
                     <p className="staff-bell-empty">{section.empty}</p>
                   )}
@@ -129,8 +175,8 @@ export default function Notification({ sections = [], others = null, onMarkAllSe
                         <button
                           type="button"
                           className="staff-bell-other-open"
-                          onClick={() => notice.unread && markAsRead(notice.id)}
-                          aria-label={notice.unread ? `${notice.message} (mark as read)` : notice.message}
+                          onClick={() => openOther(notice)}
+                          aria-label={notice.unread && !others.openerOf?.(notice) ? `${notice.message} (mark as read)` : notice.message}
                         >
                           <span className="notification-content">
                             <span className="notification-message">{notice.message}</span>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { numberFieldValue, readNumberField } from "../../utils/numberField";
+import { formatExpiryDate } from "../../utils/inventoryValidation";
 
 // In the order they appear, so a failed save can jump to the first one.
 const FIELDS = ["name", "price", "stock", "minStock", "expiryDate"];
@@ -8,8 +9,13 @@ const FIELDS = ["name", "price", "stock", "minStock", "expiryDate"];
  * Add / Edit Product. `errors` comes from getProductErrors (inventoryValidation.js).
  * A field's problem shows once that field has been left, or for every field once
  * Add is pressed, so a fresh form does not open covered in red.
+ *
+ * Once a product is in the inventory, editing changes only the price. Name,
+ * category and min stock stay as they were added; stock and the expiry date
+ * change through Restock (and stock goes down through sales).
  */
 export default function InventoryModal({ form, setForm, editId, errors = {}, onClose, onSave }) {
+  const locked = Boolean(editId);
   const [touched, setTouched] = useState({});
   const [attempted, setAttempted] = useState(false);
   const errorFor = (field) => ((attempted || touched[field]) && errors[field]) || "";
@@ -21,6 +27,9 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
     "aria-describedby": errorFor(field) ? `inventory-${field}-error` : undefined,
   });
   const inputClass = (field, base = "form-control") => `${base}${errorFor(field) ? " inventory-input-error" : ""}`;
+  // A field fixed once the product was added: shown, but not changed here.
+  const lockedProps = locked ? { readOnly: true, "aria-readonly": true, className: "form-control inventory-locked" } : {};
+  const lockIcon = locked ? <i className="bi bi-lock-fill inventory-lock-icon" aria-label="Cannot be changed"></i> : null;
   const errorText = (field) =>
     errorFor(field) ? (
       <div id={`inventory-${field}-error`} className="inventory-field-error" role="alert">
@@ -57,13 +66,23 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
             </div>
 
             <div className="modal-body">
-              <div className="inventory-product-number-note">
-                <i className="bi bi-hash"></i>
-                <span>Product No. is assigned automatically when the product is added.</span>
-              </div>
+              {locked ? (
+                <div className="inventory-lock-note">
+                  <i className="bi bi-lock-fill"></i>
+                  <span>
+                    Only the price can be changed here. Name, category and min stock stay as they were added; stock and
+                    expiry date change through Restock.
+                  </span>
+                </div>
+              ) : (
+                <div className="inventory-product-number-note">
+                  <i className="bi bi-hash"></i>
+                  <span>Product No. is assigned automatically when the product is added.</span>
+                </div>
+              )}
 
               <div className="mb-3">
-                <label className="form-label" htmlFor="inventory-name">Product Name</label>
+                <label className="form-label" htmlFor="inventory-name">Product Name{lockIcon}</label>
                 <input
                   type="text"
                   className={inputClass("name")}
@@ -72,16 +91,19 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                   placeholder="e.g. Coca Cola"
                   maxLength={80}
                   {...fieldProps("name")}
+                  {...lockedProps}
                 />
                 {errorText("name")}
               </div>
 
               <div className="mb-3">
-                <label className="form-label">Category</label>
+                <label className="form-label" htmlFor="inventory-category">Category{lockIcon}</label>
                 <select
-                  className="form-select"
+                  id="inventory-category"
+                  className={`form-select${locked ? " inventory-locked" : ""}`}
                   value={form.category}
                   onChange={e => setForm({ ...form, category: e.target.value })}
+                  disabled={locked}
                 >
                   {["Food", "Drinks/Liquor", "Equipment", "Other"].map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -105,7 +127,7 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                   {errorText("price") || <small className="form-text text-muted">Selling price for one piece.</small>}
                 </div>
                 <div className="col-4">
-                  <label className="form-label" htmlFor="inventory-stock">Stock (pcs)</label>
+                  <label className="form-label" htmlFor="inventory-stock">Stock (pcs){lockIcon}</label>
                   <input
                     type="number"
                     className={inputClass("stock")}
@@ -115,11 +137,12 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                     step="1"
                     placeholder="0"
                     {...fieldProps("stock")}
+                    {...lockedProps}
                   />
                   {errorText("stock")}
                 </div>
                 <div className="col-4">
-                  <label className="form-label" htmlFor="inventory-minStock">Min Stock (pcs)</label>
+                  <label className="form-label" htmlFor="inventory-minStock">Min Stock (pcs){lockIcon}</label>
                   <input
                     type="number"
                     className={inputClass("minStock")}
@@ -129,20 +152,30 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                     step="1"
                     placeholder="0"
                     {...fieldProps("minStock")}
+                    {...lockedProps}
                   />
                   {errorText("minStock")}
                 </div>
               </div>
 
               <div className="mb-3">
-                <label className="form-label" htmlFor="inventory-expiryDate">Expiry Date</label>
-                <input
-                  type="date"
-                  className={inputClass("expiryDate")}
-                  value={form.expiryDate || ""}
-                  onChange={e => setForm({ ...form, expiryDate: e.target.value })}
-                  {...fieldProps("expiryDate")}
-                />
+                <label className="form-label" htmlFor="inventory-expiryDate">Expiry Date{lockIcon}</label>
+                {locked ? (
+                  <input
+                    id="inventory-expiryDate"
+                    type="text"
+                    value={form.expiryDate ? formatExpiryDate(form.expiryDate) : "No expiry date"}
+                    {...lockedProps}
+                  />
+                ) : (
+                  <input
+                    type="date"
+                    className={inputClass("expiryDate")}
+                    value={form.expiryDate || ""}
+                    onChange={e => setForm({ ...form, expiryDate: e.target.value })}
+                    {...fieldProps("expiryDate")}
+                  />
+                )}
                 {errorText("expiryDate")}
               </div>
             </div>

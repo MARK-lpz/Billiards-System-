@@ -24,17 +24,36 @@ const getCountError = (value, label) => {
   return "";
 };
 
+/** "Oct 15, 2026", for the expiry date in messages and locked fields. */
+export const formatExpiryDate = (value) =>
+  new Date(`${value}T00:00:00`).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+
+/** What is wrong with the expiry date of stock being added, or "" (a blank date is fine). */
+export const getExpiryError = (value, today) => {
+  const expiry = String(value || "");
+  if (!expiry) return "";
+  const date = new Date(`${expiry}T00:00:00`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(expiry) || Number.isNaN(date.getTime())) return "Enter a valid expiry date.";
+  if (date.getFullYear() > new Date(`${today}T00:00:00`).getFullYear() + MAX_EXPIRY_YEARS_AHEAD) {
+    return "Check the year: that is more than 10 years from now.";
+  }
+  if (expiry < today) return "This date has already passed. An expired product cannot be stocked.";
+  return "";
+};
+
 /**
  * What is wrong with the Add / Edit Product form, field by field: { name, price,
  * stock, minStock, expiryDate }. An empty object means it can be saved.
- * `original` is the product being edited, if any: an expiry date it already had
- * is kept even once it has passed, so an expired product can still be edited.
+ * Editing only changes the price, so only that is checked then.
  */
-export const getProductErrors = ({ form, products = [], editId = null, original = null, today }) => {
+export const getProductErrors = ({ form, products = [], editId = null, today }) => {
   const errors = {};
+  const editing = editId !== null;
 
   const name = String(form.name || "").trim();
-  if (!name) {
+  if (editing) {
+    // Name, category, stock, min stock and expiry date are not edited here.
+  } else if (!name) {
     errors.name = "Enter the product name.";
   } else if (name.length > MAX_NAME_LENGTH) {
     errors.name = `Keep the name to ${MAX_NAME_LENGTH} characters or fewer.`;
@@ -53,22 +72,13 @@ export const getProductErrors = ({ form, products = [], editId = null, original 
   else if (price > MAX_PRICE) errors.price = `The price can be at most ${peso(MAX_PRICE)}.`;
   else if (!hasAtMostTwoDecimals(price)) errors.price = "Use at most 2 decimal places (centavos).";
 
-  const stockError = getCountError(form.stock, "stock");
-  if (stockError) errors.stock = stockError;
-  const minStockError = getCountError(form.minStock, "min stock");
-  if (minStockError) errors.minStock = minStockError;
-
-  const expiry = String(form.expiryDate || "");
-  if (expiry) {
-    const date = new Date(`${expiry}T00:00:00`);
-    const keptFromBefore = Boolean(original) && original.expiryDate === expiry;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(expiry) || Number.isNaN(date.getTime())) {
-      errors.expiryDate = "Enter a valid expiry date.";
-    } else if (date.getFullYear() > new Date(`${today}T00:00:00`).getFullYear() + MAX_EXPIRY_YEARS_AHEAD) {
-      errors.expiryDate = "Check the year: that is more than 10 years from now.";
-    } else if (expiry < today && !keptFromBefore) {
-      errors.expiryDate = "This date has already passed. An expired product cannot be stocked.";
-    }
+  if (!editing) {
+    const stockError = getCountError(form.stock, "stock");
+    if (stockError) errors.stock = stockError;
+    const minStockError = getCountError(form.minStock, "min stock");
+    if (minStockError) errors.minStock = minStockError;
+    const expiryError = getExpiryError(form.expiryDate, today);
+    if (expiryError) errors.expiryDate = expiryError;
   }
 
   return errors;

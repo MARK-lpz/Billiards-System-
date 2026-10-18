@@ -1,7 +1,8 @@
 // ReservationModal.jsx
 import { useEffect } from "react";
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
-import { RESERVATION_CUTOFF_TIME, getReservationScheduleError, getTodayDate } from "../../utils/reservations";
+import { formatReservationTime, getReservationScheduleError, getTodayDate } from "../../utils/reservations";
+import { useSiteSettings } from "../Global/useSiteSettings";
 import { MAX_PARTY_SIZE, getCustomerNameError, getPartySizeError } from "../../utils/reservationIssues";
 
 export default function ReservationModal({
@@ -18,6 +19,8 @@ export default function ReservationModal({
   onWalkInSubmit,
   onReservationSubmit,
 }) {
+  // The hall's hours (Admin > Website), which bookings must keep to.
+  const { hours } = useSiteSettings().settings;
   const phoneWarning = getSmsWarning(reservationForm.phone);
   // Required: every booking must have a number to reach the customer, and the
   // server refuses bookings without one.
@@ -26,7 +29,7 @@ export default function ReservationModal({
   const nameError = reservationForm.customerName ? getCustomerNameError(reservationForm.customerName) : "";
   const partySizeError = getPartySizeError(reservationForm.partySize);
   // Shown as soon as a past date is picked, not only when Save is pressed.
-  const scheduleError = getReservationScheduleError(reservationForm.date, reservationForm.time);
+  const scheduleError = getReservationScheduleError(reservationForm.date, reservationForm.time, undefined, hours);
   // A table picked before the date or time changed may no longer be offered;
   // it stays in the list, marked, so the reason below matches what is selected.
   const chosenTableMissing =
@@ -175,7 +178,7 @@ export default function ReservationModal({
                   />
 
                   {scheduleError && <p className="rd-field-warning" role="alert">{scheduleError}</p>}
-                  <p className="rd-field-hint">Reservation cutoff: {RESERVATION_CUTOFF_TIME}</p>
+                  <p className="rd-field-hint">Reservation cutoff: {formatReservationTime(hours.close)}</p>
 
                   <input
                     className="rd-input"

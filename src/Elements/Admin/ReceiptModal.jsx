@@ -3,7 +3,7 @@ import { formatHoursLabel } from "../../utils/reservations";
 import { formatClockTime } from "../../utils/tableCharges";
 import { printElement } from "../../utils/printElement";
 
-const printReceipt = (paper) => printElement(paper, { title: "Receipt", bodyClass: "rcpt-print-body" });
+const printReceipt = (paper, title) => printElement(paper, { title, bodyClass: "rcpt-print-body" });
 
 const fmtPeso = (value) =>
   `₱${Number(value || 0).toLocaleString("en-PH", {
@@ -25,19 +25,40 @@ const ReceiptRow = ({ label, value, className = "" }) => (
   </div>
 );
 
+const receiptNumber = (id) => String(id).slice(-5);
+
 /**
  * The receipt for one payment: table time and anything bought, in one place.
  * `justPaid` shows it as the confirmation right after paying; from Transaction
  * History it opens as a copy that can be printed again.
+ *
+ * A table's block shows its whole session once it has ended: the time, every
+ * order, and what was paid before (online, or while playing). A table paid while
+ * still playing shows only what this payment covered. `sessionOnly` is the
+ * summary of a session ended with nothing left to pay. It is not a sale, so it
+ * says it is not a receipt; the receipts are the payments it lists.
  */
 export default function ReceiptModal({ receipt, onClose, justPaid = true }) {
   const paperRef = useRef(null);
   const tableCharges = receipt.tableCharges || [];
-  const items = (receipt.items || []).filter((item) => !item.isTableCharge);
+  // What was ordered at a table is listed in that table's block.
+  const items = (receipt.items || []).filter((item) => !item.isTableCharge && !item.fromTableCharge);
+  const tableLines = (charge) => (receipt.items || []).filter((item) => item.chargeId === charge.id);
   const details = receipt.paymentDetails || {};
   const isCash = receipt.method === "cash";
+  const sessionOnly = Boolean(receipt.sessionOnly);
   // The same number Transaction History shows for this sale.
-  const receiptNo = String(receipt.id).slice(-5);
+  const receiptNo = receiptNumber(receipt.id);
+  // A summary's sums: the whole stay (time and orders), and what was paid for it before.
+  const stayTotal = tableCharges.reduce(
+    (sum, charge) => sum + Number(charge.sessionTotal || 0) + (charge.orders || []).reduce((sub, line) => sub + line.price * line.qty, 0),
+    0
+  );
+  const paidBefore = tableCharges.reduce(
+    (sum, charge) =>
+      sum + Number(charge.prepaid?.amount || 0) + (charge.payments || []).reduce((sub, payment) => sub + Number(payment.amount || 0), 0),
+    0
+  );
 
   return (
     <>
@@ -46,8 +67,8 @@ export default function ReceiptModal({ receipt, onClose, justPaid = true }) {
           <div className="modal-content receipt-modal">
             <div className="modal-header">
               <h5 className="modal-title">
-                <i className={`bi ${justPaid ? "bi-check-circle" : "bi-receipt"}`}></i>
-                {justPaid ? "Payment Successful" : `Receipt #${receiptNo}`}
+                <i className={`bi ${justPaid && !sessionOnly ? "bi-check-circle" : "bi-receipt"}`}></i>
+                {sessionOnly ? "Session Ended" : justPaid ? "Payment Successful" : `Receipt #${receiptNo}`}
               </h5>
               <button type="button" className="btn-close btn-close-white" aria-label="Close" onClick={onClose}></button>
             </div>
@@ -56,10 +77,17 @@ export default function ReceiptModal({ receipt, onClose, justPaid = true }) {
               <div className="rcpt-paper" ref={paperRef}>
                 <div className="rcpt-brand">BREAK &amp; CHILL</div>
                 <div className="rcpt-muted rcpt-center">Billiard Hall</div>
-                <div className="rcpt-muted rcpt-center">Official Receipt</div>
+                {sessionOnly ? (
+                  <>
+                    <div className="rcpt-muted rcpt-center">Session Summary</div>
+                    <div className="rcpt-muted rcpt-center">Not an official receipt</div>
+                  </>
+                ) : (
+                  <div className="rcpt-muted rcpt-center">Official Receipt</div>
+                )}
 
                 <div className="rcpt-rule" />
-                <ReceiptRow label="Receipt No." value={`#${receiptNo}`} />
+                {!sessionOnly && <ReceiptRow label="Receipt No." value={`#${receiptNo}`} />}
                 <ReceiptRow label="Date" value={formatReceiptDate(receipt.date)} />
                 <ReceiptRow label="Time" value={receipt.time} />
                 <ReceiptRow label="Cashier" value={receipt.cashier || "Staff"} />
@@ -70,25 +98,66 @@ export default function ReceiptModal({ receipt, onClose, justPaid = true }) {
                   <>
                     <div className="rcpt-rule" />
                     <div className="rcpt-section">Pool Table</div>
-                    {tableCharges.map((charge) => (
-                      <div key={charge.id} className="rcpt-line">
-                        <ReceiptRow label={charge.tableName} value={fmtPeso(charge.sessionTotal)} className="rcpt-strong" />
-                        <div className="rcpt-muted">
-                          Time in {formatClockTime(charge.startTime)} · Time out {formatClockTime(charge.endTime)}
-                        </div>
-                        <div className="rcpt-muted">
-                          {formatHoursLabel(charge.bookedMinutes)} × {fmtPeso(charge.rate)}/hr
-                          {charge.addedMinutes > 0 ? ` (incl. ${formatHoursLabel(charge.addedMinutes)} added)` : ""}
-                        </div>
-                        {charge.prepaid && (
+                    {tableCharges.map((charge) =>
+                      charge.playing ? (
+                        // Paid while still playing: what this payment covered.
+                        <div key={charge.id} className="rcpt-line">
                           <ReceiptRow
-                            label={`Less: paid online${charge.prepaid.reference ? ` (GCash ${charge.prepaid.reference})` : ""}`}
-                            value={`-${fmtPeso(charge.prepaid.amount)}`}
-                            className="rcpt-muted"
+                            label={charge.tableName}
+                            value={fmtPeso(
+                              tableLines(charge)
+                                .filter((item) => item.isTableCharge)
+                                .reduce((sum, item) => sum + item.price, 0)
+                            )}
+                            className="rcpt-strong"
                           />
-                        )}
-                      </div>
-                    ))}
+                          <div className="rcpt-muted">
+                            Time in {formatClockTime(charge.startTime)} · Still playing (until {formatClockTime(charge.endsAt)})
+                          </div>
+                          <div className="rcpt-muted">
+                            {formatHoursLabel(charge.bookedMinutes)} × {fmtPeso(charge.rate)}/hr
+                          </div>
+                          {tableLines(charge)
+                            .filter((item) => item.fromTableCharge)
+                            .map((item, index) => (
+                              <ReceiptRow
+                                key={`${item.name}-${index}`}
+                                label={`${item.name} ×${item.qty}`}
+                                value={fmtPeso(item.price * item.qty)}
+                              />
+                            ))}
+                        </div>
+                      ) : (
+                        <div key={charge.id} className="rcpt-line">
+                          <ReceiptRow label={charge.tableName} value={fmtPeso(charge.sessionTotal)} className="rcpt-strong" />
+                          <div className="rcpt-muted">
+                            Time in {formatClockTime(charge.startTime)} · Time out {formatClockTime(charge.endTime)}
+                          </div>
+                          <div className="rcpt-muted">
+                            {formatHoursLabel(charge.bookedMinutes)} × {fmtPeso(charge.rate)}/hr
+                            {charge.addedMinutes > 0 ? ` (incl. ${formatHoursLabel(charge.addedMinutes)} added)` : ""}
+                          </div>
+                          {(charge.orders || []).map((line) => (
+                            <ReceiptRow key={line.id} label={`${line.name} ×${line.qty}`} value={fmtPeso(line.price * line.qty)} />
+                          ))}
+                          {charge.prepaid && (
+                            <ReceiptRow
+                              label={`Less: paid online${charge.prepaid.reference ? ` (GCash ${charge.prepaid.reference})` : ""}`}
+                              value={`-${fmtPeso(charge.prepaid.amount)}`}
+                              className="rcpt-muted"
+                            />
+                          )}
+                          {(charge.payments || []).map((payment) => (
+                            <ReceiptRow
+                              key={payment.transactionId}
+                              label={`Less: paid while playing (#${receiptNumber(payment.transactionId)}, ${payment.method === "cash" ? "Cash" : "GCash"})`}
+                              value={`-${fmtPeso(payment.amount)}`}
+                              className="rcpt-muted"
+                            />
+                          ))}
+                        </div>
+                      )
+                    )}
                   </>
                 )}
 
@@ -111,14 +180,24 @@ export default function ReceiptModal({ receipt, onClose, justPaid = true }) {
                 )}
 
                 <div className="rcpt-rule" />
-                <ReceiptRow label="Subtotal" value={fmtPeso(receipt.subtotal ?? receipt.total)} />
+                {sessionOnly ? (
+                  <>
+                    <ReceiptRow label="Session total" value={fmtPeso(stayTotal)} />
+                    <ReceiptRow label="Paid before ending" value={`-${fmtPeso(paidBefore)}`} />
+                  </>
+                ) : (
+                  <ReceiptRow label="Subtotal" value={fmtPeso(receipt.subtotal ?? receipt.total)} />
+                )}
                 {receipt.discAmt > 0 && (
                   <ReceiptRow label={receipt.discLabel} value={`-${fmtPeso(receipt.discAmt)}`} />
                 )}
-                <ReceiptRow label="TOTAL" value={fmtPeso(receipt.total)} className="rcpt-total" />
+                <ReceiptRow label={sessionOnly ? "LEFT TO PAY" : "TOTAL"} value={fmtPeso(receipt.total)} className="rcpt-total" />
 
                 <div className="rcpt-rule" />
-                <ReceiptRow label="Paid by" value={isCash ? "Cash" : "GCash"} />
+                <ReceiptRow
+                  label={sessionOnly ? "Status" : "Paid by"}
+                  value={sessionOnly ? "Paid in full before ending" : isCash ? "Cash" : "GCash"}
+                />
                 {details.cashReceived !== null && details.cashReceived !== undefined && (
                   <>
                     <ReceiptRow label="Cash received" value={fmtPeso(details.cashReceived)} />
@@ -138,7 +217,7 @@ export default function ReceiptModal({ receipt, onClose, justPaid = true }) {
             </div>
 
             <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={() => printReceipt(paperRef.current)}>
+              <button type="button" className="btn btn-secondary" onClick={() => printReceipt(paperRef.current, sessionOnly ? "Session Summary" : "Receipt")}>
                 <i className="bi bi-printer"></i>
                 Print
               </button>

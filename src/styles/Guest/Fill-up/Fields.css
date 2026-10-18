@@ -376,19 +376,96 @@
   margin-bottom: 14px;
 }
 
+.gcash-qr-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
 .gcash-qr {
+  display: block;
+  width: 190px;
+  height: auto;
+  max-height: 340px;
+  object-fit: contain;
   border-radius: 10px;
   background: #fff;
   padding: 8px;
 }
 
-.gcash-step-list {
+.gcash-qr-save,
+.gcash-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid rgba(76, 195, 242, 0.45);
+  border-radius: 999px;
+  background: rgba(22, 141, 191, 0.12);
+  color: #bfe7fa;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.gcash-qr-save:hover,
+.gcash-copy:hover { background: rgba(22, 141, 191, 0.24); }
+
+.gcash-pay-to {
   flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gcash-account {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(17, 22, 20, 0.4);
+}
+
+.gcash-account dt {
+  color: #9ba59e;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gcash-account dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 0;
+  color: #f1f5f2;
+  font-size: 15px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.gcash-account .gcash-copy { padding: 3px 10px; font-size: 11px; }
+
+.gcash-step-list {
   margin: 0;
   padding-left: 18px;
   color: #ccd3cc;
   font-size: 12px;
   line-height: 1.7;
+}
+
+.gcash-unavailable p {
+  margin: 0;
+  color: #ffd76a;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .gcash-reference-label { margin-bottom: 6px; }

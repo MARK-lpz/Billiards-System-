@@ -43,14 +43,6 @@ export const findTableBill = (bills, tableId, excludeId = null) =>
 export const findChargeBill = (bills, chargeId) =>
   bills.find((bill) => bill.cart.some((item) => item.chargeId === chargeId)) || null;
 
-/**
- * Where an ended table session's bill goes: the table's own open bill, else the
- * walk-in bill being rung up, else a new bill for that table. It never lands on
- * another table's bill, so each table keeps a receipt of its own.
- */
-export const getChargeTarget = ({ charge, bills, activeBill }) =>
-  findTableBill(bills, charge.tableId) || (activeBill && activeBill.tableId === null ? activeBill : null);
-
 /** Errors for the Open / Edit Bill form, keyed by field (as useFormErrors expects). */
 export const getBillErrors = ({ form, tables = [], bills = [], editId = null }) => {
   const errors = {};

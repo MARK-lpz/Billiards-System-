@@ -2,7 +2,7 @@ import Notification from "../Global/Notification";
 import { noticeTime } from "../../utils/notices";
 import { useNotifications } from "../Global/useNotifications";
 import useClock from "../Global/useClock";
-import useSeenRegistrations from "./useSeenRegistrations";
+import useTimeUpSection from "../Global/useTimeUpSection";
 import { getRegistrations } from "../../utils/tournamentRegistrations";
 import { formatEventWhen } from "../../utils/eventUpdates";
 
@@ -24,16 +24,30 @@ const BOOKING_STATES = {
 };
 
 /**
- * The employee's bell (see Global/Notification.jsx). It is about the two things
- * the front desk acts on: online reservations (opening one goes to the
- * Reservation Desk, at that booking) and players registering for tournaments
- * (opening one goes to the Tournament Schedule, at that player). Other notices
- * are not listed for employees for now; pass `others` to Notification to add some.
+ * The employee's bell (see Global/Notification.jsx). It is about what the front
+ * desk acts on: tables whose time is up and not yet ended (see
+ * useTimeUpSection), online reservations (opening one goes to the Reservation
+ * Desk, at that booking) and players registering for tournaments (opening one
+ * goes to the Tournament Schedule, at that player). The players have no bell of
+ * their own on that page: this is the one. `seen` / `markSeen` are the players
+ * already opened, shared with that page (the dashboard keeps them). Other
+ * notices are not listed for employees for now; pass `others` to Notification
+ * to add some.
  */
-export default function EmployeeBell({ events = [], reservations = [], onOpenReservation, onOpenRegistration }) {
+export default function EmployeeBell({
+  events = [],
+  tables = [],
+  reservations = [],
+  seen,
+  markSeen,
+  onOpenTables,
+  onEndSession,
+  onOpenReservation,
+  onOpenRegistration,
+}) {
   const { notifications, markAsRead, markAllAsRead } = useNotifications();
   const now = useClock(60000);
-  const [seen, markSeen] = useSeenRegistrations(events);
+  const timeUp = useTimeUpSection({ role: "employee", tables, reservations, onOpenTables, onEndSession });
 
   const bookings = notifications.filter((notice) => notice.type === ONLINE_RESERVATION);
   const allRegistrations = getRegistrations(events, now);
@@ -48,6 +62,7 @@ export default function EmployeeBell({ events = [], reservations = [], onOpenRes
   };
 
   const sections = [
+    timeUp.section,
     {
       key: "bookings",
       title: "Online reservations",
@@ -95,6 +110,7 @@ export default function EmployeeBell({ events = [], reservations = [], onOpenRes
     <Notification
       sections={sections}
       onMarkAllSeen={() => {
+        timeUp.markAllSeen();
         if (unreadBookings) markAllAsRead();
         markSeen(allRegistrations.map((registration) => registration.key));
       }}

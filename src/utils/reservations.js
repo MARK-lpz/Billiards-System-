@@ -1,6 +1,8 @@
 export const initialReservations = [];
-export const RESERVATION_OPEN_TIME = "10:00";
-export const RESERVATION_CUTOFF_TIME = "22:00";
+// The opening hours until the admin sets them (Admin > Website): bookings start
+// at or after `open` and end by `close`, on the same day. The functions below
+// that need them take the current hours as `hours`.
+export const DEFAULT_RESERVATION_HOURS = { open: "10:00", close: "22:00" };
 export const DEFAULT_RESERVATION_DURATION_MINUTES = 60;
 export const RESERVATION_SLOT_MINUTES = 30;
 // Guests book whole hours, at least this many, starting at any time they choose.
@@ -147,13 +149,19 @@ export const formatReservationDate = (date) => {
     : day.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
 };
 
-export const RESERVATION_CLOSED_HOURS_MESSAGE = `Break & Chill closes at ${formatClock(RESERVATION_CUTOFF_TIME)}. Online reservations open again at ${formatClock(RESERVATION_OPEN_TIME)}.`;
+/** "10:00 AM - 10:00 PM": the opening hours in words. */
+export const formatOpeningHours = (hours = DEFAULT_RESERVATION_HOURS) =>
+  `${formatClock(hours.open)} - ${formatClock(hours.close)}`;
+
+/** What a guest is told while the hall is closed. */
+export const describeClosedHours = (hours = DEFAULT_RESERVATION_HOURS) =>
+  `Break & Chill closes at ${formatClock(hours.close)}. Online reservations open again at ${formatClock(hours.open)}.`;
 
 /**
  * True from closing until opening, Manila time. Checking only "10 PM or later"
  * let reservations reopen at midnight, while the hall was still closed.
  */
-export const isOutsideReservationHours = (now = new Date()) => {
+export const isOutsideReservationHours = (now = new Date(), hours = DEFAULT_RESERVATION_HOURS) => {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Manila",
     hour: "2-digit",
@@ -163,7 +171,7 @@ export const isOutsideReservationHours = (now = new Date()) => {
   const read = (type) => Number(parts.find((part) => part.type === type)?.value || 0);
   const minutes = read("hour") * 60 + read("minute");
 
-  return minutes >= toMinutesOfDay(RESERVATION_CUTOFF_TIME) || minutes < toMinutesOfDay(RESERVATION_OPEN_TIME);
+  return minutes >= toMinutesOfDay(hours.close) || minutes < toMinutesOfDay(hours.open);
 };
 
 /** "2 hours", "1 hour 30 min": a booking length in words. */
@@ -315,11 +323,11 @@ export const addMinutesToTime = (time, minutes) => toTimeValue(toMinutesOfDay(ti
 // The earliest minute of the day a booking can start: opening time, or for today
 // the next half hour from now, so nothing is sold that has already begun.
 // Null when the date is already over.
-const getEarliestStartMinutes = (date, now) => {
+const getEarliestStartMinutes = (date, now, hours) => {
   const today = now.toLocaleDateString("en-CA");
   if (date < today) return null;
 
-  const opening = toMinutesOfDay(RESERVATION_OPEN_TIME);
+  const opening = toMinutesOfDay(hours.open);
   if (date > today) return opening;
 
   const nextMinute = now.getHours() * 60 + now.getMinutes() + 1;
@@ -339,6 +347,7 @@ export const getOpenTimeWindows = ({
   date,
   excludeId = null,
   now = new Date(),
+  hours = DEFAULT_RESERVATION_HOURS,
 }) => {
   if (!table || !date) return [];
 
@@ -351,10 +360,10 @@ export const getOpenTimeWindows = ({
   });
   if (!dayAvailability.available) return [];
 
-  const earliest = getEarliestStartMinutes(date, now);
+  const earliest = getEarliestStartMinutes(date, now, hours);
   if (earliest === null) return [];
 
-  const closing = toMinutesOfDay(RESERVATION_CUTOFF_TIME);
+  const closing = toMinutesOfDay(hours.close);
   const dayStart = toDateTime(date, "00:00").getTime();
   const toDayMinutes = (moment) => Math.round((moment.getTime() - dayStart) / 60000);
 
@@ -406,13 +415,13 @@ export const getOpenTimeWindows = ({
  * typed, judged against its open windows. `reason` says why a start cannot be
  * booked, in words the guest can act on.
  */
-export const checkReservationStart = ({ windows = [], date, time, now = new Date() }) => {
+export const checkReservationStart = ({ windows = [], date, time, now = new Date(), hours = DEFAULT_RESERVATION_HOURS }) => {
   if (!date || !time) return { maxHours: 0, reason: "" };
 
   const start = toMinutesOfDay(time);
-  const opening = toMinutesOfDay(RESERVATION_OPEN_TIME);
-  const closing = toMinutesOfDay(RESERVATION_CUTOFF_TIME);
-  const closingText = `Break & Chill closes at ${formatClock(RESERVATION_CUTOFF_TIME)}`;
+  const opening = toMinutesOfDay(hours.open);
+  const closing = toMinutesOfDay(hours.close);
+  const closingText = `Break & Chill closes at ${formatClock(hours.close)}`;
   const lastStart = formatClock(toTimeValue(closing - MIN_RESERVATION_HOURS * 60));
   if (start >= closing) {
     return { maxHours: 0, reason: `${closingText}. Please select a reservation time before closing.` };
@@ -420,11 +429,11 @@ export const checkReservationStart = ({ windows = [], date, time, now = new Date
   if (start < opening) {
     return {
       maxHours: 0,
-      reason: `Reservations start at ${formatClock(RESERVATION_OPEN_TIME)}. Please choose a later time.`,
+      reason: `Reservations start at ${formatClock(hours.open)}. Please choose a later time.`,
     };
   }
 
-  const earliest = getEarliestStartMinutes(date, now);
+  const earliest = getEarliestStartMinutes(date, now, hours);
   if (earliest === null) {
     return { maxHours: 0, reason: "That date has already passed. Please choose another date." };
   }
@@ -455,7 +464,7 @@ export const checkReservationStart = ({ windows = [], date, time, now = new Date
   if (maxHours < MIN_RESERVATION_HOURS) {
     return {
       maxHours: 0,
-      // Running into closing gets its own wording, so the 10 PM limit is named.
+      // Running into closing gets its own wording, so the closing time is named.
       reason:
         window.endMinutes === closing
           ? `${closingText}, so only ${freeMinutes} minutes are left from ${formatClock(time)}. A booking needs at least 1 hour, so please start by ${lastStart}.`
@@ -605,14 +614,14 @@ export const getChosenTableError = ({
   return available ? "" : `${reason} Please choose another table or time.`;
 };
 
-export const getReservationValidationMessage = (date, time, now = new Date()) => {
+export const getReservationValidationMessage = (date, time, now = new Date(), hours = DEFAULT_RESERVATION_HOURS) => {
   if (!date || !time) return "Please select both a reservation date and time.";
 
   const selectedDateTime = toDateTime(date, time);
   if (Number.isNaN(selectedDateTime.getTime())) return "Please select a valid reservation date and time.";
   if (selectedDateTime <= now) return "Past dates and times can no longer be reserved.";
-  if (time >= RESERVATION_CUTOFF_TIME) {
-    return `Reservations are accepted only before ${RESERVATION_CUTOFF_TIME}.`;
+  if (time >= hours.close) {
+    return `Reservations are accepted only before ${formatClock(hours.close)}.`;
   }
 
   return "";
@@ -626,11 +635,11 @@ export const getTodayDate = (now = new Date()) => now.toLocaleDateString("en-CA"
  * filled both in yet. A past date is caught as soon as it is picked, before
  * any time is chosen.
  */
-export const getReservationScheduleError = (date, time, now = new Date()) => {
+export const getReservationScheduleError = (date, time, now = new Date(), hours = DEFAULT_RESERVATION_HOURS) => {
   if (!date) return "";
   if (date < getTodayDate(now)) return "This date has already passed. Please choose today or a later date.";
   if (!time) return "";
-  return getReservationValidationMessage(date, time, now);
+  return getReservationValidationMessage(date, time, now, hours);
 };
 
 // For per-booking checks (reservationIssues.js), which judge each booking by the same rules.

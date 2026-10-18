@@ -26,14 +26,6 @@ const parseDay = (date) => {
   return Number.isNaN(day.getTime()) ? null : day;
 };
 
-const toDateKey = (day) => day.toLocaleDateString("en-CA");
-
-const addDays = (date, days) => {
-  const day = parseDay(date);
-  day.setDate(day.getDate() + days);
-  return toDateKey(day);
-};
-
 /** Days from `from` to `to`, counting both. */
 export const countRangeDays = (from, to) => {
   const start = parseDay(from);
@@ -53,24 +45,6 @@ export const normalizeRange = ({ from, to }, today) => {
   if (start > end) start = end;
   return { from: start, to: end };
 };
-
-/** One-tap ranges, counted back from today. */
-export const RANGE_PRESETS = [
-  { key: "today", label: "Today", range: (today) => ({ from: today, to: today }) },
-  { key: "yesterday", label: "Yesterday", range: (today) => ({ from: addDays(today, -1), to: addDays(today, -1) }) },
-  { key: "last7", label: "Last 7 days", range: (today) => ({ from: addDays(today, -6), to: today }) },
-  { key: "last30", label: "Last 30 days", range: (today) => ({ from: addDays(today, -29), to: today }) },
-  { key: "thisMonth", label: "This month", range: (today) => ({ from: `${today.slice(0, 7)}-01`, to: today }) },
-  {
-    key: "lastMonth",
-    label: "Last month",
-    range: (today) => {
-      const lastDay = addDays(`${today.slice(0, 7)}-01`, -1);
-      return { from: `${lastDay.slice(0, 7)}-01`, to: lastDay };
-    },
-  },
-  { key: "thisYear", label: "This year", range: (today) => ({ from: `${today.slice(0, 4)}-01-01`, to: today }) },
-];
 
 const shortDay = (date, withYear) =>
   parseDay(date)?.toLocaleDateString("en-PH", { month: "short", day: "numeric", ...(withYear ? { year: "numeric" } : {}) }) || date;

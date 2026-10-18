@@ -6,7 +6,9 @@ import ReservationsTable from "../../Elements/Admin/ReservationsTable";
 import useAdminReservations from "../../Elements/Admin/useAdminReservations";
 import Pagination from "../../Elements/Global/Pagination";
 
+// `initialFilter`: the list to open on, e.g. "pending" from the bell's payment checks.
 export default function Reservations({
+  initialFilter,
   reservations,
   setReservations,
   tables,
@@ -19,6 +21,7 @@ export default function Reservations({
   onOnlineReservationsChange,
 }) {
   const reservationState = useAdminReservations({
+    initialFilter,
     reservations,
     setReservations,
     tables,

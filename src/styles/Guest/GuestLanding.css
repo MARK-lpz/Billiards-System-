@@ -794,6 +794,68 @@
   letter-spacing: 0.12em;
 }
 
+/* ---------- Visit us: where the hall is, when it is open, how to reach it ---------- */
+
+.guest-visit {
+  width: min(100% - 2.5rem, var(--guest-width));
+  margin: 0 auto;
+  padding: 0 0 clamp(3rem, 6vw, 4.5rem);
+  scroll-margin-top: 80px;
+}
+
+.guest-visit-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem 2rem;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  border: 1px solid rgba(226, 236, 230, 0.09);
+  border-radius: 14px;
+  background: #151a17;
+}
+
+.guest-visit-details {
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+  min-width: 0;
+  flex: 1 1 320px;
+}
+
+.guest-visit-details dt {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #9ba59e;
+  font-family: var(--bc-font-label);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.guest-visit-details dt i { color: var(--bc-yellow); }
+
+.guest-visit-details dd {
+  margin: 0.2rem 0 0;
+  color: #f1f5f2;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.guest-visit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.guest-visit-actions .guest-template-secondary {
+  margin-top: 0;
+  text-decoration: none;
+}
+
 /* ---------- Footer ---------- */
 
 .guest-template-footer {
@@ -862,7 +924,11 @@
   .guest-event-updates { width: calc(100% - 1.5rem); flex-wrap: wrap; }
 
   .guest-tournaments,
-  .guest-join { width: calc(100% - 2rem); }
+  .guest-join,
+  .guest-visit { width: calc(100% - 2rem); }
+
+  .guest-visit-actions { width: 100%; }
+  .guest-visit-actions .guest-template-secondary { flex: 1 1 140px; }
 
   .guest-tournament-list { grid-template-columns: 1fr; }
 

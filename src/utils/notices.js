@@ -1,8 +1,9 @@
 import { formatRegisteredAt } from "./tournamentRegistrations";
 
-// When a notice came in: the server's time, or the time at the start of a local notice's id.
+// When a notice came in: the database's own time in ms (createdAtMs), right
+// whatever time zone the hosting keeps; else its createdAt as written.
 export const noticeTime = (notice) => {
-  if (notice.createdAt) return formatRegisteredAt(notice.createdAt);
-  const stamp = Number(String(notice.id).split("-")[0]);
-  return stamp ? formatRegisteredAt(new Date(stamp).toISOString()) : "";
+  const at = Number(notice.createdAtMs);
+  if (at > 0) return formatRegisteredAt(new Date(at).toISOString());
+  return notice.createdAt ? formatRegisteredAt(notice.createdAt) : "";
 };

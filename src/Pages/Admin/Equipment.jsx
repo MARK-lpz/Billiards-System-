@@ -168,12 +168,12 @@ export default function Equipment({
 
     resolveRemoteIssue(issue.id, currentResolver()).catch((error) => {
       console.warn("Unable to resolve shared issue", error);
-      addNotification({ message: "The issue was resolved locally but could not update the shared feed." });
+      addNotification({ tone: "error", message: "The issue was resolved locally but could not update the shared feed." });
     });
   };
 
+  // The page's own notice says it; a toast on top would say it twice.
   const announce = (title, message) => {
-    addNotification({ message });
     setSideNotice({ title, message });
   };
 
@@ -338,7 +338,7 @@ export default function Equipment({
       .then(() => setRemovedKey((key) => key + 1))
       .catch((error) => {
         console.warn("Unable to save removed equipment", error);
-        addNotification({ message: "The equipment was updated, but the Removed list could not be saved to the server." });
+        addNotification({ tone: "error", message: "The equipment was updated, but the Removed list could not be saved to the server." });
       });
   };
 

@@ -201,6 +201,28 @@
   word-break: break-word;
 }
 
+/* Under an expiry date within 5 days, or past (see utils/expiryAlerts.js) */
+.inventory-expiry-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.inventory-expiry-tag.is-soon { background: rgba(251, 191, 36, 0.16); color: #fcd34d; }
+.inventory-expiry-tag.is-urgent,
+.inventory-expiry-tag.is-expired { background: rgba(239, 68, 68, 0.16); color: #fca5a5; }
+
+.light .inventory-expiry-tag.is-soon { background: #fef3c7; color: #92400e; }
+.light .inventory-expiry-tag.is-urgent,
+.light .inventory-expiry-tag.is-expired { background: #fee2e2; color: #991b1b; }
+
 .inventory-sku {
   color: #93c5fd;
   font-family: "Consolas", "Courier New", monospace;
@@ -227,6 +249,72 @@
   background: #eff6ff;
   color: #1e3a8a;
 }
+
+/* Edit Product: fields fixed once the product was added; Restock: older stock
+   that expires before the new stock */
+.inventory-lock-note,
+.inventory-restock-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.08);
+  color: #fde68a;
+  font-size: 12px;
+}
+
+.inventory-lock-note i,
+.inventory-restock-note i { color: #fbbf24; }
+
+.inventory-restock-note {
+  align-items: flex-start;
+  margin-bottom: 0;
+}
+
+.inventory-restock-note i { margin-top: 2px; }
+
+.light .inventory-lock-note,
+.light .inventory-restock-note {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  color: #78350f;
+}
+
+.light .inventory-lock-note i,
+.light .inventory-restock-note i { color: #b45309; }
+
+.inventory-lock-icon {
+  margin-left: 6px;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.inventory-modal .form-control.inventory-locked,
+.inventory-modal .form-select.inventory-locked {
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.02);
+  color: #cbd5e1;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.inventory-modal .form-control.inventory-locked:focus {
+  box-shadow: none;
+}
+
+/* Plainer than the fields that can still be edited */
+.light .inventory-modal .form-control.inventory-locked,
+.light .inventory-modal .form-select.inventory-locked {
+  border-style: dashed !important;
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  box-shadow: none !important;
+}
+
+.light .inventory-lock-icon { color: var(--text-muted); }
 
 /* A field the product form cannot save yet, and what to fix in it */
 .inventory-modal .form-control.inventory-input-error,
@@ -473,6 +561,9 @@
   background: rgba(96, 165, 250, 0.12);
 }
 
+/* The green In Stock text stays readable on the blue of that row */
+.inventory-row-focus .inventory-badge-success { color: #34d399; }
+
 /* Opened from the bell, but the product is gone */
 .inventory-focus-missing {
   display: flex;
@@ -493,3 +584,151 @@
 .light .inventory-table tbody tr.inventory-row-focus { background: #eff6ff !important; outline-color: #2563eb; }
 .light .inventory-focus-missing { border-color: #93c5fd; background: #eff6ff; color: #1e3a8a; }
 .light .inventory-focus-missing i { color: #1d4ed8; }
+
+/* ── Search: at the right of the filter bar, before Add Product ─────────────────────────────── */
+.inventory-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 300px;
+  min-width: 240px;
+}
+
+.inventory-search > i {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.inventory-search-input {
+  width: 100%;
+  padding: 9px 36px 9px 34px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.inventory-search-input::placeholder { color: #8291a7; }
+
+.inventory-search-input:focus {
+  outline: 0;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+
+.inventory-search-input::-webkit-search-cancel-button { display: none; }
+
+.inventory-search-clear,
+.inventory-search-key {
+  position: absolute;
+  right: 8px;
+}
+
+.inventory-search-clear {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.22);
+  color: #e2e8f0;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.inventory-search-clear:hover { background: rgba(148, 163, 184, 0.35); }
+
+/* Press / to search */
+.inventory-search-key {
+  padding: 1px 7px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 5px;
+  color: #94a3b8;
+  font-family: inherit;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+/* What the search found and understood, on its own row of the bar */
+.inventory-search-meta {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.inventory-search-count {
+  margin-right: 4px;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.inventory-search-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.1);
+  color: #bfdbfe;
+  font-weight: 600;
+}
+
+.inventory-search-chip.is-typo {
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.1);
+  color: #fde68a;
+}
+
+.inventory-search-hit {
+  padding: 0 1px;
+  border-radius: 3px;
+  background: rgba(251, 191, 36, 0.3);
+  color: inherit;
+}
+
+.inventory-empty-row td {
+  padding: 28px 16px !important;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.inventory-empty-row i { margin-right: 8px; }
+
+.inventory-empty-clear {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #34d399;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.light .inventory-search > i { color: #64748b; }
+.light .inventory-search-input { background: #fff; border-color: #cbd5e1; color: #0f172a; }
+.light .inventory-search-input::placeholder { color: #64748b; }
+.light .inventory-search-clear { background: #e2e8f0; color: #0f172a; }
+.light .inventory-search-key { border-color: #cbd5e1; color: #475569; }
+.light .inventory-search-meta { color: var(--text-muted); }
+.light .inventory-search-count { color: var(--text-primary); }
+.light .inventory-search-chip { border-color: #bfdbfe; background: #eff6ff; color: #1e3a8a; }
+.light .inventory-search-chip.is-typo { border-color: #fcd34d; background: #fffbeb; color: #78350f; }
+.light .inventory-search-hit { background: #fde68a; }
+.light .inventory-empty-row td { color: var(--text-muted); }
+.light .inventory-empty-clear { color: #047857; }
+
+@media (max-width: 640px) {
+  .inventory-search { flex: 1 1 100%; min-width: 0; }
+  .inventory-search-meta { justify-content: flex-start; }
+}

@@ -4,14 +4,18 @@ const fmtPeso = (value) =>
     maximumFractionDigits: 2,
   })}`;
 
-export default function SalesSummary({ openBillsCount, openBillsTotal, unsyncedCount, pendingItemsCount }) {
+export default function SalesSummary({ runningBill, runningTotal, savedBillsCount = 0, unsyncedCount, pendingItemsCount }) {
+  const lineCount = runningBill?.cart.length || 0;
   return (
     <div className="sales-pos-summary-grid">
       <div className="sales-summary-card">
-        <span className="sales-summary-label">Open Bills</span>
-        <span className="sales-summary-value">{openBillsCount}</span>
+        <span className="sales-summary-label">Running Bill</span>
+        <span className="sales-summary-value">{fmtPeso(runningTotal)}</span>
         <span className="sales-summary-meta">
-          {openBillsCount ? `${fmtPeso(openBillsTotal)} on open bills, not yet paid` : "No bills waiting for payment"}
+          {runningBill
+            ? `${lineCount} ${lineCount === 1 ? "item" : "items"} on ${runningBill.label}, not yet paid`
+            : "No bill started"}
+          {savedBillsCount > 0 && ` · ${savedBillsCount} saved ${savedBillsCount === 1 ? "bill" : "bills"} next`}
         </span>
       </div>
 

@@ -2,17 +2,13 @@ import { useEffect, useState } from "react";
 import { SEEN_REGISTRATIONS_KEY, readSeenRegistrations } from "../../utils/tournamentRegistrations";
 
 /**
- * The player registrations already opened on this device, shared by the
- * employee's bell and the Tournament Schedule (both keep it in localStorage).
- * `alsoSeen` counts as seen from the start, e.g. the player a bell just opened.
+ * The player registrations already opened on this device, kept in localStorage.
+ * The employee dashboard holds it once and hands it to both the bell and the
+ * Tournament Schedule, so opening a player in either clears it in both.
  * Returns [seen, markSeen(keys)].
  */
-export default function useSeenRegistrations(events, alsoSeen = []) {
-  const [seen, setSeen] = useState(() => {
-    const initial = readSeenRegistrations(events);
-    alsoSeen.forEach((key) => initial.add(key));
-    return initial;
-  });
+export default function useSeenRegistrations(events) {
+  const [seen, setSeen] = useState(() => readSeenRegistrations(events));
 
   useEffect(() => {
     try {

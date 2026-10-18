@@ -23,6 +23,7 @@ import './styles/brand.css'
 import './styles/Admin/AdminLayout.css'
 import './styles/Employee/EmployeeLayout.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
+import { SiteSettingsProvider } from './Elements/Global/SiteSettingsProvider'
 import SyncNotices from './Elements/Global/SyncNotices'
 import useServerList from './Elements/Global/useServerList'
 import { initialReservations } from './utils/reservations'
@@ -601,6 +602,7 @@ function App() {
       canReceiveAdminNotifications={isLoggedIn && userRole === 'admin'}
       canReceiveEmployeeNotifications={isLoggedIn && userRole === 'employee'}
     >
+      <SiteSettingsProvider>
       <div className={theme}>
         <SyncNotices />
         <LoadingBar loading={loading} />
@@ -710,6 +712,7 @@ function App() {
           />
         )}
       </div>
+      </SiteSettingsProvider>
     </NotificationProvider>
   )
 }

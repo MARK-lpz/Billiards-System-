@@ -13,15 +13,14 @@ import { useNotifications } from "../../Elements/Global/useNotifications";
 import useClock from "../../Elements/Global/useClock";
 import useStaffShell from "../../Elements/Global/useStaffShell";
 import AdminTopbar from "../../Elements/Admin/AdminTopbar";
-import { formatHoursLabel, getExtensionBlock } from "../../utils/reservations";
-import { saveTableReservationStatus } from "../../utils/reservationApi";
-import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
+import { formatHoursLabel, getExtensionBlock, getTodayDate } from "../../utils/reservations";
 
 // Admin Elements
 import Sidebar from "../../Elements/Admin/Sidebar";
 import { navItems } from "../../Elements/Admin/adminNav";
 import TaskList from "../../Elements/Admin/TaskList";
 import ActiveTables from "../../Elements/Admin/ActiveTables";
+import TableCheckout from "../../Elements/Admin/TableCheckout";
 
 // Employee Elements
 import EmployeeStats from "../../Elements/Employee/EmployeeStats";
@@ -38,6 +37,7 @@ import AccountManagement from "./AccountManagement";
 import AuditTrail from "./AuditTrail";
 import AdminProfile from "./AdminProfile";
 import Settings from "../Settings";
+import Website from "./Website";
 
 // The pages the top bar can name that are not in the sidebar.
 const extraPages = {
@@ -101,6 +101,9 @@ export default function Dashboard({
   // What the bell opened, for the page it leads to (a product in Inventory).
   // Cleared by any other navigation.
   const [focus, setFocus] = useState(null);
+  // The session being ended and paid ({ tableId, startTime, at }), from a table
+  // card or from the time's up pop-up on any page.
+  const [checkout, setCheckout] = useState(null);
   const { addNotification, showToast } = useNotifications();
   const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed, navOpen, setNavOpen, shellClassName } =
     useStaffShell("admin-sidebar-collapsed");
@@ -132,18 +135,11 @@ export default function Dashboard({
     addNotification({ message: `${table?.name || "Table"} extended by ${formatHoursLabel(minutes)}.` });
   };
 
-  // The session's bill goes to Sales / POS, where it is paid with any food and drinks.
-  const endTableSession = (id) => {
+  // Ending a session shows its bill (table time and orders) and takes the payment.
+  const requestEndSession = (id) => {
     const table = tables.find((entry) => entry.id === id);
-    const charge = createTableCharge({ table, reservations, tableCharges, endedBy: "Admin", now: getCurrentTimestamp() });
-    setTables((previous) =>
-      previous.map((entry) => (entry.id === id ? { ...entry, ...ENDED_SESSION_FIELDS } : entry))
-    );
-    saveTableReservationStatus({ table, reservations, setReservations, from: ["seated"], status: "completed" });
-    if (!charge) return;
-    setTableCharges?.((previous) => [charge, ...previous]);
-    addNotification({ message: describeEndedCharge(charge) });
-    showToast(endedChargeToast(charge));
+    if (!table?.startTime) return;
+    setCheckout({ tableId: id, startTime: table.startTime, at: getCurrentTimestamp() });
   };
 
   const reportedIssuesCount = logs.filter((entry) => isIssueEntry(entry) && !isResolvedIssue(entry)).length;
@@ -179,7 +175,9 @@ export default function Dashboard({
       case 'sales-pos':
         return <SalesPOS 
           tables={tables}
-          products={products} 
+          setTables={setTables}
+          reservations={reservations}
+          products={products}
           setProducts={setProducts}
           transactions={transactions}
           setTransactions={setTransactions}
@@ -189,7 +187,9 @@ export default function Dashboard({
         />;
       
       case 'reservations':
-        return <Reservations 
+        return <Reservations
+          key={focus?.key || "reservations"}
+          initialFilter={focus?.nav === "reservations" ? focus.filter : undefined}
           reservations={reservations}
           setReservations={setReservations}
           tables={tables}
@@ -215,14 +215,17 @@ export default function Dashboard({
           setTables={setTables}
           reservations={reservations}
           setReservations={setReservations}
-          tableCharges={tableCharges}
-          setTableCharges={setTableCharges}
+          products={products}
+          setProducts={setProducts}
+          setLogs={setLogs}
+          onEndSession={requestEndSession}
         />;
       
       case 'inventory':
         return <Inventory
           key={focus?.key || "inventory"}
           focusProductId={focus?.nav === "inventory" ? focus.productId : null}
+          focusAction={focus?.nav === "inventory" ? focus.action : null}
           products={products}
           setProducts={setProducts}
         />;
@@ -251,6 +254,9 @@ export default function Dashboard({
 
       case 'accounts':
         return <AccountManagement setLogs={setLogs} />;
+
+      case 'website':
+        return <Website reservations={reservations} setLogs={setLogs} />;
 
       case 'profile':
         return <AdminProfile />;
@@ -295,7 +301,24 @@ export default function Dashboard({
   return (
     <>
       <LoadingBar loading={loading} />
-      <TimeUpAlert tables={tables} reservations={reservations} onAddTime={addTableTime} onEndSession={endTableSession} />
+      <TimeUpAlert tables={tables} reservations={reservations} onAddTime={addTableTime} onEndSession={requestEndSession} />
+      {checkout && (
+        <TableCheckout
+          key={`${checkout.tableId}-${checkout.at}`}
+          checkout={checkout}
+          tables={tables}
+          setTables={setTables}
+          reservations={reservations}
+          setReservations={setReservations}
+          tableCharges={tableCharges}
+          setTableCharges={setTableCharges}
+          transactions={transactions}
+          setTransactions={setTransactions}
+          setLogs={setLogs}
+          cashierLabel="Admin"
+          onClose={() => setCheckout(null)}
+        />
+      )}
       {/* "Open POS" on a bill's note; hidden when already there. */}
       <Toast
         actions={{
@@ -322,9 +345,19 @@ export default function Dashboard({
           >
             <AdminBell
               products={products}
-              onOpenProduct={(productId) =>
-                handleNavChange("inventory", { nav: "inventory", productId, key: `product-${Date.now()}` })
+              tables={tables}
+              reservations={reservations}
+              now={now}
+              today={getTodayDate(new Date(now))}
+              onOpenProduct={(productId, action = null) =>
+                handleNavChange("inventory", { nav: "inventory", productId, action, key: `product-${Date.now()}` })
               }
+              onOpenTables={() => handleNavChange("pool-tables")}
+              onEndSession={requestEndSession}
+              onOpenReservations={(filter) =>
+                handleNavChange("reservations", { nav: "reservations", filter, key: `reservations-${Date.now()}` })
+              }
+              onOpenAccounts={() => handleNavChange("accounts")}
             />
             <Menu 
               onLogout={onLogout}

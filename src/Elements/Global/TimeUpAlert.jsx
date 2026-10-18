@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { formatHoursLabel, getExtensionLimit } from "../../utils/reservations";
-import { formatPeso, getSessionEnd, getSessionTotal } from "../../utils/tableSession";
+import { formatPeso } from "../../utils/tableSession";
+import { createTableCharge } from "../../utils/tableCharges";
+import { getTimeUpTables } from "../../utils/timeUp";
 
 const clock = (ms) =>
   new Date(ms).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
-
-// One alert per run-out: adding time and running out again counts as a new one.
-const alertKey = (table) => `${table.id}:${table.startTime}:${table.durationMinutes}`;
 
 /**
  * Tells staff, on whatever page they are on, that a table's booked time is up.
@@ -23,10 +22,8 @@ export default function TimeUpAlert({ tables = [], reservations = [], onAddTime,
     return () => window.clearInterval(interval);
   }, []);
 
-  const finished = tables
-    .map((table) => ({ table, endsAt: getSessionEnd(table), key: alertKey(table) }))
-    .filter((entry) => entry.endsAt !== null && entry.endsAt <= now && !dismissed.includes(entry.key))
-    .sort((first, second) => first.endsAt - second.endsAt);
+  // Closed ones stay in the bell's Tables section until the table is dealt with.
+  const finished = getTimeUpTables(tables, now).filter((entry) => !dismissed.includes(entry.key));
   const current = finished[0];
   const currentKey = current?.key;
 
@@ -70,7 +67,12 @@ export default function TimeUpAlert({ tables = [], reservations = [], onAddTime,
               </p>
               <div className="time-up-total">
                 <span>Amount to collect</span>
-                <strong>{formatPeso(getSessionTotal(table))}</strong>
+                {/* Table time and orders, less what was paid online or while playing */}
+                <strong>
+                  {formatPeso(
+                    createTableCharge({ table, reservations, tableCharges: [], endedBy: "", now: endsAt }).amountDue
+                  )}
+                </strong>
               </div>
               <p className="time-up-hint">
                 The table stays occupied until you add time or end the session.
@@ -96,7 +98,15 @@ export default function TimeUpAlert({ tables = [], reservations = [], onAddTime,
                 <i className="bi bi-plus-circle"></i>
                 1 hour
               </button>
-              <button type="button" className="btn btn-danger" onClick={() => onEndSession(table.id)}>
+              {/* The bill and payment pop-up takes over; if it is cancelled, the card still shows the time is up. */}
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => {
+                  dismiss(key);
+                  onEndSession(table.id);
+                }}
+              >
                 <i className="bi bi-stop-circle"></i>
                 End Session
               </button>

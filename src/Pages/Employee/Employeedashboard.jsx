@@ -4,11 +4,14 @@ import Sidebar from "../../Elements/Employee/SidebarEmp";
 import PoolTableStats from "../../Elements/Admin/PoolTableStats";
 import PoolTableCard from "../../Elements/Admin/PoolTableCards";
 import WalkInModal from "../../Elements/Admin/WalkInModal";
-import EndSessionModal from "../../Elements/Admin/EndSessionModal";
+import TableCheckout from "../../Elements/Admin/TableCheckout";
+import TableOrderModal from "../../Elements/Admin/TableOrderModal";
+import useTableOrders from "../../Elements/Admin/useTableOrders";
 import CancelReservationModal from "../../Elements/Admin/CancelReservationModal";
 import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
 import Toast from "../../Elements/Global/Toast";
 import EmployeeBell from "../../Elements/Employee/EmployeeBell";
+import useSeenRegistrations from "../../Elements/Employee/useSeenRegistrations";
 import LoadingBar from "../../Elements/Global/Loading";
 import Menu from "../../Elements/Global/Menu";
 import Settings from "../Settings";
@@ -20,8 +23,7 @@ import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import { findTableReservation, formatHoursLabel, getExtensionBlock } from "../../utils/reservations";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
-import { formatPeso, getPlayedMinutes, getSessionTotal } from "../../utils/tableSession";
-import { ENDED_SESSION_FIELDS, createTableCharge, describeEndedCharge, endedChargeToast } from "../../utils/tableCharges";
+import { ENDED_SESSION_FIELDS } from "../../utils/tableCharges";
 import { getCheckInBlock, hasTableReservation } from "../../utils/tableHolds";
 import useClock from "../../Elements/Global/useClock";
 import useStaffShell from "../../Elements/Global/useStaffShell";
@@ -58,7 +60,7 @@ export default function EmployeeDashboard({
   theme,
   setTheme,
 }) {
-  const { addNotification, queueAdminNotification, showToast } = useNotifications();
+  const { addNotification, showToast } = useNotifications();
   const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed, navOpen, setNavOpen, shellClassName } =
     useStaffShell("employee-sidebar-collapsed");
   // Must match a sidebar nav id, otherwise nothing is highlighted on load and
@@ -68,14 +70,19 @@ export default function EmployeeDashboard({
   // What the bell opened, for the page it leads to: a booking on the Reservation
   // Desk, or a player on the Tournament Schedule. Cleared by any other navigation.
   const [focus, setFocus] = useState(null);
+  // Tournament players already opened on this device: one list for the bell and
+  // the Tournament Schedule, so opening a player in either clears it in both.
+  const [seenPlayers, markPlayersSeen] = useSeenRegistrations(events);
   const [statusFilter, setStatusFilter] = useState("all");
   // The table a walk-in is being started on, while staff enter how long they stay.
   const [walkInTableId, setWalkInTableId] = useState(null);
-  // The table whose End Session warning is open, and when End Session was pressed.
-  const [endingTableId, setEndingTableId] = useState(null);
-  const [endingAt, setEndingAt] = useState(null);
-  // Gone once the session is over, e.g. ended from the time's up pop-up meanwhile.
-  const endingTable = tables.find((t) => t.id === endingTableId && t.startTime) || null;
+  // The session being ended and paid ({ tableId, startTime, at }), from a table
+  // card or from the time's up pop-up on any page.
+  const [checkout, setCheckout] = useState(null);
+  // The table whose Order pop-up is open; gone once its session ends.
+  const [orderTableId, setOrderTableId] = useState(null);
+  const orderTable = tables.find((t) => t.id === orderTableId && t.status === "occupied") || null;
+  const tableOrders = useTableOrders({ tables, setTables, products, setProducts, setLogs, staff: "Employee" });
   // The reserved table whose Cancel pop-up is open; gone if it is no longer reserved.
   const [cancelTableId, setCancelTableId] = useState(null);
   const cancelTable = tables.find((t) => t.id === cancelTableId && t.status === "reserved") || null;
@@ -197,59 +204,13 @@ export default function EmployeeDashboard({
     addNotification({ message: `${customer} checked in at ${getTableLabel(table)}.` });
   };
 
-  // The booked time is paid in full, even when the customer leaves early.
-  // Played time is worked out on the click, so it is right in the first second.
-  const describeSessionEnd = (table) => {
-    const bookedMinutes = Number(table.durationMinutes || 60);
-    const playedMinutes = getPlayedMinutes(table, getCurrentTimestamp());
-    return {
-      cost: getSessionTotal(table),
-      booked: formatHoursLabel(bookedMinutes),
-      played: formatHoursLabel(playedMinutes),
-    };
-  };
-
-  // The session's bill goes to Sales / POS, where it is paid with any food and drinks.
-  const endSession = (id) => {
-    const table = tables.find((t) => t.id === id);
-    if (!table?.startTime) return;
-
-    const { cost, booked, played } = describeSessionEnd(table);
-    const charge = createTableCharge({ table, reservations, tableCharges, endedBy: "Employee", now: getCurrentTimestamp() });
-    updateTable(id, ENDED_SESSION_FIELDS);
-    saveTableReservationStatus({ table, reservations, setReservations, from: ["seated"], status: "completed" });
-    if (charge) setTableCharges?.((prev) => [charge, ...prev]);
-    addLog({
-      action: "Ended session",
-      detail: `Ended session for ${getTableLabel(table)} (${formatPeso(cost)} for ${played} of ${booked})`,
-      customer: {
-        previous: table.customer ? { name: table.customer } : null,
-        current: null,
-      },
-      table: {
-        id: table.id,
-        name: getTableLabel(table),
-        previousStatus: table.status,
-        currentStatus: "available",
-      },
-      payment: {
-        total: cost,
-        amountDue: charge?.amountDue ?? cost,
-        source: "table-session",
-      },
-    });
-    addNotification({ message: charge ? describeEndedCharge(charge) : `${getTableLabel(table)} session ended.` });
-    if (charge) showToast(endedChargeToast(charge));
-  };
-
-  // The card's End Session asks first, in the same warning the admin's Pool
-  // Tables shows; the time's up pop-up already shows the total.
+  // Ending a session shows its bill (table time and orders) and takes the
+  // payment, the same way from a card and from the time's up pop-up.
   const handleEndSession = (id) => {
     const table = tables.find((t) => t.id === id);
     if (!table?.startTime) return;
 
-    setEndingAt(getCurrentTimestamp());
-    setEndingTableId(id);
+    setCheckout({ tableId: id, startTime: table.startTime, at: getCurrentTimestamp() });
   };
 
   const handleAddTime = (id, minutes) => {
@@ -311,12 +272,8 @@ export default function EmployeeDashboard({
         currentStatus: "available",
       },
     });
+    // The admin finds it in the Audit Trail (above), not in the bell.
     addNotification({ message: `Reservation for ${getTableLabel(table)} was cancelled.` });
-    queueAdminNotification({
-      type: "reservation-cancellation",
-      message: `Cancellation request: ${table.customer || "Customer"} reservation for ${getTableLabel(table)} was cancelled by an employee.`,
-      data: { tableId: id },
-    });
   };
 
   const renderModule = () => {
@@ -325,6 +282,8 @@ export default function EmployeeDashboard({
         return (
           <SalesPOS
             tables={tables}
+            setTables={setTables}
+            reservations={reservations}
             products={products}
             setProducts={setProducts}
             transactions={transactions}
@@ -342,6 +301,8 @@ export default function EmployeeDashboard({
             events={events}
             tables={tables}
             focusPlayer={focus?.nav === "tournaments" ? focus : null}
+            seen={seenPlayers}
+            markSeen={markPlayersSeen}
           />
         );
 
@@ -401,6 +362,7 @@ export default function EmployeeDashboard({
                   onCancelReserve={() => setCancelTableId(table.id)}
                   onAddTime={(minutes) => handleAddTime(table.id, minutes)}
                   onUndoTime={(minutes) => handleUndoTime(table.id, minutes)}
+                  onOrder={() => setOrderTableId(table.id)}
                 />
               ))}
             </div>
@@ -414,15 +376,13 @@ export default function EmployeeDashboard({
               />
             )}
 
-            {endingTable && (
-              <EndSessionModal
-                table={endingTable}
-                endingAt={endingAt}
-                onClose={() => setEndingTableId(null)}
-                onConfirm={() => {
-                  endSession(endingTable.id);
-                  setEndingTableId(null);
-                }}
+            {orderTable && (
+              <TableOrderModal
+                table={orderTable}
+                products={products}
+                onPlace={(draft) => tableOrders.placeOrder(orderTable, draft)}
+                onTakeOff={(lineId) => tableOrders.takeOffOrder(orderTable, lineId)}
+                onClose={() => setOrderTableId(null)}
               />
             )}
 
@@ -449,7 +409,24 @@ export default function EmployeeDashboard({
     <>
       <LoadingBar loading={loading} />
       {/* Shown on every page, so a finished table is noticed even from the POS. */}
-      <TimeUpAlert tables={tables} reservations={reservations} onAddTime={handleAddTime} onEndSession={endSession} />
+      <TimeUpAlert tables={tables} reservations={reservations} onAddTime={handleAddTime} onEndSession={handleEndSession} />
+      {checkout && (
+        <TableCheckout
+          key={`${checkout.tableId}-${checkout.at}`}
+          checkout={checkout}
+          tables={tables}
+          setTables={setTables}
+          reservations={reservations}
+          setReservations={setReservations}
+          tableCharges={tableCharges}
+          setTableCharges={setTableCharges}
+          transactions={transactions}
+          setTransactions={setTransactions}
+          setLogs={setLogs}
+          cashierLabel="Employee"
+          onClose={() => setCheckout(null)}
+        />
+      )}
       {/* "Open POS" on a bill's note; hidden when already there. */}
       <Toast
         actions={{
@@ -476,7 +453,12 @@ export default function EmployeeDashboard({
           >
             <EmployeeBell
               events={events}
+              tables={tables}
               reservations={reservations}
+              onOpenTables={() => handleNavChange("Pool Tables")}
+              onEndSession={handleEndSession}
+              seen={seenPlayers}
+              markSeen={markPlayersSeen}
               onOpenReservation={(reservationId) =>
                 handleNavChange("reservations", { nav: "reservations", reservationId, key: `booking-${Date.now()}` })
               }

@@ -3,6 +3,7 @@ import "../../styles/Guest/GuestLanding.css";
 import "../../styles/Guest/TournamentsPage.css";
 import "../../styles/Guest/EventMedia.css";
 import EventMediaViewer from "../../Elements/Guest/EventMediaViewer";
+import AnnouncementBar from "../../Elements/Guest/AnnouncementBar";
 import { eventMediaUrl, getEventMedia } from "../../utils/eventMedia";
 import {
   describeDaysAway,
@@ -51,6 +52,8 @@ export default function TournamentsPage({ events = [], onGoBack, onRegister }) {
           <i className="bi bi-arrow-left"></i> Home
         </button>
       </header>
+
+      <AnnouncementBar />
 
       <section className="tournaments-hero">
         <p className="guest-template-eyebrow">Tournaments</p>

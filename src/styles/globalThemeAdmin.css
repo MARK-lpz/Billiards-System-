@@ -694,7 +694,6 @@
 .light .cart-empty     { color: var(--text-muted) !important; }
 .light .cart-item      { border-bottom-color: var(--border) !important; }
 .light .cart-item-name { color: var(--text-primary) !important; }
-.light .cart-item-price{ color: var(--text-muted) !important; }
 .light .cart-item-total{ color: var(--accent) !important; }
 .light .cart-total     { color: var(--text-primary) !important; }
 .light .cart-total-amount { color: var(--accent) !important; }
@@ -725,7 +724,6 @@
 
 .light .discount-toggle,
 .light .cart-secondary-btn,
-.light .cart-service-pill,
 .light .extra-charge-box,
 .light .order-ticket-item {
   background: var(--bg-muted) !important;
@@ -739,15 +737,11 @@
   color: var(--accent) !important;
 }
 
-.light .cart-service-label,
 .light .extra-charge-title,
 .light .cart-item-meta {
   color: var(--text-muted) !important;
 }
 
-.light .cart-service-pill strong {
-  color: var(--text-primary) !important;
-}
 
 .light .order-ticket-item.served {
   background: rgba(16, 185, 129, 0.08) !important;

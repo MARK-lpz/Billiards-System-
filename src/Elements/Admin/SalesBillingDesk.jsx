@@ -2,7 +2,6 @@ import { useState } from "react";
 import ProductGrid from "./ProductGrid";
 import CartPanel from "./CartPanel";
 import TableBillsPanel from "./TableBillsPanel";
-import OpenBillsBar from "./OpenBillsBar";
 import BillDetailsModal from "./BillDetailsModal";
 
 export default function SalesBillingDesk({
@@ -13,17 +12,17 @@ export default function SalesBillingDesk({
   cart,
   activeBill,
   bills = [],
-  openBills = [],
+  savedBillsCount = 0,
   tables = [],
-  subtotal,
   total,
   method,
   waitingCount,
-  servedCount,
   unsyncedCount,
   stockAlert,
   unpaidTableCharges = [],
   onAddTableCharge,
+  liveTableBills = [],
+  onAddLiveTable,
   onSearchChange,
   onSetCategory,
   onAddToCart,
@@ -31,38 +30,32 @@ export default function SalesBillingDesk({
   getQueuedQty,
   onSetMethod,
   onProcessPayment,
-  onOpenBill,
-  onSwitchBill,
   onCloseBill,
+  describeBillRemoval,
+  onRemoveBill,
   onUpdateBill,
 }) {
-  // "new" for a new bill, "edit" for the bill being rung up, or null.
-  const [billModal, setBillModal] = useState(null);
+  // Whether the running bill's details (who it is for) are being edited.
+  const [editingBill, setEditingBill] = useState(false);
   const alertOutsideCart =
     stockAlert && !cart.some((item) => item.id === stockAlert.productId);
 
   const saveBill = (details) => {
-    if (billModal === "edit" && activeBill) onUpdateBill(activeBill.id, details);
-    else onOpenBill(details);
-    setBillModal(null);
+    if (activeBill) onUpdateBill(activeBill.id, details);
+    setEditingBill(false);
   };
 
   return (
     <>
-      <OpenBillsBar
-        bills={openBills}
-        activeBillId={activeBill?.id ?? null}
-        onSwitch={onSwitchBill}
-        onNewBill={() => setBillModal("new")}
-      />
-
       <div className="sales-pos-layout">
         <div className="sales-pos-products">
           <TableBillsPanel
             charges={unpaidTableCharges}
+            liveBills={liveTableBills}
             bills={bills}
             activeBill={activeBill}
             onAddToBill={onAddTableCharge}
+            onAddLive={onAddLiveTable}
           />
 
           <div className="sales-pos-search">
@@ -105,29 +98,30 @@ export default function SalesBillingDesk({
           key={activeBill?.id ?? "no-bill"}
           cart={cart}
           activeBill={activeBill}
-          subtotal={subtotal}
           total={total}
           method={method}
           waitingCount={waitingCount}
-          servedCount={servedCount}
           unsyncedCount={unsyncedCount}
           stockAlert={stockAlert}
+          savedBillsCount={savedBillsCount}
           onUpdateQty={onUpdateQty}
           getQueuedQty={getQueuedQty}
           onSetMethod={onSetMethod}
           onProcessPayment={onProcessPayment}
-          onEditBill={() => setBillModal("edit")}
+          onEditBill={() => setEditingBill(true)}
           onCloseBill={onCloseBill}
+          describeBillRemoval={describeBillRemoval}
+          onRemoveBill={onRemoveBill}
         />
       </div>
 
-      {billModal && (
+      {editingBill && activeBill && (
         <BillDetailsModal
-          bill={billModal === "edit" ? activeBill : null}
+          bill={activeBill}
           tables={tables}
           bills={bills}
           onSave={saveBill}
-          onClose={() => setBillModal(null)}
+          onClose={() => setEditingBill(false)}
         />
       )}
     </>

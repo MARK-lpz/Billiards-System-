@@ -13,6 +13,8 @@ import { validateReference } from "../../utils/paymentReference";
 import { sendCustomerConfirmation } from "../../utils/customerMessageApi";
 import { formatEventWhen, getEventNotices, getOpenEvents } from "../../utils/eventUpdates";
 import { getAgeError, getPersonNameError } from "../../utils/formValidation";
+import { useSiteSettings } from "../../Elements/Global/useSiteSettings";
+import AnnouncementBar from "../../Elements/Guest/AnnouncementBar";
 
 // Read when the form opens and on submit, never while rendering.
 const getCurrentTimestamp = () => Date.now();
@@ -43,6 +45,9 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
   // { text, status } from the server; status says whether it was really texted.
   const [customerMessage, setCustomerMessage] = useState(null);
   const [openedAt] = useState(getCurrentTimestamp);
+  // A paid tournament is paid by GCash, so the website takes it only once the
+  // admin has set the GCash account (Admin > Website).
+  const gcashReady = useSiteSettings().settings.gcash.ready;
   // Players who come to register for a cancelled or moved tournament are told here.
   const notices = getEventNotices(events, openedAt);
   // Open ones only, and not past their day: a finished tournament takes no players.
@@ -52,7 +57,10 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
   const entryFee = Number(selectedEvent?.entryFee || 0);
   const paymentRequired = entryFee > 0;
   const paymentCheck = validateReference(form.paymentReference || "");
-  const paymentSettled = !paymentRequired || paymentCheck.isValid;
+  const paymentSettled = !paymentRequired || (gcashReady && paymentCheck.isValid);
+  const paymentUnavailable = paymentRequired && !gcashReady
+    ? "Online payment is not set up yet. Please register at the hall."
+    : "";
   const contactWarning = getSmsWarning(form.contact);
   const playerName = [form.firstName, form.lastName].map((part) => part.trim()).filter(Boolean).join(" ");
   const alreadyRegistered =
@@ -80,6 +88,11 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
     e.preventDefault();
     if (!selectedEvent || !contactIsValid || fieldError) return;
 
+    if (paymentUnavailable) {
+      setSubmitError(paymentUnavailable);
+      return;
+    }
+
     if (paymentRequired && !paymentCheck.isValid) {
       setSubmitError(
         paymentCheck.error || "Please pay the entry fee through GCash and enter the reference number."
@@ -105,20 +118,8 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
         );
       }
 
-      // Create notification for admin
-      const notification = {
-        id: getCurrentTimestamp(),
-        message: `New tournament registration: ${playerName} for ${selectedEvent.name}`,
-        time: "Just now",
-        unread: true,
-        type: "tournament",
-        data: { ...form, eventName: selectedEvent.name }
-      };
-
-      // Store in localStorage (temporary solution until backend is ready)
-      const existingNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '[]');
-      existingNotifications.unshift(notification);
-      localStorage.setItem('adminNotifications', JSON.stringify(existingNotifications));
+      // The front desk's bell lists the new player from the saved tournament
+      // (Tournament players), so nothing is kept in this guest's browser.
 
       // A failed text must never lose a paid registration, so this is best effort.
       try {
@@ -186,6 +187,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
         {/* Card */}
         <div className="tournament-card">
           <div className="card-top-line" />
+          {!submitted && <AnnouncementBar className="is-in-card" />}
 
           {notices.length > 0 && !submitted && (
             <div className="tourna-notices" role="status">
@@ -249,7 +251,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
               {!isComplete && (
                 <p className="required-text">
                   <i className="bi bi-info-circle" style={{ marginRight: 6 }}></i>
-                  {fieldError || contactWarning || "Please fill in all required fields"}
+                  {fieldError || contactWarning || paymentUnavailable || "Please fill in all required fields"}
                 </p>
               )}
               {submitError && <p className="required-text">{submitError}</p>}
