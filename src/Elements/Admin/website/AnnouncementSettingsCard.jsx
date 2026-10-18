@@ -40,6 +40,17 @@ export default function AnnouncementSettingsCard({ setLogs }) {
       description="A short notice at the top of the website, such as a holiday closing or a promo."
       chip={describeState(draft.saved, today)}
       draft={draft}
+      previewDark
+      preview={
+        enabled && text.trim() ? (
+          <div className="guest-announcement is-in-card">
+            <i className="bi bi-megaphone-fill" aria-hidden="true"></i>
+            <p>{text}</p>
+          </div>
+        ) : (
+          <p className="website-preview-empty">Nothing: the announcement is off.</p>
+        )
+      }
     >
       <div className="website-fields">
         <label className="website-switch">
@@ -72,18 +83,6 @@ export default function AnnouncementSettingsCard({ setLogs }) {
             </span>
             <input type="date" value={endDate || ""} min={startDate || undefined} onChange={(event) => draft.update("endDate", event.target.value)} />
           </label>
-        </div>
-
-        <div className="website-preview is-dark" aria-label="What customers see">
-          <span className="website-preview-label">Customers see</span>
-          {enabled && text.trim() ? (
-            <div className="guest-announcement is-in-card">
-              <i className="bi bi-megaphone-fill" aria-hidden="true"></i>
-              <p>{text}</p>
-            </div>
-          ) : (
-            <p className="website-preview-empty">Nothing: the announcement is off.</p>
-          )}
         </div>
       </div>
     </SiteCard>

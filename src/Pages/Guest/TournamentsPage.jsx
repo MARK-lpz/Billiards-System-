@@ -4,6 +4,8 @@ import "../../styles/Guest/TournamentsPage.css";
 import "../../styles/Guest/EventMedia.css";
 import EventMediaViewer from "../../Elements/Guest/EventMediaViewer";
 import AnnouncementBar from "../../Elements/Guest/AnnouncementBar";
+import { useSiteSettings } from "../../Elements/Global/useSiteSettings";
+import { facebookLinkKind } from "../../utils/siteSettings";
 import { eventMediaUrl, getEventMedia } from "../../utils/eventMedia";
 import {
   describeDaysAway,
@@ -28,6 +30,12 @@ export default function TournamentsPage({ events = [], onGoBack, onRegister }) {
   const [now, setNow] = useState(() => Date.now());
   // The tournament whose pictures and videos are open, and which one is shown first.
   const [viewing, setViewing] = useState(null);
+  // The footer line and the Facebook link (Admin > Website); the line is blank
+  // until the server answers, like the home page's.
+  const { settings, loaded, failed } = useSiteSettings();
+  const { tagline } = settings.footer;
+  const { facebookUrl } = settings.business;
+  const facebook = facebookUrl ? facebookLinkKind(facebookUrl) : null;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -206,7 +214,12 @@ export default function TournamentsPage({ events = [], onGoBack, onRegister }) {
         <span className="guest-footer-mark">
           Break &amp; Chill <small>Billiard Hall</small>
         </span>
-        <span>Games, tournaments, and good breaks.</span>
+        {tagline && <span className={`guest-footer-tagline ${loaded || failed ? "" : "is-loading"}`}>{tagline}</span>}
+        {facebook && (
+          <a className="guest-footer-social" href={facebookUrl} target="_blank" rel="noopener noreferrer" aria-label={facebook.label}>
+            <i className={`bi ${facebook.icon}`} aria-hidden="true"></i>
+          </a>
+        )}
       </footer>
     </main>
   );

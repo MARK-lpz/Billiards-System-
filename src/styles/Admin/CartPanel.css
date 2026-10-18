@@ -328,6 +328,16 @@
   border-color: #10b981;
 }
 
+/* GCash before the hall's GCash is set up (Admin > Website). */
+.payment-method-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.payment-method-btn:disabled:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .discount-toggle,
 .cart-secondary-btn {
   background: rgba(255, 255, 255, 0.05);
@@ -813,3 +823,111 @@
 .light .cart-item-qty .cart-item-session { color: var(--text-primary); }
 .light .cart-item-remove { color: #64748b; }
 .light .cart-item-remove:hover { background: #fef2f2; color: #b91c1c; }
+
+/* GCash at the counter: the hall's own QR (Admin > Website) and the amount to pay. */
+.counter-gcash {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.counter-gcash-qr {
+  width: 148px;
+  height: 148px;
+  object-fit: contain;
+  padding: 6px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.counter-gcash-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.counter-gcash-label {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.counter-gcash-amount {
+  color: #34d399;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.counter-gcash-account {
+  display: grid;
+  gap: 3px;
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+
+.counter-gcash-account div {
+  display: flex;
+  gap: 8px;
+}
+
+.counter-gcash-account dt {
+  min-width: 52px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.counter-gcash-account dd {
+  margin: 0;
+  color: #f8fafc;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .counter-gcash {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    text-align: center;
+  }
+
+  .counter-gcash-account div {
+    justify-content: center;
+  }
+}
+
+.cart-gcash-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0 0 12px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.cart-gcash-note i {
+  margin-top: 1px;
+  color: #34d399;
+}
+
+.cart-gcash-note.is-off i {
+  color: #fbbf24;
+}
+
+.light .counter-gcash { background: #ecfdf5; border-color: #6ee7b7; }
+.light .counter-gcash-qr { border: 1px solid #d1fae5; }
+.light .counter-gcash-label,
+.light .counter-gcash-account dt { color: #475569; }
+.light .counter-gcash-amount { color: #047857; }
+.light .counter-gcash-account dd { color: #0f172a; }
+.light .cart-gcash-note { color: #475569; }
+.light .cart-gcash-note i { color: #047857; }
+.light .cart-gcash-note.is-off i { color: #b45309; }

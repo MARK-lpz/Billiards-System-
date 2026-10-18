@@ -578,6 +578,16 @@
   text-transform: uppercase;
 }
 
+.tourna-player-pay {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .tourna-player-facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -635,6 +645,7 @@
 .light .tourna-player-badge:focus-visible { border-color: #059669; }
 .light .tourna-player-badge.is-new { border-color: #34d399; }
 .light .tourna-player-new { background: #d1fae5; color: #065f46; }
+.light .tourna-player-pay { background: #fef3c7; color: #92400e; }
 .light .notification-list .registration-item:hover { background: var(--bg-subtle); }
 .light .notification-list .registration-item.unread { background: #ecfdf5; }
 .light .registration-item-icon { color: #047857; }

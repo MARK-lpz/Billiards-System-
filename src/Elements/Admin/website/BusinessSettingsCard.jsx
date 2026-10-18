@@ -1,5 +1,7 @@
 import SiteCard from "./SiteCard";
 import useSiteSectionDraft from "./useSiteSectionDraft";
+import { useSiteSettings } from "../../Global/useSiteSettings";
+import { formatOpeningHours } from "../../../utils/reservations";
 
 // A first look while typing; the server checks the links fully on Save.
 const linkWarning = (url, example) =>
@@ -17,10 +19,17 @@ export default function BusinessSettingsCard({ setLogs }) {
     fieldLabels: { address: "address", mapsUrl: "Google Maps link", phone: "contact number", facebookUrl: "Facebook link" },
     setLogs,
   });
+  const { settings } = useSiteSettings();
   const { address, mapsUrl, phone, facebookUrl } = draft.draft;
   const mapsWarning = linkWarning(mapsUrl, "https://maps.app.goo.gl/...");
   const facebookWarning = linkWarning(facebookUrl, "https://www.facebook.com/...");
   const filled = [address, mapsUrl, phone, facebookUrl].filter(Boolean).length;
+  // Visit us on the home page, as it will read: only what is set, and the hours.
+  const buttons = [
+    mapsUrl && { icon: "bi-map", label: "Open in Maps" },
+    phone && { icon: "bi-telephone", label: "Call" },
+    facebookUrl && { icon: "bi-messenger", label: "Message us" },
+  ].filter(Boolean);
 
   return (
     <SiteCard
@@ -29,9 +38,46 @@ export default function BusinessSettingsCard({ setLogs }) {
       description="Shown in Visit us on the home page, so customers can find and reach the hall."
       chip={filled ? { tone: "on", label: `${filled} of 4 set` } : { tone: "off", label: "Not set" }}
       draft={draft}
+      preview={
+        <div className="website-visit-preview">
+          <dl>
+            {address?.trim() && (
+              <div>
+                <dt>
+                  <i className="bi bi-geo-alt-fill" aria-hidden="true"></i> Address
+                </dt>
+                <dd>{address}</dd>
+              </div>
+            )}
+            <div>
+              <dt>
+                <i className="bi bi-clock-fill" aria-hidden="true"></i> Open
+              </dt>
+              <dd>{formatOpeningHours(settings.hours)}</dd>
+            </div>
+            {phone?.trim() && (
+              <div>
+                <dt>
+                  <i className="bi bi-telephone-fill" aria-hidden="true"></i> Contact
+                </dt>
+                <dd>{phone}</dd>
+              </div>
+            )}
+          </dl>
+          {buttons.length > 0 && (
+            <div className="website-visit-preview-buttons">
+              {buttons.map((button) => (
+                <span key={button.label}>
+                  <i className={`bi ${button.icon}`} aria-hidden="true"></i> {button.label}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      }
     >
-      <div className="website-fields website-fields-grid">
-        <label className="website-field website-field-wide">
+      <div className="website-fields">
+        <label className="website-field">
           Address
           <input
             type="text"
@@ -62,7 +108,7 @@ export default function BusinessSettingsCard({ setLogs }) {
           />
           <em>Mobile or landline. Customers can tap Call.</em>
         </label>
-        <label className="website-field website-field-wide">
+        <label className="website-field">
           Facebook page or Messenger link
           <input
             type="url"

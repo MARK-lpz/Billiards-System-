@@ -1,30 +1,23 @@
-import { formatEventWhen, wasRescheduled } from "../../utils/eventUpdates";
+import { formatEventWhen, gameTypeLabel, wasRescheduled } from "../../utils/eventUpdates";
 
-const GAME_TYPES = ["8-Ball", "9-Ball", "Straight Pool", "Snooker", "Rotation"];
-const FORMATS = ["Single Elimination", "Double Elimination", "Round Robin", "Swiss System"];
-const SKILL_LEVELS = ["Beginner", "Intermediate", "Advanced", "Open (All Levels)"];
+const peso = (value) => `₱${Number(value || 0).toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
 
-const fmtDate = (value) => {
-  if (!value) return "Date not set";
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" });
-};
-
-const fmtTime = (value) => {
-  if (!value) return "Time not set";
-  const parsed = new Date(`2000-01-01T${value}`);
-  return Number.isNaN(parsed.getTime())
-    ? value
-    : parsed.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
-};
-
+/**
+ * Step 2 of the tournament sign-up: which tournament, what it is (as the admin
+ * set it up, shown rather than asked), and an optional team or nickname, which
+ * goes on the players list next to the player's name.
+ */
 export default function TournamentDetailsForm({ form, onChange, events = [], selectedEvent }) {
+  const entryFee = Number(selectedEvent?.entryFee || 0);
+  const prize = Number(selectedEvent?.prize || 0);
+  const players = (selectedEvent?.participants || []).length;
+
   return (
     <>
-      <p className="section-title">Tournament Details</p>
       <div className="form-field-full">
-        <label className="label">Tournament Event</label>
+        <label className="label" htmlFor="tourna-eventId">Tournament Event</label>
         <select
+          id="tourna-eventId"
           className="field-input"
           name="eventId"
           value={form.eventId}
@@ -39,70 +32,60 @@ export default function TournamentDetailsForm({ form, onChange, events = [], sel
             </option>
           ))}
         </select>
-        {selectedEvent && (
-          <div className="field-helper">
-            {fmtDate(selectedEvent.date)} • {fmtTime(selectedEvent.time)}
-          </div>
-        )}
-        {selectedEvent && wasRescheduled(selectedEvent) && (
-          <div className="field-helper field-helper-rescheduled">
-            Rescheduled from {formatEventWhen(selectedEvent.rescheduledFrom.date, selectedEvent.rescheduledFrom.time)}
-            {selectedEvent.rescheduleReason ? `. Reason: ${selectedEvent.rescheduleReason}` : ""}
-          </div>
-        )}
       </div>
-      <div className="form-grid-2">
-        <div>
-          <label className="label">Game Type</label>
-          <select 
-            className="field-input" 
-            name="gameType" 
-            value={form.gameType} 
-            onChange={onChange} 
-            required
-          >
-            <option value="">Select Game</option>
-            {GAME_TYPES.map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Tournament Format</label>
-          <select 
-            className="field-input" 
-            name="format" 
-            value={form.format} 
-            onChange={onChange} 
-            required
-          >
-            <option value="">Select Format</option>
-            {FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
-          </select>
-        </div>
-      </div>
-      <div className="form-grid-2" style={{ marginBottom: 24 }}>
-        <div>
-          <label className="label">Skill Level</label>
-          <select 
-            className="field-input" 
-            name="skillLevel" 
-            value={form.skillLevel} 
-            onChange={onChange} 
-            required
-          >
-            <option value="">Select Level</option>
-            {SKILL_LEVELS.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Team / Nickname</label>
-          <input 
-            className="field-input" 
-            name="teamName" 
-            value={form.teamName}
-            onChange={onChange} 
-            placeholder="Optional" 
-          />
-        </div>
+
+      {selectedEvent && (
+        <section className="tourna-event-card" aria-label={`About ${selectedEvent.name}`}>
+          <dl className="tourna-event-facts">
+            <div className="is-wide">
+              <dt><i className="bi bi-calendar-event" aria-hidden="true"></i>When</dt>
+              <dd>{formatEventWhen(selectedEvent.date, selectedEvent.time)}</dd>
+            </div>
+            {selectedEvent.gameType && (
+              <div>
+                <dt><i className="bi bi-circle" aria-hidden="true"></i>Game</dt>
+                <dd>{gameTypeLabel(selectedEvent.gameType)}</dd>
+              </div>
+            )}
+            <div>
+              <dt><i className="bi bi-cash-coin" aria-hidden="true"></i>Entry fee</dt>
+              <dd>{entryFee > 0 ? peso(entryFee) : "Free"}</dd>
+            </div>
+            {prize > 0 && (
+              <div>
+                <dt><i className="bi bi-trophy" aria-hidden="true"></i>Prize pool</dt>
+                <dd>{peso(prize)}</dd>
+              </div>
+            )}
+            <div>
+              <dt><i className="bi bi-people" aria-hidden="true"></i>Players</dt>
+              <dd>{players ? `${players} registered` : "None yet"}</dd>
+            </div>
+          </dl>
+          {wasRescheduled(selectedEvent) && (
+            <p className="tourna-event-moved">
+              <i className="bi bi-calendar2-week" aria-hidden="true"></i>
+              <span>
+                Rescheduled from {formatEventWhen(selectedEvent.rescheduledFrom.date, selectedEvent.rescheduledFrom.time)}
+                {selectedEvent.rescheduleReason ? `. Reason: ${selectedEvent.rescheduleReason}` : ""}
+              </span>
+            </p>
+          )}
+        </section>
+      )}
+
+      <div className="form-field-full">
+        <label className="label" htmlFor="tourna-teamName">Team / Nickname (optional)</label>
+        <input
+          id="tourna-teamName"
+          className="field-input"
+          name="teamName"
+          value={form.teamName}
+          onChange={onChange}
+          placeholder="e.g. Team Cue"
+          aria-describedby="tourna-teamName-help"
+        />
+        <p className="field-helper" id="tourna-teamName-help">Shown next to your name on the players list.</p>
       </div>
     </>
   );

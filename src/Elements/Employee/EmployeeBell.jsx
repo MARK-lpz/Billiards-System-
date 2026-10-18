@@ -5,6 +5,9 @@ import useClock from "../Global/useClock";
 import useTimeUpSection from "../Global/useTimeUpSection";
 import { getRegistrations } from "../../utils/tournamentRegistrations";
 import { formatEventWhen } from "../../utils/eventUpdates";
+import useRefundsSection from "../Global/useRefundsSection";
+import { useOnlinePayments } from "../Global/useOnlinePayments";
+import { findPlayerPayment } from "../../utils/onlinePayments";
 
 // The notices the website sends the staff when a guest books online.
 const ONLINE_RESERVATION = "online-reservation";
@@ -48,6 +51,16 @@ export default function EmployeeBell({
   const { notifications, markAsRead, markAllAsRead } = useNotifications();
   const now = useClock(60000);
   const timeUp = useTimeUpSection({ role: "employee", tables, reservations, onOpenTables, onEndSession });
+  // Website payments to send back: a booking's opens the Reservation Desk at it,
+  // an entry fee the Tournament Schedule at its tournament.
+  const refunds = useRefundsSection({
+    events,
+    onOpen: (payment) =>
+      payment.kind === "reservation"
+        ? onOpenReservation(payment.refId)
+        : onOpenRegistration({ eventId: payment.refId, label: payment.participant, key: `refund-${payment.id}` }),
+  });
+  const { payments } = useOnlinePayments();
 
   const bookings = notifications.filter((notice) => notice.type === ONLINE_RESERVATION);
   const allRegistrations = getRegistrations(events, now);
@@ -63,6 +76,7 @@ export default function EmployeeBell({
 
   const sections = [
     timeUp.section,
+    refunds.section,
     {
       key: "bookings",
       title: "Online reservations",
@@ -98,6 +112,11 @@ export default function EmployeeBell({
           </>
         ),
         meta: `${registration.walkIn ? "Walk-in" : "Online"}${registration.team ? ` · ${registration.team}` : ""} · ${formatEventWhen(registration.event.date, registration.event.time)}`,
+        // An entry fee paid online that no one has checked yet.
+        state:
+          findPlayerPayment(payments, registration.event.id, registration.label)?.status === "held"
+            ? { label: "Check payment", tone: "action" }
+            : null,
         onOpen: () => {
           markSeen([registration.key]);
           onOpenRegistration({ eventId: registration.event.id, label: registration.label, key: registration.key });
@@ -111,6 +130,7 @@ export default function EmployeeBell({
       sections={sections}
       onMarkAllSeen={() => {
         timeUp.markAllSeen();
+        refunds.markAllSeen();
         if (unreadBookings) markAllAsRead();
         markSeen(allRegistrations.map((registration) => registration.key));
       }}

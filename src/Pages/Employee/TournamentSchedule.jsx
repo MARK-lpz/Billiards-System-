@@ -1,10 +1,14 @@
 import { useMemo, useState } from "react";
 import "../../styles/Employee/TournamentSchedule.css";
-import { registerRemoteTournamentParticipant } from "../../utils/eventApi";
+import { registerRemoteTournamentParticipant, setRemoteEventNoticeHidden } from "../../utils/eventApi";
+import CancelledNoticeControl from "../../Elements/Global/CancelledNoticeControl";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import useClock from "../../Elements/Global/useClock";
 import ParticipantModal from "../../Elements/Employee/ParticipantModal";
 import { findRegistration, getRegistrations, registrationKey } from "../../utils/tournamentRegistrations";
+import TournamentPayments from "../../Elements/Global/TournamentPayments";
+import { useOnlinePayments } from "../../Elements/Global/useOnlinePayments";
+import { findPlayerPayment } from "../../utils/onlinePayments";
 import {
   describeDaysAway,
   formatEventWhen,
@@ -108,18 +112,28 @@ const resolveAssignedTables = (assignedTables = [], tables = []) => {
 // `focusPlayer` ({ eventId, label, key }): a player opened from the employee's
 // bell, shown as soon as the page opens. `seen` / `markSeen`: the registrations
 // already opened, shared with that bell (the dashboard keeps them), so a player
-// opened here is no longer new there.
-export default function TournamentSchedule({ events = [], setEvents, tables = [], focusPlayer = null, seen, markSeen }) {
+// opened here is no longer new there. `setLogs`: the Audit Trail, for the
+// entry fees checked or sent back here.
+export default function TournamentSchedule({ events = [], setEvents, setLogs, tables = [], focusPlayer = null, seen, markSeen }) {
   const { addNotification } = useNotifications();
+  // The entry fees paid on the website (a held one is marked on its player).
+  const { payments } = useOnlinePayments();
   // Refreshed every minute, so a tournament moves to Past once its day is over.
   const now = useClock(60000);
-  const [tab, setTab] = useState("upcoming");
+  // Opened from the bell: the tab that has that tournament (a cancelled one's fee may need sending back).
+  const [tab, setTab] = useState(() => {
+    if (!focusPlayer) return "upcoming";
+    const opened = groupStaffEvents(events, now);
+    return TABS.find((entry) => opened[entry.key].some((event) => String(event.id) === String(focusPlayer.eventId)))?.key || "upcoming";
+  });
   // Opened from the bell: that player's tournament is the one shown.
   const [selectedId, setSelectedId] = useState(focusPlayer?.eventId ?? null);
   const [walkInOpen, setWalkInOpen] = useState(false);
   const [walkInForm, setWalkInForm] = useState(emptyWalkIn);
   const [walkInError, setWalkInError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Hiding a cancelled tournament from the website (or showing it again): { eventId, error }.
+  const [noticeChange, setNoticeChange] = useState(null);
   // The player shown in the pop-up ({ eventId, label, fromBell }).
   const [openPlayer, setOpenPlayer] = useState(() =>
     focusPlayer ? { eventId: focusPlayer.eventId, label: focusPlayer.label, fromBell: true } : null
@@ -129,6 +143,21 @@ export default function TournamentSchedule({ events = [], setEvents, tables = []
   const registrations = useMemo(() => getRegistrations(events, now), [events, now]);
   // Looked up from the live list, so the pop-up follows changes and closes if the player is removed.
   const playerShown = openPlayer ? findRegistration(events, openPlayer.eventId, openPlayer.label) : null;
+
+  // The front desk's own request: the server changes only whether the website shows it.
+  const changeNotice = async (event, hidden) => {
+    setNoticeChange({ eventId: event.id, busy: true, error: "" });
+    try {
+      const updated = await setRemoteEventNoticeHidden({ eventId: event.id, hidden });
+      setEvents?.((previous) => previous.map((item) => (item.id === event.id ? updated : item)));
+      addNotification({
+        message: hidden ? `${event.name} is hidden from the website.` : `${event.name} shows as cancelled on the website again.`,
+      });
+      setNoticeChange(null);
+    } catch (error) {
+      setNoticeChange({ eventId: event.id, busy: false, error: error?.message || "Unable to change the tournament. Please try again." });
+    }
+  };
 
   const showPlayer = (eventId, label, fromBell) => {
     markSeen([registrationKey(eventId, label)]);
@@ -393,6 +422,15 @@ export default function TournamentSchedule({ events = [], setEvents, tables = []
               </div>
 
               {renderNotice(selectedEvent)}
+              {statusOf(selectedEvent) === "cancelled" && (
+                <CancelledNoticeControl
+                  event={selectedEvent}
+                  now={now}
+                  onChange={(hidden) => changeNotice(selectedEvent, hidden)}
+                  busy={noticeChange?.eventId === selectedEvent.id && noticeChange.busy}
+                  error={noticeChange?.eventId === selectedEvent.id ? noticeChange.error : ""}
+                />
+              )}
 
               <div className="tourna-detail-grid">
                 <div className="tourna-detail-item">
@@ -446,6 +484,7 @@ export default function TournamentSchedule({ events = [], setEvents, tables = []
                       const isNew =
                         registrations.some((entry) => entry.key === registrationKey(selectedEvent.id, participant)) &&
                         !seen.has(registrationKey(selectedEvent.id, participant));
+                      const feeHeld = findPlayerPayment(payments, selectedEvent.id, participant)?.status === "held";
                       return (
                         <button
                           key={`${selectedEvent.id}-${index}`}
@@ -456,6 +495,7 @@ export default function TournamentSchedule({ events = [], setEvents, tables = []
                         >
                           {participant}
                           {isNew && <span className="tourna-player-new">New</span>}
+                          {feeHeld && <span className="tourna-player-pay">Check payment</span>}
                         </button>
                       );
                     })}
@@ -464,6 +504,15 @@ export default function TournamentSchedule({ events = [], setEvents, tables = []
                   <p>No registered players yet.</p>
                 )}
               </div>
+
+              <TournamentPayments
+                event={selectedEvent}
+                setEvents={setEvents}
+                setLogs={setLogs}
+                staff="Employee"
+                heading="Entry fees paid online"
+                className="tourna-detail-section"
+              />
             </div>
           )}
         </div>
@@ -543,6 +592,7 @@ export default function TournamentSchedule({ events = [], setEvents, tables = []
           <ParticipantModal
             key={playerShown.key}
             registration={playerShown}
+            payment={findPlayerPayment(payments, playerShown.event.id, playerShown.label)}
             onClose={() => setOpenPlayer(null)}
             onOpenTournament={openPlayer.fromBell ? openPlayersTournament : null}
           />

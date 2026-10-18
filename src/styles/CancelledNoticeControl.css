@@ -1,0 +1,71 @@
+/* A cancelled tournament on a staff screen: is it still on the website, and
+   the button to hide it or show it again (CancelledNoticeControl.jsx). Dark by
+   default, light overrides below. */
+.cancelled-site-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cancelled-site-notice > i { color: #94a3b8; font-size: 15px; }
+.cancelled-site-notice.is-showing > i { color: #fcd34d; }
+
+.cancelled-site-notice-text {
+  flex: 1 1 200px;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cancelled-site-notice-text em {
+  font-style: normal;
+  color: #fca5a5;
+}
+
+.cancelled-site-notice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cancelled-site-notice-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); }
+.cancelled-site-notice-btn:disabled { opacity: 0.6; cursor: wait; }
+
+.cancelled-site-notice-btn:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+.light .cancelled-site-notice {
+  border-color: var(--border-strong);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
+.light .cancelled-site-notice > i { color: var(--text-muted); }
+.light .cancelled-site-notice.is-showing > i { color: #b45309; }
+.light .cancelled-site-notice-text em { color: #b91c1c; }
+
+.light .cancelled-site-notice-btn {
+  border-color: var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}

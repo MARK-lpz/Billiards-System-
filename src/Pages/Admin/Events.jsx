@@ -7,6 +7,7 @@ import { useNotifications } from "../../Elements/Global/useNotifications";
 import ConfirmDialog from "../../Elements/Global/ConfirmDialog";
 import Pagination from "../../Elements/Global/Pagination";
 import usePagination from "../../Elements/Global/usePagination";
+import useClock from "../../Elements/Global/useClock";
 import {
   MAX_EVENT_REASON_LENGTH,
   formatEventWhen,
@@ -54,8 +55,10 @@ const formatEventStart = (event) => {
   });
 };
 
-export default function Events({ events, setEvents, tables, reservations = [] }) {
+export default function Events({ events, setEvents, setLogs, tables, reservations = [] }) {
   const { addNotification } = useNotifications();
+  // Whether a cancelled event is still on the website follows the clock.
+  const now = useClock(60000);
   const [modal, setModal] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
   // Optional, and shown on the website next to the cancelled event.
@@ -160,6 +163,16 @@ export default function Events({ events, setEvents, tables, reservations = [] })
       message: `${event.name || "Event"} cancelled. The website now shows it as cancelled, and it moved to Previous Events.`,
     });
     setCancelTarget(null);
+  };
+
+  // Takes a cancelled event off the website now, or puts it back while its time there lasts.
+  const setNoticeHidden = (event, hidden) => {
+    setEvents((prev) => prev.map((ev) => (ev.id === event.id ? { ...ev, noticeHidden: hidden } : ev)));
+    addNotification({
+      message: hidden
+        ? `${event.name || "Event"} is hidden from the website.`
+        : `${event.name || "Event"} shows as cancelled on the website again.`,
+    });
   };
 
   const markComplete = (eventId) => {
@@ -290,6 +303,9 @@ export default function Events({ events, setEvents, tables, reservations = [] })
               key={e.id}
               event={e}
               tables={tables}
+              now={now}
+              setLogs={setLogs}
+              onNoticeChange={(hidden) => setNoticeHidden(e, hidden)}
               onEdit={() => editEvent(e)}
               onMarkComplete={() => requestComplete(e)}
               onCancel={() => {

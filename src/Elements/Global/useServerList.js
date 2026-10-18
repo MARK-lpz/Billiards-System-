@@ -39,6 +39,8 @@ export default function useServerList({
   const saving = useRef(false);
   const listRef = useRef(list);
   const options = useRef({});
+  // Bumped at each sign-in and sign-out: a read sent before it is not shown.
+  const generation = useRef(0);
   // Bumped after the first read and after each save, so changes made meanwhile are sent.
   const [syncTick, setSyncTick] = useState(0);
 
@@ -51,7 +53,9 @@ export default function useServerList({
   // Shows the server's copy. Unless `force`, not while this screen still has
   // changes of its own to send. Returns the items shown, or null.
   const showServerCopy = async (force) => {
+    const asked = generation.current;
     const { items, versions: serverVersions } = await options.current.fetchList();
+    if (asked !== generation.current) return null;
     if (saving.current && !force) return null;
 
     const first = snapshot.current === null;
@@ -76,7 +80,10 @@ export default function useServerList({
   useEffect(() => {
     if (!enabled) return undefined;
     let cancelled = false;
-    // Signed in again (maybe as someone else): nothing is sent before a fresh read.
+    // Signed in or out (maybe as someone else): nothing is sent before a fresh
+    // read, since a signed-out read leaves out what only staff see (a table's
+    // orders and who is on it), and a read already on its way is not shown.
+    generation.current += 1;
     snapshot.current = null;
     versions.current = {};
 
@@ -97,8 +104,9 @@ export default function useServerList({
       cancelled = true;
       clearInterval(interval);
     };
-    // showServerCopy only reads refs, so the poll restarts only when switched on or off.
-  }, [enabled]);
+    // showServerCopy only reads refs, so the poll restarts only when switched on
+    // or off, or when saving is allowed or not (a sign-in or sign-out).
+  }, [enabled, canSave]);
 
   useEffect(() => {
     if (!enabled || !canSave || snapshot.current === null || saving.current) return;

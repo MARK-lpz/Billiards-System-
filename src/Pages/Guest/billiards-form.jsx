@@ -7,14 +7,30 @@ import PersonalInfoForm from "../../Elements/Guest/PersonalInfo";
 import TournamentDetailsForm from "../../Elements/Guest/TournaDetails";
 import SuccessMessage from "../../Elements/Guest/SuccessMess";
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
-import { registerRemoteTournamentParticipant } from "../../utils/eventApi";
+import { registerWebsiteTournamentParticipant } from "../../utils/eventApi";
 import GcashPayment from "../../Elements/Guest/GcashPayment";
 import { validateReference } from "../../utils/paymentReference";
 import { sendCustomerConfirmation } from "../../utils/customerMessageApi";
-import { formatEventWhen, getEventNotices, getOpenEvents } from "../../utils/eventUpdates";
+import { formatEventWhen, gameTypeLabel, getEventNotices, getOpenEvents } from "../../utils/eventUpdates";
 import { getAgeError, getPersonNameError } from "../../utils/formValidation";
 import { useSiteSettings } from "../../Elements/Global/useSiteSettings";
 import AnnouncementBar from "../../Elements/Guest/AnnouncementBar";
+import { useMyRequests } from "../../Elements/Guest/useMyRequests";
+import RequestStatusCard from "../../Elements/Guest/RequestStatusCard";
+import { describeJustSent } from "../../utils/myRequests";
+import { formatMobile } from "../../utils/siteSettings";
+import FormSteps, { FormReview, FormStepHead, FormStepNav } from "../../Elements/Guest/FormSteps";
+import { useFormSteps } from "../../Elements/Guest/useFormSteps";
+
+// What the player is told about the entry fee before and after sending.
+const HELD_NOTE =
+  "Your entry fee is held until Break & Chill confirms your registration. If it is not confirmed, it is sent back to the GCash number you paid from.";
+
+// The form, one part at a time: the player, the tournament, then paying (or,
+// for a free tournament, a last look before registering).
+const LAST_STEP = 2;
+const DETAIL_FIELDS = ["firstName", "lastName", "contact", "age"];
+const isFilled = (form, fields) => fields.every((field) => String(form[field]).trim() !== "");
 
 // Read when the form opens and on submit, never while rendering.
 const getCurrentTimestamp = () => Date.now();
@@ -34,13 +50,19 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
     eventId: events.some((event) => String(event.id) === String(initialEventId) && isOpenForRegistration(event))
       ? String(initialEventId)
       : "",
-    gameType: "",
-    format: "",
-    skillLevel: "",
     teamName: "",
     paymentReference: "",
+    // The GCash number the fee came from; null keeps it the same as the contact number.
+    payerNumber: null,
   }));
+  const { step, goTo, title: stepTitle } = useFormSteps();
+  // The receipt screenshot, ready to send ({ dataUrl, ... } from utils/receiptImage.js).
+  const [receipt, setReceipt] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+  // The key this browser follows the sign-up by, its name until the server
+  // answers, and whether a fee was paid (see useMyRequests).
+  const [followed, setFollowed] = useState(null);
+  const myRequests = useMyRequests();
   const [submitError, setSubmitError] = useState("");
   // { text, status } from the server; status says whether it was really texted.
   const [customerMessage, setCustomerMessage] = useState(null);
@@ -57,7 +79,19 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
   const entryFee = Number(selectedEvent?.entryFee || 0);
   const paymentRequired = entryFee > 0;
   const paymentCheck = validateReference(form.paymentReference || "");
-  const paymentSettled = !paymentRequired || (gcashReady && paymentCheck.isValid);
+  const payerNumber = form.payerNumber ?? form.contact;
+  const paymentSettled =
+    !paymentRequired || (gcashReady && paymentCheck.isValid && isValidSmsNumber(payerNumber) && Boolean(receipt));
+  // What the paid step still needs, said under the button.
+  const paymentHint = !paymentRequired || !gcashReady
+    ? ""
+    : !paymentCheck.isValid
+      ? "Pay the entry fee by GCash and type the reference number."
+      : !isValidSmsNumber(payerNumber)
+        ? "Type the GCash number you paid from."
+        : !receipt
+          ? "Attach a screenshot of your GCash receipt."
+          : "";
   const paymentUnavailable = paymentRequired && !gcashReady
     ? "Online payment is not set up yet. Please register at the hall."
     : "";
@@ -66,14 +100,41 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
   const alreadyRegistered =
     Boolean(selectedEvent && playerName) &&
     (selectedEvent.participants || []).some((participant) => playerKey(participant) === playerKey(playerName));
-  // Each typed field is checked as soon as it has something in it.
-  const fieldError =
+  // Each typed field is checked as soon as it has something in it, and said on
+  // the step it belongs to.
+  const detailsError =
     (form.firstName && getPersonNameError(form.firstName, "first name")) ||
     (form.lastName && getPersonNameError(form.lastName, "last name")) ||
     (form.age !== "" && getAgeError(form.age)) ||
+    "";
+  const tournamentError =
     (form.teamName.trim().length > 40 && "Keep the team name to 40 characters or fewer.") ||
     (alreadyRegistered && `${playerName} is already registered for ${selectedEvent.name}.`) ||
     "";
+  const fieldError = detailsError || tournamentError;
+
+  // What each step needs before Next opens the one after it, and what is said
+  // under Next while it is missing.
+  const detailsFilled = isFilled(form, DETAIL_FIELDS);
+  const detailsReady = detailsFilled && contactIsValid && !detailsError;
+  const detailsHint =
+    detailsError ||
+    (!detailsFilled
+      ? "Fill in your name, contact number and age to continue."
+      : !contactIsValid
+        ? "Check the contact number above."
+        : "");
+  const tournamentFilled = Boolean(selectedEvent);
+  // A paid one cannot be taken online until GCash is set up, so it stops here
+  // rather than on the payment step.
+  const tournamentReady = tournamentFilled && !tournamentError && !paymentUnavailable;
+  const tournamentHint =
+    tournamentError ||
+    paymentUnavailable ||
+    (!tournamentFilled ? "Choose the tournament to continue." : "");
+  const stepReady = [detailsReady, tournamentReady][step] ?? true;
+  const stepHint = [detailsHint, tournamentHint][step] ?? "";
+  const steps = ["Details", "Tournament", paymentRequired ? "Pay" : "Confirm"];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -84,8 +145,19 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
     }));
   };
 
+  // A send error belongs to the step it was shown on.
+  const openStep = (next) => {
+    setSubmitError("");
+    goTo(next);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Before the last step, Next (or Enter in a field) opens the next step.
+    if (step < LAST_STEP) {
+      if (stepReady) openStep(step + 1);
+      return;
+    }
     if (!selectedEvent || !contactIsValid || fieldError) return;
 
     if (paymentUnavailable) {
@@ -103,9 +175,13 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
     setSubmitError("");
     try {
       const playerLabel= form.teamName?.trim() ? `${playerName} (${form.teamName.trim()})` : playerName;
-      const updatedEvent = await registerRemoteTournamentParticipant({
+      const { event: updatedEvent, statusKey } = await registerWebsiteTournamentParticipant({
         eventId: selectedEvent.id,
         participant: playerLabel,
+        // A paid one sends the fee's reference, the number it came from and the receipt.
+        payment: paymentRequired
+          ? { phone: form.contact, payerNumber, paymentReference: paymentCheck.digits, receipt: receipt.dataUrl }
+          : null,
       });
 
       if (setEvents) {
@@ -119,7 +195,13 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
       }
 
       // The front desk's bell lists the new player from the saved tournament
-      // (Tournament players), so nothing is kept in this guest's browser.
+      // (Tournament players). This browser keeps only the key, so the player
+      // sees when the entry is decided.
+      if (statusKey) {
+        const label = `${selectedEvent.name} · ${formatEventWhen(selectedEvent.date, selectedEvent.time)}`;
+        myRequests.add({ key: statusKey, kind: "tournament", label });
+        setFollowed({ key: statusKey, label, paid: paymentRequired });
+      }
 
       // A failed text must never lose a paid registration, so this is best effort.
       try {
@@ -144,19 +226,19 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
   };
 
   const handleReset = () => {
+    setFollowed(null);
     setForm({
       firstName: "", lastName: "", contact: "",
-      age: "", eventId: "", gameType: "", format: "", skillLevel: "",
-      teamName: "", paymentReference: "",
+      age: "", eventId: "",
+      teamName: "", paymentReference: "", payerNumber: null,
     });
+    setReceipt(null);
     setSubmitted(false);
     setCustomerMessage(null);
-    setSubmitError("");
+    openStep(0);
   };
 
-  const requiredFields = ["firstName", "lastName", "contact", "age", "eventId", "gameType", "format", "skillLevel"];
-  const isComplete =
-    requiredFields.every((k) => String(form[k]).trim() !== "") && contactIsValid && paymentSettled && !fieldError;
+  const isComplete = detailsReady && tournamentReady && paymentSettled;
 
   return (
     <div className="tournament-container">
@@ -189,7 +271,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
           <div className="card-top-line" />
           {!submitted && <AnnouncementBar className="is-in-card" />}
 
-          {notices.length > 0 && !submitted && (
+          {notices.length > 0 && !submitted && step === 0 && (
             <div className="tourna-notices" role="status">
               {notices.map(({ event, type }) => (
                 <div key={event.id} className={`tourna-notice is-${type}`}>
@@ -219,46 +301,155 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
             </div>
           ) : !submitted ? (
             <form onSubmit={handleSubmit} className="fade-in">
-              <PersonalInfoForm form={form} onChange={handleChange} contactWarning={contactWarning} />
-              <TournamentDetailsForm
-                form={form}
-                onChange={handleChange}
-                events={availableEvents}
-                selectedEvent={selectedEvent}
-              />
+              <FormSteps steps={steps} current={step} onGo={openStep} label="Registration steps" />
 
-              {paymentRequired && (
-                <GcashPayment
-                  title="Pay the entry fee with GCash"
-                  total={entryFee}
-                  lines={[
-                    { label: "Tournament", value: selectedEvent.name },
-                    { label: "Entry fee", value: `PHP ${entryFee.toLocaleString("en-PH")}` },
-                  ]}
-                  reference={form.paymentReference}
-                  onReferenceChange={(value) =>
-                    setForm((previous) => ({ ...previous, paymentReference: value }))
-                  }
-                />
-              )}
+              <div className="form-step-body" key={step}>
+                {step === 0 && (
+                  <>
+                    <FormStepHead
+                      step={step}
+                      count={steps.length}
+                      titleRef={stepTitle}
+                      title="Your details"
+                      note="We text updates about your registration to this number."
+                    />
+                    <PersonalInfoForm form={form} onChange={handleChange} contactWarning={contactWarning} />
+                  </>
+                )}
 
-              <div style={{ marginBottom: 28 }} />
+                {step === 1 && (
+                  <>
+                    <FormStepHead
+                      step={step}
+                      count={steps.length}
+                      titleRef={stepTitle}
+                      title="Tournament details"
+                      note="Choose the tournament you are joining. Its details show under it."
+                    />
+                    <TournamentDetailsForm
+                      form={form}
+                      onChange={handleChange}
+                      events={availableEvents}
+                      selectedEvent={selectedEvent}
+                    />
+                  </>
+                )}
 
-              <button type="submit" className="submit-btn" disabled={!isComplete}>
-                <i className="bi bi-check-circle-fill" style={{ marginRight: 8 }}></i>
-                Register for Tournament
-              </button>
-              {!isComplete && (
-                <p className="required-text">
-                  <i className="bi bi-info-circle" style={{ marginRight: 6 }}></i>
-                  {fieldError || contactWarning || paymentUnavailable || "Please fill in all required fields"}
-                </p>
-              )}
+                {step === LAST_STEP && (
+                  <>
+                    <FormStepHead
+                      step={step}
+                      count={steps.length}
+                      titleRef={stepTitle}
+                      title={paymentRequired ? "Check and pay" : "Check and register"}
+                      note={
+                        paymentRequired
+                          ? "Check your registration, then pay the entry fee by GCash."
+                          : "Check your registration, then register. This tournament has no entry fee."
+                      }
+                    />
+                    <FormReview
+                      title="Your registration"
+                      rows={[
+                        {
+                          icon: "bi-person",
+                          label: "Player",
+                          value: playerName,
+                          more: [formatMobile(form.contact), form.age ? `Age ${form.age}` : ""],
+                          onChange: () => openStep(0),
+                          changeLabel: "Change your details",
+                        },
+                        {
+                          icon: "bi-trophy",
+                          label: "Tournament",
+                          value: selectedEvent?.name || "Not chosen",
+                          more: [
+                            selectedEvent ? formatEventWhen(selectedEvent.date, selectedEvent.time) : "",
+                            selectedEvent
+                              ? [gameTypeLabel(selectedEvent.gameType), paymentRequired ? `Entry fee ₱${entryFee.toLocaleString("en-PH")}` : "Free entry"].filter(Boolean).join(" · ")
+                              : "",
+                            form.teamName.trim() ? `Team / nickname: ${form.teamName.trim()}` : "",
+                          ],
+                          onChange: () => openStep(1),
+                          changeLabel: "Change the tournament details",
+                        },
+                      ]}
+                    />
+
+                    {/* The tournament can close while this step is open. */}
+                    {!selectedEvent && (
+                      <div className="form-step-stale" role="alert">
+                        <i className="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                        <p>This tournament is no longer open for registration. Please choose another one.</p>
+                      </div>
+                    )}
+
+                    {paymentRequired && (
+                      <GcashPayment
+                        title="Pay the entry fee with GCash"
+                        total={entryFee}
+                        // The summary above already names the tournament and its fee.
+                        lines={[]}
+                        reference={form.paymentReference}
+                        onReferenceChange={(value) =>
+                          setForm((previous) => ({ ...previous, paymentReference: value }))
+                        }
+                        payerNumber={payerNumber}
+                        onPayerNumberChange={(value) => setForm((previous) => ({ ...previous, payerNumber: value }))}
+                        receipt={receipt}
+                        onReceiptChange={setReceipt}
+                        heldNote={HELD_NOTE}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+
+              <FormStepNav previous={steps[step - 1]} onBack={() => openStep(step - 1)} nextReady={stepReady}>
+                {step === LAST_STEP && (
+                  <button type="submit" className="submit-btn" disabled={!isComplete}>
+                    <i className="bi bi-check-circle-fill" aria-hidden="true"></i>
+                    Register for Tournament
+                  </button>
+                )}
+              </FormStepNav>
+              {step < LAST_STEP
+                ? stepHint && (
+                    <p className="required-text">
+                      <i className="bi bi-info-circle" aria-hidden="true"></i>
+                      {stepHint}
+                    </p>
+                  )
+                : !isComplete && (
+                    <p className="required-text">
+                      <i className="bi bi-info-circle" aria-hidden="true"></i>
+                      {fieldError || contactWarning || paymentUnavailable || paymentHint || "Please fill in all required fields"}
+                    </p>
+                  )}
               {submitError && <p className="required-text">{submitError}</p>}
             </form>
           ) : (
             <>
-              <SuccessMessage form={form} onReset={handleReset} />
+              <SuccessMessage
+                form={form}
+                event={selectedEvent}
+                onReset={handleReset}
+                status={
+                  followed && (
+                    <RequestStatusCard
+                      request={myRequests.requests.find((request) => request.key === followed.key)}
+                      fallback={describeJustSent("tournament", followed.label, followed.paid)}
+                      textedTo={customerMessage?.status === "sent" ? form.contact : ""}
+                    />
+                  )
+                }
+              />
+              {paymentRequired && (
+                <div className="gcash-held-note">
+                  <i className="bi bi-shield-check" aria-hidden="true"></i>
+                  <p>{HELD_NOTE}</p>
+                </div>
+              )}
               {customerMessage && (
                 <div className="customer-message-card">
                   <div className="customer-message-head">

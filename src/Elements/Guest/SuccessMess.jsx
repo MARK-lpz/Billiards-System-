@@ -1,4 +1,8 @@
-export default function SuccessMessage({ form, onReset }) {
+import { formatEventWhen, gameTypeLabel } from "../../utils/eventUpdates";
+
+// `status`: where the sign-up stands (RequestStatusCard), under the greeting.
+// `event`: the tournament signed up for.
+export default function SuccessMessage({ form, event = null, onReset, status = null }) {
   return (
     <div className="success-container success-bounce">
       <div className="success-icon">
@@ -10,16 +14,16 @@ export default function SuccessMessage({ form, onReset }) {
         You're Registered!
       </h2>
       <p className="success-message">Good luck in the tournament, {form.firstName}!</p>
+      {status}
 
       <div className="success-details">
         {[
-          ["Tournament", form.eventName || "Selected Event", "bi-trophy"],
+          ["Tournament", event?.name || "Selected Event", "bi-trophy"],
+          ...(event ? [["When", formatEventWhen(event.date, event.time), "bi-calendar-event"]] : []),
+          ...(event?.gameType ? [["Game", gameTypeLabel(event.gameType), "bi-circle-fill"]] : []),
           ["Name", `${form.firstName} ${form.lastName}`, "bi-person-fill"],
           ["Contact", form.contact, "bi-telephone-fill"],
           ["Age", form.age, "bi-calendar-fill"],
-          ["Game Type", form.gameType, "bi-circle-fill"],
-          ["Format", form.format, "bi-trophy"],
-          ["Skill Level", form.skillLevel, "bi-star-fill"],
           ...(form.teamName ? [["Team / Nickname", form.teamName, "bi-people-fill"]] : []),
         ].map(([label, value, icon]) => (
           <div key={label} className="detail-row">

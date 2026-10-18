@@ -1,9 +1,7 @@
 import "../../styles/Guest/Announcement.css";
 import useClock from "../Global/useClock";
 import { useSiteSettings } from "../Global/useSiteSettings";
-import { isAnnouncementShowing } from "../../utils/siteSettings";
-
-const dayInManila = (ms) => new Date(ms).toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+import { dayInManila, isAnnouncementShowing } from "../../utils/siteSettings";
 
 /**
  * The admin's announcement (Admin > Website), e.g. "Closed on November 1", at

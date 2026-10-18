@@ -3,6 +3,7 @@ import "../../styles/Admin/Reports.css";
 import SalesReport from "../../Elements/Admin/SalesReport";
 import ReservationReport from "../../Elements/Admin/ReservatioReport";
 import InventoryReport from "../../Elements/Admin/InventoryReport";
+import GcashDayCheck from "../../Elements/Admin/GcashDayCheck";
 
 export default function Reports({ transactions, reservations, products }) {
   const [tab, setTab] = useState("sales");
@@ -12,6 +13,8 @@ export default function Reports({ transactions, reservations, products }) {
     { key: "sales", label: "Sales Report", icon: "bi-graph-up" },
     { key: "reservation", label: "Reservations", icon: "bi-calendar-check" },
     { key: "inventory", label: "Stock Report", icon: "bi-box-seam" },
+    // One day's GCash in and out, to tick off against the GCash app.
+    { key: "gcash", label: "GCash Check", icon: "bi-phone" },
   ];
 
   const renderReport = () => {
@@ -22,6 +25,8 @@ export default function Reports({ transactions, reservations, products }) {
         return <ReservationReport reservations={reservations} />;
       case "inventory":
         return <InventoryReport products={products} />;
+      case "gcash":
+        return <GcashDayCheck />;
       default:
         return null;
     }

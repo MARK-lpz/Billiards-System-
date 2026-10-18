@@ -1,8 +1,9 @@
 /**
  * What the admin sets for the website (Admin > Website; api/site_settings.php):
  * the GCash account customers pay into, the hall's address and contacts, an
- * announcement, and the opening hours. Until the server answers, and for
- * anything never saved, these defaults hold, which is how the site was before.
+ * announcement, the opening hours, and the home page's showcase slides, booking
+ * steps and footer line. Until the server answers, and for anything never
+ * saved, these defaults hold, which is how the site was before.
  */
 import { eventMediaUrl } from "./eventMedia";
 import { DEFAULT_RESERVATION_HOURS } from "./reservations";
@@ -12,9 +13,63 @@ export const DEFAULT_SITE_SETTINGS = {
   business: { address: "", mapsUrl: "", phone: "", facebookUrl: "" },
   announcement: { enabled: false, message: "", startDate: "", endDate: "" },
   hours: DEFAULT_RESERVATION_HOURS,
+  // A slide without its own photo uses the site's picture (DEFAULT_SLIDE_PICTURE).
+  showcase: {
+    slides: [
+      {
+        id: "brand-1",
+        title: "Play. Compete. Unwind.",
+        text: "Break & Chill is your place for casual games, serious practice, and tournament play.",
+        image: null,
+        position: "center",
+      },
+      {
+        id: "brand-2",
+        title: "Your Next Game Starts Here",
+        text: "Enjoy a focused billiards space built for players, teams, and friendly competition.",
+        image: null,
+        position: "bottom",
+      },
+    ],
+  },
+  bookingSteps: {
+    heading: "Your table in three shots.",
+    steps: [
+      { title: "Pick a table and time", text: "Choose the date, an open table, your start time, and how many hours you want to play." },
+      { title: "Pay with GCash", text: "Send the payment and enter the reference number from your receipt to hold the table." },
+      {
+        title: "Get confirmed",
+        text: "The front desk checks your payment and approves the booking. Your table is waiting when you arrive.",
+      },
+    ],
+  },
+  footer: { tagline: "Games, tournaments, and good breaks." },
 };
 
 export const ANNOUNCEMENT_MAX_LENGTH = 200;
+
+// The same limits the server keeps (config/site_settings.php).
+export const SHOWCASE_SLIDES_MAX = 5;
+export const SLIDE_TITLE_MAX_LENGTH = 60;
+export const SLIDE_TEXT_MAX_LENGTH = 160;
+export const STEPS_HEADING_MAX_LENGTH = 60;
+export const STEP_TITLE_MAX_LENGTH = 40;
+export const STEP_TEXT_MAX_LENGTH = 160;
+export const FOOTER_TAGLINE_MAX_LENGTH = 80;
+
+// Which part of a slide's photo stays in view where the slide crops it (CSS object-position).
+export const SLIDE_POSITIONS = [
+  { value: "center", label: "Middle" },
+  { value: "top", label: "Top" },
+  { value: "bottom", label: "Bottom" },
+  { value: "left", label: "Left side" },
+  { value: "right", label: "Right side" },
+];
+
+export const DEFAULT_SLIDE_PICTURE = "/guest-billiards-hero.png";
+
+/** A slide's photo, or the site's own picture when it has none. */
+export const slidePictureUrl = (slide) => (slide?.image?.path ? eventMediaUrl(slide.image) : DEFAULT_SLIDE_PICTURE);
 
 /** Every section, what the server sent over the defaults. */
 export const mergeSiteSettings = (settings) =>
@@ -39,6 +94,15 @@ export const telLink = (phone) => {
   const digits = String(phone || "").replace(/[^\d+]/g, "");
   return digits ? `tel:${digits}` : "";
 };
+
+/** The hall's date (YYYY-MM-DD, Manila) at `ms`, the day announcements go by. */
+export const dayInManila = (ms) => new Date(ms).toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+
+/** A Messenger link (m.me) or a Facebook page: its name, icon and link label. */
+export const facebookLinkKind = (url) =>
+  /^https:\/\/m\.me\//i.test(String(url || ""))
+    ? { name: "Messenger", icon: "bi-messenger", label: "Message us on Messenger" }
+    : { name: "Facebook", icon: "bi-facebook", label: "Break and Chill on Facebook" };
 
 /**
  * Whether the announcement shows on `today` (YYYY-MM-DD): turned on, written,

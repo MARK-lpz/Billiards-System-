@@ -733,3 +733,14 @@
 .light .rd-table tbody tr.rd-row--focus { background: #eff6ff !important; outline-color: #2563eb; }
 .light .rd-focus-missing { border-color: #93c5fd; background: #eff6ff; color: #1e3a8a; }
 .light .rd-focus-missing i { color: #1d4ed8; }
+
+/* An online booking's GCash payment, under its status, and how it was sent back. */
+.rd-pay-status { margin-top: 6px; }
+
+.rd-pay-note {
+  margin-top: 4px;
+  color: #7dd3fc;
+  font-size: 12px;
+}
+
+.light .rd-pay-note { color: #075985; }

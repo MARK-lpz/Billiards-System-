@@ -1,6 +1,5 @@
 import { useState } from "react";
 import ForgotPassModal from "../Elements/Global/ForgotPassModal";
-import { MIN_PASSWORD_LENGTH } from "../utils/passwordRules";
 import { hasSignInEndedNote, saveSignedInUser } from "../utils/session";
 import "../styles/login.css";
 
@@ -21,8 +20,8 @@ export default function Login({ onLogin, onGoToRegister }) {
     if (!username.value.trim()) newErrors.username = "Username is required";
     else if (username.value.trim().length < 3) newErrors.username = "Min 3 characters";
 
+    // No length check here: passwords set before the 8-character minimum still sign in.
     if (!password.value) newErrors.password = "Password is required";
-    else if (password.value.length < MIN_PASSWORD_LENGTH) newErrors.password = `Min ${MIN_PASSWORD_LENGTH} characters`;
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;

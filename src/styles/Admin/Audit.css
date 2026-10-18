@@ -294,6 +294,17 @@
   margin-bottom: 14px;
 }
 
+/* "System Activity Log" with Print Report at its right end */
+.audit-log-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 12px;
+}
+
+.audit-log-title-row .reports-export-btn { padding: 7px 14px; }
+
 .audit-log-header {
   font-size: 11px;
   font-weight: 700;
@@ -370,6 +381,17 @@
   font-family: "Consolas", "Courier New", monospace;
   padding-top: 4px;
 }
+
+/* The event's day, over its time */
+.audit-log-date {
+  display: block;
+  margin-bottom: 2px;
+  color: #cbd5e1;
+  font-family: inherit;
+  font-weight: 700;
+}
+
+.light .audit-log-time .audit-log-date { color: var(--text-secondary, #334155) !important; }
 
 .audit-log-icon {
   color: #cbd5e1;
@@ -708,3 +730,28 @@
 .light .password-reset-user { color: var(--text-primary); }
 .light .password-reset-when { color: var(--text-muted); }
 .light .password-reset-empty { background: var(--bg-muted); border-color: var(--border-color); color: var(--text-muted); }
+
+/* ── The printable report (AuditReportModal.jsx), on the report sheet's own styles ── */
+.arp-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+.arp-cap::first-letter { text-transform: uppercase; }
+
+.arp-detail { min-width: 200px; overflow-wrap: anywhere; }
+.srp-paper--portrait .arp-detail { min-width: 0; }
+
+.arp-level {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #374151;
+}
+
+.arp-level-high,
+.arp-level-reject { color: #b91c1c; }
+.arp-level-medium { color: #b45309; }

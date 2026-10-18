@@ -155,7 +155,8 @@
   margin-right: 0.5rem;
 }
 
-.submit-btn {
+.submit-btn,
+.form-step-next {
   width: 100%;
   padding: 15px;
   background: var(--bc-yellow);
@@ -174,13 +175,15 @@
   justify-content: center;
 }
 
-.submit-btn:hover:not(:disabled) {
+.submit-btn:hover:not(:disabled),
+.form-step-next:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 14px 30px -12px rgba(255, 210, 63, 0.9);
   background: #ffde66;
 }
 
-.submit-btn:disabled {
+.submit-btn:disabled,
+.form-step-next:disabled {
   border-color: rgba(226, 236, 230, 0.12);
   background: #232926;
   color: #7f8a83;
@@ -324,8 +327,8 @@
 
 /* GCash payment step */
 .gcash-panel {
-  margin: 18px 0 0;
-  padding: 16px;
+  margin: 14px 0 0;
+  padding: 14px;
   border: 1px solid rgba(76, 195, 242, 0.35);
   border-radius: 12px;
   background: rgba(22, 141, 191, 0.08);
@@ -333,66 +336,63 @@
 
 .gcash-panel-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 4px 8px;
+  margin-bottom: 4px;
   color: #9ad8f6;
   font-size: 14px;
 }
 
 .gcash-panel-head strong { color: #e2e6e0; }
 
-.gcash-breakdown {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 14px;
-  padding: 12px;
-  border-radius: 8px;
-  background: rgba(17, 22, 20, 0.4);
-}
-
-.gcash-line {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  color: #ccd3cc;
+/* The total, at the end of the title row */
+.gcash-panel-total {
+  margin-left: auto;
+  color: #9ba59e;
   font-size: 12px;
+  font-weight: 700;
 }
 
-.gcash-line.gcash-total {
-  margin-top: 4px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(155, 165, 158, 0.3);
-  font-size: 14px;
+.gcash-panel-head .gcash-panel-total strong {
+  margin-left: 4px;
+  color: #7ee8a6;
+  font-size: 17px;
 }
 
-.gcash-line.gcash-total strong { color: #7ee8a6; font-size: 16px; }
+/* What is paid for, on one line */
+.gcash-breakdown {
+  margin: 0 0 12px;
+  color: #b7c0b9;
+  font-size: 12px;
+  line-height: 1.5;
+}
 
 .gcash-steps {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
-  margin-bottom: 14px;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 12px;
 }
 
 .gcash-qr-figure {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
 }
 
 .gcash-qr {
   display: block;
-  width: 190px;
+  width: 124px;
   height: auto;
-  max-height: 340px;
+  max-height: 220px;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
-  padding: 8px;
+  padding: 6px;
 }
 
 .gcash-qr-save,
@@ -400,7 +400,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 4px 11px;
   border: 1px solid rgba(76, 195, 242, 0.45);
   border-radius: 999px;
   background: rgba(22, 141, 191, 0.12);
@@ -415,18 +415,18 @@
 .gcash-copy:hover { background: rgba(22, 141, 191, 0.24); }
 
 .gcash-pay-to {
-  flex: 1 1 220px;
+  flex: 1 1 150px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
 .gcash-account {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 8px;
   background: rgba(17, 22, 20, 0.4);
 }
@@ -443,22 +443,57 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin: 2px 0 0;
+  gap: 6px;
+  margin: 1px 0 0;
   color: #f1f5f2;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   overflow-wrap: anywhere;
 }
 
 .gcash-account .gcash-copy { padding: 3px 10px; font-size: 11px; }
 
-.gcash-step-list {
+.gcash-pay-line {
   margin: 0;
+  color: #ccd3cc;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.gcash-pay-line strong { color: #7ee8a6; }
+
+/* The full payment steps, folded under "How to pay" */
+.gcash-how summary {
+  width: fit-content;
+  color: #9ad8f6;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gcash-how summary:focus-visible {
+  outline: 2px solid #4cc3f2;
+  outline-offset: 2px;
+}
+
+.gcash-step-list {
+  margin: 6px 0 0;
   padding-left: 18px;
   color: #ccd3cc;
   font-size: 12px;
-  line-height: 1.7;
+  line-height: 1.6;
+}
+
+/* The reference and the number paid from, side by side */
+.gcash-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 520px) {
+  .gcash-fields { grid-template-columns: minmax(0, 1fr); }
+  .gcash-qr { width: 108px; }
 }
 
 .gcash-unavailable p {
@@ -476,7 +511,7 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 6px;
+  margin-top: 4px;
   color: #9ba59e;
   font-size: 11px;
   font-weight: 700;
@@ -560,4 +595,451 @@
 
 .tourna-notice.is-cancelled i { color: #ff8f8f; }
 
-.field-helper-rescheduled { color: #9ad8f6; }
+
+/* What the customer sends back besides the reference: the GCash number they
+   paid from and a screenshot of the receipt, then the note that the payment is
+   held until the hall accepts it. */
+.gcash-receipt { margin-top: 12px; }
+
+.gcash-receipt-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* One row: the icon, what to do, and what kind of picture */
+.gcash-receipt-drop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  padding: 10px 12px;
+  border: 1px dashed rgba(76, 195, 242, 0.55);
+  border-radius: 10px;
+  background: rgba(17, 22, 20, 0.35);
+  color: #bfe7fa;
+  cursor: pointer;
+}
+
+.gcash-receipt-drop i { font-size: 18px; }
+.gcash-receipt-drop span { font-size: 13px; font-weight: 700; color: #e2e6e0; }
+.gcash-receipt-drop small { color: #9ba59e; font-size: 11px; line-height: 1.5; }
+.gcash-receipt-drop:hover { background: rgba(22, 141, 191, 0.14); }
+
+.gcash-receipt-drop:focus-within,
+.gcash-receipt-change:focus-within {
+  outline: 2px solid #4cc3f2;
+  outline-offset: 2px;
+}
+
+.gcash-receipt-drop.is-disabled,
+.gcash-receipt-change.is-disabled { opacity: 0.6; cursor: default; }
+
+.gcash-receipt-picked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid rgba(69, 217, 130, 0.4);
+  border-radius: 10px;
+  background: rgba(17, 22, 20, 0.35);
+}
+
+.gcash-receipt-thumb {
+  width: 52px;
+  height: 74px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.gcash-receipt-actions {
+  display: flex;
+  flex: 1 1 160px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.gcash-receipt-actions .gcash-reference-ok {
+  flex-basis: 100%;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.gcash-held-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 207, 51, 0.4);
+  border-radius: 10px;
+  background: rgba(255, 207, 51, 0.08);
+}
+
+.gcash-held-note i { color: #ffcf33; font-size: 15px; line-height: 1.3; }
+
+.gcash-held-note p {
+  margin: 0;
+  color: #f1e6c0;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.gcash-receipt-drop,
+.gcash-receipt-change { position: relative; }
+
+/* Step-by-step forms (FormSteps.jsx): the step bar, each step's heading, the
+   last look before sending, and Back / Next. */
+.form-steps {
+  display: flex;
+  margin: 0 0 26px;
+  padding: 0;
+  list-style: none;
+}
+
+.form-step {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* The line into each step, green once the step before it is done. */
+.form-step + .form-step::before {
+  content: "";
+  position: absolute;
+  top: 15px;
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: rgba(226, 236, 230, 0.14);
+}
+
+.form-step.is-done + .form-step::before { background: #1fbf64; }
+
+.form-step-btn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: var(--bc-font-label);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: default;
+}
+
+.form-step-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(226, 236, 230, 0.22);
+  border-radius: 50%;
+  /* The card's own colour, so the line behind does not show through. */
+  background: #121614;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 14px;
+  letter-spacing: 0;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-step-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-step.is-current .form-step-btn { color: var(--bc-yellow); }
+
+.form-step.is-current .form-step-dot {
+  border-color: var(--bc-yellow);
+  background: var(--bc-yellow);
+  color: var(--bc-sign-ink);
+  box-shadow: 0 0 0 4px rgba(255, 210, 63, 0.16), 0 0 18px rgba(255, 210, 63, 0.35);
+}
+
+.form-step.is-done .form-step-btn {
+  color: #7ee8a6;
+  cursor: pointer;
+}
+
+.form-step.is-done .form-step-dot {
+  border-color: #1fbf64;
+  background: #10301f;
+  color: #7ee8a6;
+}
+
+.form-step.is-done .form-step-btn:hover .form-step-dot { background: #174a2e; }
+
+.form-step-btn:focus-visible { outline: none; }
+
+.form-step-btn:focus-visible .form-step-dot {
+  outline: 3px solid rgba(255, 210, 63, 0.5);
+  outline-offset: 3px;
+}
+
+.form-step-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.form-step-body { animation: formStepIn 0.28s ease both; }
+
+@keyframes formStepIn {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-step-body { animation: none; }
+}
+
+.form-step-head { margin-bottom: 16px; }
+
+.form-step-count {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--bc-yellow);
+  font-family: var(--bc-font-label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.form-step-title {
+  margin: 0;
+  color: #f6f7f4;
+  font-family: var(--bc-font-display);
+  font-size: clamp(20px, 4.6vw, 24px);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+}
+
+.form-step-title:focus { outline: none; }
+
+.form-step-note {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, 0.68);
+  font-family: var(--bc-font-body);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* The last look before sending */
+.form-review {
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid rgba(226, 236, 230, 0.12);
+  border-radius: 12px;
+  background: rgba(17, 22, 20, 0.45);
+}
+
+.form-review-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+}
+
+.form-review-row + .form-review-row { border-top: 1px solid rgba(226, 236, 230, 0.08); }
+
+.form-review-row > i {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: #4cc3f2;
+  font-size: 16px;
+}
+
+.form-review-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.form-review-text strong {
+  color: #f6f7f4;
+  font-size: 14px;
+}
+
+.form-review-more {
+  color: #ccd3cc;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.form-review-edit {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 210, 63, 0.45);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--bc-yellow);
+  font-family: var(--bc-font-body);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.form-review-edit:hover { background: rgba(255, 210, 63, 0.1); }
+
+/* The time or tournament was taken while the last step was open */
+.form-step-stale {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 143, 143, 0.45);
+  border-radius: 10px;
+  background: rgba(255, 80, 80, 0.08);
+}
+
+.form-step-stale i {
+  margin-top: 1px;
+  color: #ff8f8f;
+  font-size: 16px;
+}
+
+.form-review + .form-step-stale { margin-top: 12px; }
+
+.form-step-stale p {
+  margin: 0;
+  color: #ffd1d1;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.form-step-nav {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.form-step-nav .submit-btn,
+.form-step-next {
+  flex: 1 1 auto;
+  width: auto;
+}
+
+.form-step-next > i { margin-left: 0.5rem; }
+
+.form-step-back {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 18px;
+  border: 1px solid rgba(226, 236, 230, 0.22);
+  border-radius: 10px;
+  background: transparent;
+  color: #f6f7f4;
+  font-family: var(--bc-font-label);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.form-step-back:hover {
+  border-color: rgba(53, 198, 244, 0.7);
+  background: rgba(53, 198, 244, 0.08);
+}
+
+.form-step-back:focus-visible,
+.form-step-next:focus-visible,
+.form-step-nav .submit-btn:focus-visible,
+.form-review-edit:focus-visible {
+  outline: 3px solid rgba(255, 210, 63, 0.5);
+  outline-offset: 3px;
+}
+
+/* Phones: on the last step the send button takes the whole row, Back goes under it. */
+@media (max-width: 520px) {
+  .form-step-nav.is-last { flex-direction: column-reverse; }
+  .form-step-btn { font-size: 12px; letter-spacing: 0.1em; }
+}
+
+/* The chosen tournament, as the admin set it up (TournaDetails.jsx) */
+.tourna-event-card {
+  margin: -10px 0 24px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 210, 63, 0.28);
+  border-radius: 12px;
+  background: rgba(255, 210, 63, 0.05);
+}
+
+.tourna-event-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  margin: 0;
+}
+
+.tourna-event-facts .is-wide { grid-column: 1 / -1; }
+
+.tourna-event-facts dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #9ba59e;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tourna-event-facts dt i { color: var(--bc-yellow); }
+
+.tourna-event-facts dd {
+  margin: 3px 0 0;
+  color: #f6f7f4;
+  font-size: 15px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.tourna-event-moved {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 12px 0 0;
+  color: #9ad8f6;
+  font-size: 12px;
+  line-height: 1.5;
+}

@@ -41,10 +41,23 @@ export const getExpiryError = (value, today) => {
   return "";
 };
 
+/** Why a price cannot be saved, or "" when it can. `name`: "original price" or "retail price". */
+const getPriceError = (value, name) => {
+  // A product added before original prices were kept has none yet: asked for, like an empty box.
+  const price = Number(value ?? 0);
+  if (!Number.isFinite(price)) return `Enter the ${name} as a number.`;
+  if (price <= 0) return `Enter the ${name} (above ₱0).`;
+  if (price > MAX_PRICE) return `The ${name} can be at most ${peso(MAX_PRICE)}.`;
+  if (!hasAtMostTwoDecimals(price)) return "Use at most 2 decimal places (centavos).";
+  return "";
+};
+
 /**
- * What is wrong with the Add / Edit Product form, field by field: { name, price,
- * stock, minStock, expiryDate }. An empty object means it can be saved.
- * Editing only changes the price, so only that is checked then.
+ * What is wrong with the Add / Edit Product form, field by field: { name,
+ * originalPrice, price, stock, minStock, expiryDate }. `originalPrice` is what the
+ * hall paid for one piece; `price` is the retail price it is sold at. An empty
+ * object means it can be saved. Editing only changes the two prices, so only
+ * those are checked then.
  */
 export const getProductErrors = ({ form, products = [], editId = null, today }) => {
   const errors = {};
@@ -66,11 +79,10 @@ export const getProductErrors = ({ form, products = [], editId = null, today }) 
     }
   }
 
-  const price = Number(form.price);
-  if (!Number.isFinite(price)) errors.price = "Enter the price as a number.";
-  else if (price <= 0) errors.price = "Enter a price above ₱0.";
-  else if (price > MAX_PRICE) errors.price = `The price can be at most ${peso(MAX_PRICE)}.`;
-  else if (!hasAtMostTwoDecimals(price)) errors.price = "Use at most 2 decimal places (centavos).";
+  const originalPriceError = getPriceError(form.originalPrice, "original price");
+  if (originalPriceError) errors.originalPrice = originalPriceError;
+  const priceError = getPriceError(form.price, "retail price");
+  if (priceError) errors.price = priceError;
 
   if (!editing) {
     const stockError = getCountError(form.stock, "stock");

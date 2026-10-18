@@ -9,6 +9,8 @@ import {
   sanitizeVerifyDigits,
 } from "../../utils/paymentReference";
 import { describeReservationTime, hasReservationEnded } from "../../utils/reservations";
+import ReceiptImage from "../Global/ReceiptImage";
+import { formatPayer } from "../../utils/onlinePayments";
 
 const peso = (value) =>
   `₱${Number(value || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -25,8 +27,10 @@ const formatDate = (date) => {
  * GCash payment. The reference the guest typed is shown with its last digits
  * hidden, and the employee types those digits from the payment they found in the
  * Break & Chill GCash account, so approving takes a real look at the money.
+ * `payment` (from the server, when the booking came with one) adds the GCash
+ * number it came from and the customer's receipt screenshot.
  */
-export default function PaymentCheckModal({ booking, busy = false, onApprove, onReject, onClose }) {
+export default function PaymentCheckModal({ booking, payment = null, busy = false, onApprove, onReject, onClose }) {
   const [verifyDigits, setVerifyDigits] = useState("");
   const [paidWithoutReference, setPaidWithoutReference] = useState(false);
   const [confirmingReject, setConfirmingReject] = useState(false);
@@ -63,7 +67,7 @@ export default function PaymentCheckModal({ booking, busy = false, onApprove, on
             <div className="modal-body">
               <p className="payment-confirmation-copy">
                 Approve this online reservation only after you find the customer&apos;s payment in the Break &amp; Chill
-                GCash account.
+                GCash account. The screenshot helps you find it, but a screenshot can be edited.
               </p>
 
               <div className="payment-review-summary">
@@ -73,6 +77,7 @@ export default function PaymentCheckModal({ booking, busy = false, onApprove, on
                   ["Table", booking.tableName || `Table ${booking.tableId}`],
                   ["Date", formatDate(booking.date)],
                   ["Time", describeReservationTime(booking) || "No time set"],
+                  ...(payment ? [["Paid from", formatPayer(payment) || "Not given"]] : []),
                 ].map(([label, value]) => (
                   <div className="payment-review-row" key={label}>
                     <span>{label}</span>
@@ -85,6 +90,8 @@ export default function PaymentCheckModal({ booking, busy = false, onApprove, on
                 </div>
               </div>
 
+              {payment && <ReceiptImage payment={payment} />}
+
               {confirmingReject ? (
                 <div className="payment-final-confirmation payment-check-step" role="alert">
                   <i className="bi bi-exclamation-triangle"></i>
@@ -93,6 +100,7 @@ export default function PaymentCheckModal({ booking, busy = false, onApprove, on
                     <span>
                       Use this when the payment cannot be found. The table time is freed for other guests, and this
                       cannot be undone.
+                      {payment ? ` The payment is listed to send back to ${formatPayer(payment)}.` : ""}
                     </span>
                   </div>
                 </div>

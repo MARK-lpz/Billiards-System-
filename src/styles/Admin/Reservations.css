@@ -630,3 +630,6 @@
 @media (max-width: 640px) {
   .reservations-search { flex: 1 1 100%; min-width: 0; }
 }
+
+/* A website booking's GCash payment, under its status. */
+.reservations-pay-status { margin-top: 6px; }

@@ -3,14 +3,20 @@ import { numberFieldValue, readNumberField } from "../../utils/numberField";
 import { formatExpiryDate } from "../../utils/inventoryValidation";
 
 // In the order they appear, so a failed save can jump to the first one.
-const FIELDS = ["name", "price", "stock", "minStock", "expiryDate"];
+const FIELDS = ["name", "originalPrice", "price", "stock", "minStock", "expiryDate"];
+
+const peso = (value) => `₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /**
  * Add / Edit Product. `errors` comes from getProductErrors (inventoryValidation.js).
  * A field's problem shows once that field has been left, or for every field once
  * Add is pressed, so a fresh form does not open covered in red.
  *
- * Once a product is in the inventory, editing changes only the price. Name,
+ * Two prices: the original price (what the hall paid for one piece) and the
+ * retail price (what it is sold for, the price the POS charges). Once both are
+ * given, the form says the profit, or the loss, on each piece.
+ *
+ * Once a product is in the inventory, editing changes only the two prices. Name,
  * category and min stock stay as they were added; stock and the expiry date
  * change through Restock (and stock goes down through sales).
  */
@@ -30,6 +36,9 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
   // A field fixed once the product was added: shown, but not changed here.
   const lockedProps = locked ? { readOnly: true, "aria-readonly": true, className: "form-control inventory-locked" } : {};
   const lockIcon = locked ? <i className="bi bi-lock-fill inventory-lock-icon" aria-label="Cannot be changed"></i> : null;
+  // The profit on one piece, once both prices are valid.
+  const margin =
+    !errors.originalPrice && !errors.price ? Math.round((Number(form.price) - Number(form.originalPrice)) * 100) / 100 : null;
   const errorText = (field) =>
     errorFor(field) ? (
       <div id={`inventory-${field}-error`} className="inventory-field-error" role="alert">
@@ -70,7 +79,7 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                 <div className="inventory-lock-note">
                   <i className="bi bi-lock-fill"></i>
                   <span>
-                    Only the price can be changed here. Name, category and min stock stay as they were added; stock and
+                    Only the prices can be changed here. Name, category and min stock stay as they were added; stock and
                     expiry date change through Restock.
                   </span>
                 </div>
@@ -111,9 +120,23 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                 </select>
               </div>
 
-              <div className="row g-3 mb-3">
-                <div className="col-4">
-                  <label className="form-label" htmlFor="inventory-price">Price per piece (₱)</label>
+              <div className="inventory-field-pair mb-3">
+                <div>
+                  <label className="form-label" htmlFor="inventory-originalPrice">Original Price (₱)</label>
+                  <input
+                    type="number"
+                    className={inputClass("originalPrice")}
+                    value={numberFieldValue(form.originalPrice)}
+                    onChange={e => setForm({ ...form, originalPrice: readNumberField(e) })}
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    {...fieldProps("originalPrice")}
+                  />
+                  {errorText("originalPrice") || <small className="form-text text-muted">What the hall paid for one piece.</small>}
+                </div>
+                <div>
+                  <label className="form-label" htmlFor="inventory-price">Retail Price (₱)</label>
                   <input
                     type="number"
                     className={inputClass("price")}
@@ -126,7 +149,18 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                   />
                   {errorText("price") || <small className="form-text text-muted">Selling price for one piece.</small>}
                 </div>
-                <div className="col-4">
+                {margin !== null && (
+                  <div className={`inventory-margin ${margin < 0 ? "is-loss" : ""}`} role="status">
+                    <i className={`bi ${margin < 0 ? "bi-exclamation-triangle" : "bi-graph-up-arrow"}`} aria-hidden="true"></i>
+                    {margin < 0
+                      ? `The retail price is below the original price: a loss of ${peso(-margin)} on each piece sold.`
+                      : `Profit: ${peso(margin)} on each piece sold.`}
+                  </div>
+                )}
+              </div>
+
+              <div className="inventory-field-pair mb-3">
+                <div>
                   <label className="form-label" htmlFor="inventory-stock">Stock (pcs){lockIcon}</label>
                   <input
                     type="number"
@@ -141,7 +175,7 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                   />
                   {errorText("stock")}
                 </div>
-                <div className="col-4">
+                <div>
                   <label className="form-label" htmlFor="inventory-minStock">Min Stock (pcs){lockIcon}</label>
                   <input
                     type="number"

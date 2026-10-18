@@ -50,7 +50,18 @@ export default function HoursSettingsCard({ reservations = [], setLogs }) {
       title="Opening hours"
       description="Online bookings must start and end inside these hours. Outside them, the website is closed for booking."
       chip={{ tone: "on", label: formatOpeningHours(draft.saved) }}
-      draft={{ ...draft, dirty: draft.dirty && valid }}
+      draft={draft}
+      blocked={valid ? "" : "Fix the hours to save."}
+      preview={
+        valid ? (
+          <p>
+            Open {formatOpeningHours({ open, close })} ({formatHoursLabel(length)}). The last online booking starts at{" "}
+            {formatReservationTime(addMinutesToTime(close, -60))}.
+          </p>
+        ) : (
+          <p className="website-preview-empty">Fix the hours to see this.</p>
+        )
+      }
     >
       <div className="website-fields">
         <div className="website-fields-row">
@@ -76,19 +87,11 @@ export default function HoursSettingsCard({ reservations = [], setLogs }) {
           </label>
         </div>
 
-        {!valid ? (
+        {!valid && (
           <p className="website-note error" role="alert">
             <i className="bi bi-x-circle-fill" aria-hidden="true"></i>
             Closing must be at least 1 hour after opening, on the same day.
           </p>
-        ) : (
-          <div className="website-preview" aria-label="What customers see">
-            <span className="website-preview-label">Customers see</span>
-            <p>
-              Open {formatOpeningHours({ open, close })} ({formatHoursLabel(length)}). The last online booking starts at{" "}
-              {formatReservationTime(addMinutesToTime(close, -60))}.
-            </p>
-          </div>
         )}
 
         {outside.length > 0 && (

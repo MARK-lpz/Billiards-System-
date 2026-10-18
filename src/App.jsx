@@ -24,6 +24,7 @@ import './styles/Admin/AdminLayout.css'
 import './styles/Employee/EmployeeLayout.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
 import { SiteSettingsProvider } from './Elements/Global/SiteSettingsProvider'
+import { OnlinePaymentsProvider } from './Elements/Global/OnlinePaymentsProvider'
 import SyncNotices from './Elements/Global/SyncNotices'
 import useServerList from './Elements/Global/useServerList'
 import { initialReservations } from './utils/reservations'
@@ -397,13 +398,26 @@ function App() {
     setTables((currentTables) => applyTableHolds(currentTables, reservations, new Date()))
   }, [reservations, tables, holdClock])
 
+  // The website reads only which tables are taken when (the server gives it no
+  // names or numbers), so its copy is replaced, which also clears what an older
+  // version kept in the visitor's browser. The staff app reads the full list,
+  // and only signed in: at sign-in it reads at once.
+  const readsReservations = !isStaffApp || staffSignedIn
   useEffect(() => {
+    if (!readsReservations) return undefined
     let cancelled = false
 
     const syncReservations = async () => {
       try {
         const remoteReservations = await fetchRemoteReservations()
         if (cancelled) return
+
+        if (!isStaffApp) {
+          setReservations((current) =>
+            JSON.stringify(remoteReservations) === JSON.stringify(current) ? current : remoteReservations
+          )
+          return
+        }
 
         setReservations((current) => {
           const remoteById = new Map(remoteReservations.map((reservation) => [String(reservation.id), reservation]))
@@ -423,7 +437,7 @@ function App() {
       cancelled = true
       clearInterval(interval)
     }
-  }, [])
+  }, [readsReservations, isStaffApp])
 
   useEffect(() => {
     try { localStorage.setItem('events', JSON.stringify(sanitizeEvents(events))) }
@@ -603,6 +617,7 @@ function App() {
       canReceiveEmployeeNotifications={isLoggedIn && userRole === 'employee'}
     >
       <SiteSettingsProvider>
+      <OnlinePaymentsProvider enabled={staffSignedIn}>
       <div className={theme}>
         <SyncNotices />
         <LoadingBar loading={loading} />
@@ -712,6 +727,7 @@ function App() {
           />
         )}
       </div>
+      </OnlinePaymentsProvider>
       </SiteSettingsProvider>
     </NotificationProvider>
   )

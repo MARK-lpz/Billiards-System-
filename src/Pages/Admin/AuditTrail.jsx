@@ -2,51 +2,34 @@ import { useMemo, useState } from "react";
 import "../../styles/Admin/Audit.css";
 import AuditDetailModal from "../../Elements/Admin/AuditDetailModal";
 import AuditLogList from "../../Elements/Admin/AuditLogList";
+import AuditReportModal from "../../Elements/Admin/AuditReportModal";
 import AuditTrailStats from "../../Elements/Admin/AuditTrailStats";
 import { normalizeAuditLogs } from "../../utils/audit";
+import { AUDIT_FILTERS, countAuditLogs, filterAuditLogs, sortNewestFirst } from "../../utils/auditReport";
+import { PAGE_SIZE, paginate } from "../../utils/pagination";
 
 export default function AuditTrail({ logs = [] }) {
-  const normalizedLogs = useMemo(() => normalizeAuditLogs(logs), [logs]);
+  const normalizedLogs = useMemo(() => sortNewestFirst(normalizeAuditLogs(logs)), [logs]);
   const [filter, setFilter] = useState("all");
+  const [page, setPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState(null);
+  const [reportOpen, setReportOpen] = useState(false);
 
-  const counts = useMemo(
-    () => ({
-      total: normalizedLogs.length,
-      issues: normalizedLogs.filter((log) => log.type === "issue").length,
-      reservations: normalizedLogs.filter((log) => log.type === "reservation").length,
-      customer: normalizedLogs.filter((log) => log.customer?.previous || log.customer?.current).length,
-      employee: normalizedLogs.filter((log) => log.staff === "Employee").length,
-    }),
+  const counts = useMemo(() => countAuditLogs(normalizedLogs), [normalizedLogs]);
+
+  const filteredLogs = useMemo(() => filterAuditLogs(normalizedLogs, filter), [filter, normalizedLogs]);
+
+  const filters = useMemo(
+    () => AUDIT_FILTERS.map(({ id, label }) => ({ id, label, count: filterAuditLogs(normalizedLogs, id).length })),
     [normalizedLogs]
   );
 
-  const filteredLogs = useMemo(() => {
-    if (filter === "all") return normalizedLogs;
-    if (filter === "customer") {
-      return normalizedLogs.filter((log) => log.customer?.previous || log.customer?.current);
-    }
-    if (filter === "employee") {
-      return normalizedLogs.filter((log) => log.staff === "Employee");
-    }
-    return normalizedLogs.filter((log) => log.type === filter);
-  }, [filter, normalizedLogs]);
-
-  const filters = useMemo(
-    () => [
-      { id: "all", label: "All", count: counts.total },
-      { id: "customer", label: "Customer Changes", count: counts.customer },
-      { id: "employee", label: "Employee Activity", count: counts.employee },
-      { id: "reservation", label: "Reservations", count: counts.reservations },
-      {
-        id: "table",
-        label: "Tables",
-        count: normalizedLogs.filter((log) => log.type === "table").length,
-      },
-      { id: "issue", label: "Issues", count: counts.issues },
-    ],
-    [counts, normalizedLogs]
-  );
+  // A page at a time; another filter starts again at its first page.
+  const { pageCount, currentPage, pageStart, items: pageLogs } = paginate(filteredLogs, page);
+  const changeFilter = (next) => {
+    setFilter(next);
+    setPage(1);
+  };
 
   return (
     <div className="audit-trail-container">
@@ -62,12 +45,23 @@ export default function AuditTrail({ logs = [] }) {
       <AuditLogList
         filter={filter}
         filters={filters}
-        logs={filteredLogs}
-        onFilterChange={setFilter}
+        logs={pageLogs}
+        pagination={{
+          page: currentPage,
+          pageCount,
+          pageStart,
+          pageSize: PAGE_SIZE,
+          total: filteredLogs.length,
+          goToPage: (next) => setPage(Math.min(Math.max(1, next), pageCount)),
+        }}
+        onFilterChange={changeFilter}
         onSelectLog={setSelectedLog}
+        onPrint={() => setReportOpen(true)}
       />
 
       <AuditDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />
+
+      {reportOpen && <AuditReportModal logs={normalizedLogs} initialFilter={filter} onClose={() => setReportOpen(false)} />}
     </div>
   );
 }

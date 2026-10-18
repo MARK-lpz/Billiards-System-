@@ -7,6 +7,7 @@ import WalkInModal from "../../Elements/Admin/WalkInModal";
 import TableOrderModal from "../../Elements/Admin/TableOrderModal";
 import useTableOrders from "../../Elements/Admin/useTableOrders";
 import CancelReservationModal from "../../Elements/Admin/CancelReservationModal";
+import { useOnlinePayments } from "../../Elements/Global/useOnlinePayments";
 import ConfirmDialog from "../../Elements/Global/ConfirmDialog";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import { findTableReservation, formatHoursLabel, getExtensionBlock, getTodayDate } from "../../utils/reservations";
@@ -47,6 +48,8 @@ export default function PoolTables({
   onEndSession,
 }) {
   const { addNotification, showToast } = useNotifications();
+  // A website booking's GCash payment moves with it on the server; asked again after a cancel.
+  const { refresh: refreshPayments } = useOnlinePayments();
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ name: "", rate: 15, durationMinutes: 60 });
   const [editId, setEditId] = useState(null);
@@ -103,11 +106,20 @@ export default function PoolTables({
 
   // Runs once the Cancel pop-up is confirmed. The booking itself is cancelled
   // too, or the reservations sync would mark the table reserved again.
-  const cancelReserve = (id) => {
+  // `extra`: whether to give a website booking's accepted GCash payment back.
+  const cancelReserve = (id, extra = {}) => {
     const table = tables.find(t => t.id === id);
     if (!table) return;
 
-    saveTableReservationStatus({ table, reservations, setReservations, from: ["approved", "reserved", "arrived"], status: "cancelled" });
+    saveTableReservationStatus({
+      table,
+      reservations,
+      setReservations,
+      from: ["approved", "reserved", "arrived"],
+      status: "cancelled",
+      extra,
+      onSaved: refreshPayments,
+    });
     addNotification({ message: `Reservation for ${table.name || 'Table'} was cancelled.` });
     setTables(prev => prev.map(t =>
       t.id === id
@@ -333,9 +345,10 @@ export default function PoolTables({
       {cancelTable && (
         <CancelReservationModal
           table={cancelTable}
+          reservations={reservations}
           onClose={() => setCancelTableId(null)}
-          onConfirm={() => {
-            cancelReserve(cancelTable.id);
+          onConfirm={(extra) => {
+            cancelReserve(cancelTable.id, extra);
             setCancelTableId(null);
           }}
         />

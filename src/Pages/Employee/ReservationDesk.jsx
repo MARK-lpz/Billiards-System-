@@ -13,6 +13,7 @@ import {
   getChosenTableError,
   getReservationValidationMessage,
   hasReservationConflict,
+  hasReservationEnded,
 } from "../../utils/reservations";
 import {
   getCustomerNameError,
@@ -30,6 +31,9 @@ import {
   updateRemoteReservation,
 } from "../../utils/reservationApi";
 import { ENDED_SESSION_FIELDS, createTableCharge, endedChargeToast } from "../../utils/tableCharges";
+import RefundModal from "../../Elements/Global/RefundModal";
+import { useOnlinePayments } from "../../Elements/Global/useOnlinePayments";
+import { describeRefund, findReservationPayment, formatPayer, formatPeso } from "../../utils/onlinePayments";
 
 const getCurrentTimestamp = () => Date.now();
 const todayStr = () => new Date().toLocaleDateString("en-CA");
@@ -51,6 +55,10 @@ export default function ReservationDesk({
   const { addNotification, showToast } = useNotifications();
   // The hall's hours (Admin > Website), which bookings must keep to.
   const { hours } = useSiteSettings().settings;
+  // The website's GCash payments: each online booking's, with its receipt.
+  const { payments, applySaved: applySavedPayment, refresh: refreshPayments } = useOnlinePayments();
+  // The payment being sent back ({ payment, booking }).
+  const [refundTarget, setRefundTarget] = useState(null);
   // Problems are shown in the app, not in the browser's own alert box.
   const showError = (title, message) =>
     showToast({ tone: "error", icon: "bi-exclamation-octagon-fill", title, message });
@@ -294,15 +302,18 @@ const closeModal = () => setActiveModal(null);
   };
 
   // The server is asked first, so the desk never shows a change it refused.
-  const saveBookingStatus = async (booking, nextStatus) => {
+  // `extra` goes with it (whether to give a cancelled booking's payment back).
+  const saveBookingStatus = async (booking, nextStatus, extra = {}) => {
     const nextBooking = { ...booking, status: nextStatus };
 
     try {
-      await updateRemoteReservation(nextBooking);
+      await updateRemoteReservation(nextBooking, extra);
     } catch (error) {
       showError("Reservation not updated", error.message || "Unable to update this reservation.");
       return false;
     }
+    // A website booking's payment moved with it on the server (accepted, or to send back).
+    if (booking.source === "online") refreshPayments();
 
     setReservations((prev) =>
       prev.map((entry) =>
@@ -366,9 +377,12 @@ const closeModal = () => setActiveModal(null);
     if (!saved) return;
 
     const table = tables.find((entry) => isBookingTable(entry, booking));
+    const payment = findReservationPayment(payments, booking.id);
     addLog({
       action: "Rejected online reservation",
-      detail: `${booking.customerName}'s booking for ${booking.tableName} on ${booking.date}, ${describeReservationTime(booking)}, was rejected because the GCash payment could not be found.`,
+      detail: `${booking.customerName}'s booking for ${booking.tableName} on ${booking.date}, ${describeReservationTime(booking)}, was rejected because the GCash payment could not be found.${
+        payment ? ` Its ${formatPeso(payment.amount)} is listed to send back to ${formatPayer(payment)}.` : ""
+      }`,
       severity: "reject",
       ...bookingAudit(booking, "rejected"),
       table: { id: booking.tableId, name: booking.tableName, previousStatus: table?.status, currentStatus: table?.status },
@@ -377,7 +391,53 @@ const closeModal = () => setActiveModal(null);
     setPaymentCheckTarget(null);
   };
 
-  const handleBookingStatus = async (bookingId, nextStatus) => {
+  // A website payment staff sent back (the booking was turned down or cancelled).
+  const finishRefund = (saved) => {
+    const booking = refundTarget?.booking;
+    applySavedPayment(saved);
+    addLog({
+      action: "Sent back online payment",
+      detail: `${saved.customerName}'s ${formatPeso(saved.amount)} GCash payment${
+        booking ? ` for ${booking.tableName} on ${booking.date}` : ""
+      } went back to ${formatPayer(saved)}. ${describeRefund(saved)}`,
+      ...(booking ? bookingAudit(booking, booking.status) : {}),
+    });
+    addNotification({ message: `${saved.customerName}'s ${formatPeso(saved.amount)} is marked as sent back.` });
+    setRefundTarget(null);
+  };
+
+  // A pending booking that was not made online (no GCash to check): the desk
+  // approves or rejects it on the spot, as the admin can.
+  const decideWalkInBooking = async (listedBooking, decision) => {
+    const booking = getPendingBooking(listedBooking);
+    if (!booking) return;
+    // The button is off once the time is over, but the page may have sat open past it.
+    if (decision === "approved" && hasReservationEnded(booking)) {
+      showError("Too late to approve", `${booking.customerName}'s time (${describeReservationTime(booking)}) has already ended. Reject it instead.`);
+      return;
+    }
+
+    if (!(await saveBookingStatus(booking, decision))) return;
+
+    const approved = decision === "approved";
+    const table = tables.find((entry) => isBookingTable(entry, booking));
+    addLog({
+      action: approved ? "Approved reservation" : "Rejected reservation",
+      detail: `${booking.customerName}'s walk-in booking for ${booking.tableName} on ${booking.date}, ${describeReservationTime(booking)}, was ${decision} at the front desk.`,
+      ...(approved ? {} : { severity: "reject" }),
+      ...bookingAudit(booking, decision),
+      table: { id: booking.tableId, name: booking.tableName, previousStatus: table?.status, currentStatus: approved ? "reserved" : table?.status },
+    });
+    addNotification({
+      message: approved
+        ? `${booking.customerName}'s reservation was approved. ${booking.tableName} is reserved.`
+        : `${booking.customerName}'s reservation was rejected. ${booking.tableName} is free for that time again.`,
+    });
+  };
+
+  // `extra`: for a cancelled website booking the hall had accepted the payment
+  // of, whether to give it back ({ refundPayment }).
+  const handleBookingStatus = async (bookingId, nextStatus, extra = {}) => {
     const booking = reservations.find((entry) => entry.id === bookingId);
     if (!booking) return;
 
@@ -407,7 +467,7 @@ const closeModal = () => setActiveModal(null);
       }
     }
 
-    if (!(await saveBookingStatus(booking, nextStatus))) return;
+    if (!(await saveBookingStatus(booking, nextStatus, extra))) return;
 
     if (nextStatus === "arrived") {
       addLog({
@@ -464,7 +524,13 @@ const closeModal = () => setActiveModal(null);
       }
       addLog({
         action: nextStatus === "cancelled" ? "Cancelled booking" : "Completed booking",
-        detail: `${booking.customerName} ${nextStatus} for ${booking.tableName}`,
+        detail: `${booking.customerName} ${nextStatus} for ${booking.tableName}${
+          "refundPayment" in extra
+            ? extra.refundPayment
+              ? ". The GCash payment is listed to send back."
+              : ". The GCash payment is kept."
+            : ""
+        }`,
         customer: {
           previous: { name: booking.customerName, phone: booking.phone },
           current: nextStatus === "completed" ? { name: booking.customerName, phone: booking.phone } : null,
@@ -515,6 +581,9 @@ const closeModal = () => setActiveModal(null);
         setReservationFilter={setReservationFilter}
         onBookingStatus={handleBookingStatus}
         onCheckPayment={setPaymentCheckTarget}
+        onDecide={decideWalkInBooking}
+        payments={payments}
+        onRefund={(payment, booking) => setRefundTarget({ payment, booking })}
         highlightId={focusBooking ? focusBooking.id : null}
       />
 
@@ -522,10 +591,21 @@ const closeModal = () => setActiveModal(null);
         <PaymentCheckModal
           key={paymentCheckTarget.id}
           booking={paymentCheckTarget}
+          payment={findReservationPayment(payments, paymentCheckTarget.id)}
           busy={paymentCheckBusy}
           onApprove={approveOnlineBooking}
           onReject={rejectOnlineBooking}
           onClose={() => setPaymentCheckTarget(null)}
+        />
+      )}
+
+      {refundTarget && (
+        <RefundModal
+          key={refundTarget.payment.id}
+          payment={refundTarget.payment}
+          forWhat={`${refundTarget.booking.tableName}, ${refundTarget.booking.date} (${describeReservationTime(refundTarget.booking)})`}
+          onDone={finishRefund}
+          onClose={() => setRefundTarget(null)}
         />
       )}
 

@@ -171,12 +171,6 @@
   cursor: not-allowed;
 }
 
-.guest-template-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 0.75rem;
-}
-
 /* ---------- Section headings ---------- */
 
 .guest-template-eyebrow {
@@ -200,8 +194,7 @@
   background: var(--bc-tubes);
 }
 
-.guest-section-head h2,
-.guest-template-copy h2 {
+.guest-section-head h2 {
   margin: 0;
   color: #fff;
   font-family: var(--bc-font-display);
@@ -212,68 +205,66 @@
   letter-spacing: 0.01em;
 }
 
-.guest-template-copy > p:not(.guest-template-eyebrow) {
-  max-width: 34rem;
-  margin: 1rem 0 0;
+.guest-section-lead {
+  max-width: 40rem;
+  margin: 0.8rem 0 0;
   color: #c9d0ca;
-  font-size: 1.05rem;
-  line-height: 1.7;
+  font-size: 1.02rem;
+  line-height: 1.6;
 }
 
-/* ---------- Notices ---------- */
+/* ---------- Notices: one strip, one line each ---------- */
 
-.guest-reservation-closed,
-.guest-event-updates {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
+.guest-notices {
   width: min(100% - 2.5rem, var(--guest-width));
   margin: 1rem auto 0;
-  padding: 0.9rem 1.1rem;
+  overflow: hidden;
   border: 1px solid rgba(226, 236, 230, 0.1);
-  border-left-width: 4px;
   border-radius: 10px;
   background: #141917;
   font-size: 0.92rem;
   line-height: 1.5;
 }
 
-.guest-reservation-closed {
-  border-left-color: #ff5b5d;
-  color: #f2d6d6;
-}
-
-.guest-reservation-closed i {
-  flex: 0 0 auto;
-  margin-top: 0.1rem;
-  color: #ff5b5d;
-  font-size: 1.1rem;
-}
-
-.guest-reservation-closed span { display: grid; gap: 0.1rem; }
-.guest-reservation-closed strong { color: #fff; }
-
-.guest-event-updates {
-  border-left-color: var(--bc-pink);
+.guest-notice {
+  --notice: var(--bc-pink);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.7rem 1.1rem;
+  border-left: 4px solid var(--notice);
   color: #f0dce7;
 }
 
-.guest-event-updates > i {
+.guest-notice + .guest-notice { border-top: 1px solid rgba(226, 236, 230, 0.08); }
+
+.guest-notice i {
   flex: 0 0 auto;
   margin-top: 0.1rem;
-  color: var(--bc-pink);
-  font-size: 1.1rem;
+  color: var(--notice);
+  font-size: 1.05rem;
 }
 
-.guest-event-updates > div { flex: 1; }
-.guest-event-updates strong { color: #fff; }
-
-.guest-event-updates ul {
-  margin: 0.25rem 0 0;
-  padding-left: 1.1rem;
+.guest-notice p {
+  flex: 1;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
-.guest-event-updates-link {
+.guest-notice strong { color: #fff; }
+
+.guest-notice.is-announcement {
+  --notice: var(--bc-yellow);
+  background: #1a1a12;
+  color: #f6ecc4;
+}
+
+.guest-notice.is-closed {
+  --notice: #ff5b5d;
+  color: #f2d6d6;
+}
+
+.guest-notice-link {
   flex: 0 0 auto;
   align-self: center;
   border: 0;
@@ -285,7 +276,7 @@
   white-space: nowrap;
 }
 
-.guest-event-updates-link:hover { text-decoration: underline; }
+.guest-notice-link:hover { text-decoration: underline; }
 
 /* ---------- Showcase: the picture carousel, lit on the brick wall ---------- */
 
@@ -393,6 +384,18 @@
   font-size: clamp(0.92rem, 1.7vw, 1.1rem);
   line-height: 1.6;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+
+/* The hall's own photo: a lighter shade, darkest under the words at the bottom */
+.guest-carousel-slide.has-photo::after {
+  background: linear-gradient(0deg, rgba(8, 10, 9, 0.9) 0%, rgba(8, 10, 9, 0.55) 40%, rgba(8, 10, 9, 0.12) 78%);
+}
+
+.guest-carousel-slide.has-photo .guest-carousel-caption {
+  align-content: end;
+  justify-items: start;
+  padding-bottom: 3.25rem;
+  text-align: left;
 }
 
 /* A plain chevron over the full height of each side */
@@ -514,6 +517,12 @@
   gap: 0.7rem;
 }
 
+.guest-step-copy {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+}
+
 .guest-step h3 {
   margin: 0.4rem 0 0;
   color: #fff;
@@ -564,16 +573,52 @@
 
 .guest-steps-cta { margin-top: 2.5rem; }
 
-/* ---------- What's on: tournaments as tickets ---------- */
-
-.guest-tournaments,
-.guest-join {
-  width: min(100% - 2.5rem, var(--guest-width));
-  margin: 0 auto;
+/* Only at the hall for now: a shorter felt with the hours and the ways to reach it */
+.guest-steps.is-hall {
+  padding-top: calc(18px + clamp(2.25rem, 5vw, 3.25rem));
+  padding-bottom: calc(18px + clamp(2.25rem, 5vw, 3.25rem));
 }
 
+.guest-steps.is-hall .guest-section-head { margin-bottom: 1rem; }
+
+.guest-steps-note {
+  max-width: 36rem;
+  margin: 0 auto;
+  color: #d4e4da;
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+.guest-steps-hours {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.1rem 0 0;
+  padding: 0.4rem 0.95rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #fff;
+  font-weight: 600;
+}
+
+.guest-steps-hours i { color: var(--bc-yellow); }
+
+.guest-steps-contact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.guest-steps-contact .guest-template-secondary { text-decoration: none; }
+
+/* ---------- What's on: tournaments as tickets ---------- */
+
 .guest-tournaments {
-  padding: clamp(3.25rem, 6vw, 5rem) 0 0;
+  width: min(100% - 2.5rem, var(--guest-width));
+  margin: 0 auto;
+  padding: clamp(3.25rem, 6vw, 5rem) 0 clamp(3rem, 6vw, 4.5rem);
   scroll-margin-top: 80px;
 }
 
@@ -581,8 +626,16 @@
 
 .guest-tournament-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.1rem;
+}
+
+.guest-tournament-list.is-count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* One open tournament: a wide ticket, its poster at the end */
+.guest-tournament-list.is-count-1 {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 880px;
 }
 
 .guest-tournament-card {
@@ -646,10 +699,22 @@
 }
 
 .guest-tournament-card.is-rescheduled .guest-ticket-stub { background: #231f12; }
-.guest-tournament-card.is-cancelled { background: #171515; }
-.guest-tournament-card.is-cancelled .guest-ticket-stub { background: #1d1717; }
-.guest-tournament-card.is-cancelled .guest-ticket-stub span { color: #ff8f8f; }
-.guest-tournament-card.is-cancelled .guest-ticket-stub strong { color: #8e978f; text-decoration: line-through; }
+
+.is-count-1 > .guest-tournament-card { grid-template-columns: 110px minmax(0, 1fr); }
+.is-count-1 > .guest-tournament-card.has-poster { grid-template-columns: 110px minmax(0, 1fr) 240px; }
+.is-count-1 > .guest-tournament-card::before,
+.is-count-1 > .guest-tournament-card::after { left: 100px; }
+.is-count-1 .guest-ticket-stub strong { font-size: 2.9rem; }
+.is-count-1 .guest-ticket-body { padding: 1.5rem 1.6rem; }
+.is-count-1 .guest-tournament-card h3 { font-size: 1.7rem; }
+
+.guest-ticket-poster {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+  object-fit: cover;
+}
 
 .guest-tournament-card h3 {
   margin: 0.15rem 0 0;
@@ -726,73 +791,29 @@
 
 .guest-ticket-body > .guest-tournament-meta + .guest-template-secondary { margin-top: 0.5rem; }
 
-.guest-tournaments-all { margin-top: 1.4rem; }
+.guest-tournaments-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.4rem;
+}
 
-/* ---------- Join: copy beside a QR poster taped to the wall ---------- */
-
-.guest-join {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+/* Nothing open: one line, not an empty grid */
+.guest-tournaments-empty {
+  display: flex;
   align-items: center;
-  gap: clamp(2rem, 6vw, 5rem);
-  padding: clamp(3.5rem, 7vw, 5.5rem) 0;
-}
-
-.guest-poster {
-  position: relative;
+  gap: 0.75rem;
   margin: 0;
-  width: 250px;
-  padding: 1rem 1rem 1.1rem;
-  border-radius: 4px;
-  background: #f7f4ea;
-  box-shadow: 0 24px 40px -18px rgba(0, 0, 0, 0.85);
-  transform: rotate(-2.5deg);
+  padding: 1rem 1.2rem;
+  border: 1px dashed rgba(226, 236, 230, 0.18);
+  border-radius: 12px;
+  color: #c9d0ca;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
-/* Two strips of tape holding it up */
-.guest-poster::before,
-.guest-poster::after {
-  content: "";
-  position: absolute;
-  top: -12px;
-  width: 70px;
-  height: 24px;
-  background: rgba(255, 222, 102, 0.75);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.guest-poster::before { left: -14px; transform: rotate(-28deg); }
-.guest-poster::after { right: -14px; transform: rotate(26deg); }
-
-.guest-poster img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: contain;
-  background: #fff;
-}
-
-.guest-poster figcaption {
-  display: grid;
-  gap: 0.1rem;
-  margin-top: 0.75rem;
-  text-align: center;
-}
-
-.guest-poster figcaption strong {
-  color: #121614;
-  font-family: var(--bc-font-display);
-  font-size: 1.3rem;
-  font-weight: 400;
-}
-
-.guest-poster figcaption span {
-  color: #4f5a53;
-  font-family: var(--bc-font-label);
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-}
+.guest-tournaments-empty i { color: var(--bc-yellow); font-size: 1.3rem; }
+.guest-tournaments-empty a { color: var(--bc-yellow); font-weight: 700; }
 
 /* ---------- Visit us: where the hall is, when it is open, how to reach it ---------- */
 
@@ -847,13 +868,40 @@
 
 .guest-visit-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 230px;
 }
 
 .guest-visit-actions .guest-template-secondary {
   margin-top: 0;
+  min-height: 50px;
   text-decoration: none;
+}
+
+/* Only the hours known yet: one line */
+.guest-visit-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  margin: 0;
+  padding: 0.9rem 1.2rem;
+  border: 1px solid rgba(226, 236, 230, 0.09);
+  border-radius: 12px;
+  background: #151a17;
+  color: #e2e6e0;
+  font-size: 1rem;
+}
+
+.guest-visit-line i { color: var(--bc-yellow); }
+
+.guest-visit-line strong {
+  color: #fff;
+  font-family: var(--bc-font-label);
+  font-size: 0.85rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 /* ---------- Footer ---------- */
@@ -901,13 +949,65 @@
   text-shadow: none;
 }
 
+.guest-footer-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.guest-footer-social {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(226, 236, 230, 0.2);
+  border-radius: 50%;
+  color: #e2e6e0;
+  font-size: 1.05rem;
+  text-decoration: none;
+}
+
+.guest-footer-social:hover { border-color: var(--bc-yellow); color: var(--bc-yellow); }
+.guest-footer-social:focus-visible { outline: 2px solid var(--bc-yellow); outline-offset: 2px; }
+
+/* ---------- Before the website's settings arrive ---------- */
+
+/* The words and photos set in Admin > Website are not known yet: their places
+   are kept but blank, so the old ones never flash first (contentReady in
+   GuestLanding.jsx). Tournament slides are not from there and stay. */
+.guest-showcase.is-loading .guest-carousel-slide:not(.guest-promo-slide) > *,
+.guest-steps.is-loading :is(#guest-steps-title, .guest-step h3, .guest-step p),
+.guest-footer-tagline.is-loading {
+  visibility: hidden;
+}
+
 /* ---------- Phones and narrow windows ---------- */
 
-@media (max-width: 860px) {
-  .guest-steps-list { grid-template-columns: 1fr; }
+@media (max-width: 980px) {
+  .guest-tournament-list.is-count-3 { grid-template-columns: minmax(0, 1fr); }
+}
 
-  .guest-join { grid-template-columns: 1fr; }
-  .guest-poster { justify-self: center; }
+@media (max-width: 860px) {
+  /* Each step on one row: its ball beside its words */
+  .guest-steps-list {
+    grid-template-columns: 1fr;
+    gap: 1.1rem;
+    max-width: 30rem;
+    margin: 1.75rem auto 0;
+  }
+
+  .guest-step {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    text-align: left;
+  }
+
+  .guest-step-copy { justify-items: start; gap: 0.2rem; }
+  .guest-step h3 { margin: 0; font-size: 1.15rem; }
+  .guest-step .guest-ball { flex: 0 0 56px; width: 56px; height: 56px; }
+  .guest-step .guest-ball span { width: 28px; height: 28px; font-size: 1rem; }
+  .guest-steps-cta { margin-top: 1.75rem; }
 }
 
 @media (max-width: 680px) {
@@ -920,17 +1020,216 @@
   .guest-carousel-caption { padding: 1.25rem 12% 2.75rem; }
   .guest-carousel-control { width: 12%; font-size: 1.5rem; }
 
-  .guest-reservation-closed,
-  .guest-event-updates { width: calc(100% - 1.5rem); flex-wrap: wrap; }
+  .guest-notices { width: calc(100% - 1.5rem); }
+  .guest-notice { flex-wrap: wrap; padding: 0.65rem 0.9rem; }
+  .guest-notice-link { margin-left: auto; }
+
+  .guest-carousel-slide.has-photo .guest-carousel-caption { padding-bottom: 2.75rem; }
 
   .guest-tournaments,
-  .guest-join,
   .guest-visit { width: calc(100% - 2rem); }
 
-  .guest-visit-actions { width: 100%; }
-  .guest-visit-actions .guest-template-secondary { flex: 1 1 140px; }
+  /* Big buttons, full width, easy to tap */
+  .guest-visit-actions { width: 100%; min-width: 0; }
 
-  .guest-tournament-list { grid-template-columns: 1fr; }
+  .guest-tournament-list.is-count-2 { grid-template-columns: minmax(0, 1fr); }
+  .is-count-1 > .guest-tournament-card,
+  .is-count-1 > .guest-tournament-card.has-poster { grid-template-columns: 86px minmax(0, 1fr); }
+  .is-count-1 > .guest-tournament-card::before,
+  .is-count-1 > .guest-tournament-card::after { left: 76px; }
+  .is-count-1 .guest-ticket-stub strong { font-size: 2.3rem; }
+  .is-count-1 .guest-ticket-body { padding: 1.1rem 1.2rem 1.2rem; }
+  .is-count-1 .guest-tournament-card h3 { font-size: 1.35rem; }
+  /* The showcase above already shows the poster on a phone */
+  .guest-ticket-poster { display: none; }
+
+  .guest-tournaments-actions > * { flex: 1 1 100%; }
 
   .guest-template-footer { align-items: flex-start; flex-direction: column; }
+}
+
+/* ---------- The visitor's own bookings: news in the notices, all of them under My bookings ---------- */
+
+.guest-notice.is-request.is-approved,
+.guest-notice.is-request.is-done {
+  --notice: var(--bc-green);
+  background: #121a14;
+  color: #d9f5de;
+}
+
+.guest-notice.is-request.is-declined {
+  --notice: #ff5b5d;
+  background: #1b1314;
+  color: #f2d6d6;
+}
+
+.guest-my-requests-btn { position: relative; }
+
+.guest-my-requests-dot {
+  position: absolute;
+  top: 5px;
+  right: 3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bc-pink);
+  box-shadow: 0 0 0 2px #0b0d0c;
+}
+
+.my-requests-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 6vh 1rem 1rem;
+  background: rgba(5, 7, 6, 0.72);
+}
+
+.my-requests-panel {
+  width: min(100%, 520px);
+  padding: 1.25rem;
+  border: 1px solid rgba(226, 236, 230, 0.14);
+  border-radius: 14px;
+  background: #141917;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  color: #e2e6e0;
+}
+
+.my-requests-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.my-requests-head h2 {
+  margin: 0;
+  color: var(--bc-yellow);
+  font-family: var(--bc-font-display);
+  font-size: 1.4rem;
+  font-weight: 400;
+}
+
+.my-requests-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(226, 236, 230, 0.18);
+  border-radius: 8px;
+  background: transparent;
+  color: #e2e6e0;
+}
+
+.my-requests-close:hover { background: rgba(255, 255, 255, 0.07); }
+
+.my-requests-intro {
+  margin: 0.5rem 0 1rem;
+  color: #aab3ac;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.my-requests-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.my-request {
+  --status: var(--bc-yellow);
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(226, 236, 230, 0.1);
+  border-left: 4px solid var(--status);
+  border-radius: 10px;
+  background: #0f1311;
+}
+
+.my-request.is-approved,
+.my-request.is-done { --status: var(--bc-green); }
+.my-request.is-declined { --status: #ff5b5d; }
+
+.my-request-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.my-request-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #aab3ac;
+  font-family: var(--bc-font-label);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.my-request-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 210, 63, 0.14);
+  color: var(--bc-yellow);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.my-request-chip.is-approved,
+.my-request-chip.is-done { background: rgba(79, 224, 106, 0.14); color: var(--bc-green); }
+.my-request-chip.is-declined { background: rgba(255, 91, 93, 0.14); color: #ff8a8c; }
+
+.my-request-label {
+  color: #fff;
+  font-size: 0.98rem;
+  overflow-wrap: anywhere;
+}
+
+.my-request-player { color: #c9d0ca; font-size: 0.85rem; }
+
+.my-request-detail {
+  margin: 0;
+  color: #c9d0ca;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.my-request-forget {
+  justify-self: start;
+  margin-top: 0.2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #aab3ac;
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+
+.my-request-forget:hover { color: #fff; }
+
+.my-requests-empty { margin: 0; color: #aab3ac; }
+
+@media (max-width: 680px) {
+  /* The icon stays; its name is read out (aria-label). */
+  .guest-my-requests-btn .guest-template-link-text { display: none; }
+  .my-requests-backdrop { padding-top: 1rem; }
+}
+
+/* A narrow phone with My bookings too: Tournaments is its icon, so Reserve stays on one line. */
+@media (max-width: 420px) {
+  .guest-template-actions.has-my-requests .guest-template-link-text { display: none; }
 }

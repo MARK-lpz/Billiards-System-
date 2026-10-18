@@ -13,6 +13,7 @@ import {
   hasReservationConflict,
 } from "../../utils/reservations";
 import { ENDED_SESSION_FIELDS, createTableCharge, endedChargeToast } from "../../utils/tableCharges";
+import { useOnlinePayments } from "../Global/useOnlinePayments";
 
 // Read only from handlers, never while rendering.
 const getCurrentTimestamp = () => Date.now();
@@ -43,6 +44,8 @@ export default function useAdminReservations({
   const { addNotification, showToast } = useNotifications();
   // The hall's hours (Admin > Website), which bookings must keep to.
   const { hours } = useSiteSettings().settings;
+  // A website booking's GCash payment moves with it on the server; asked again after a save.
+  const { refresh: refreshPayments } = useOnlinePayments();
   const [filter, setFilter] = useState(statusFilters.includes(initialFilter) ? initialFilter : "all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -194,7 +197,9 @@ const releaseTable = (tableId, reservation, nextStatus) => {
     );
   };
 
-  const updateReservation = (id, changes) => {
+  // `extra` goes with the save: whether to give a cancelled website booking's
+  // accepted payment back ({ refundPayment }).
+  const updateReservation = (id, changes, extra = {}) => {
     const currentReservation = reservations.find((reservation) => reservation.id === id);
     if (!currentReservation) return;
 
@@ -206,9 +211,13 @@ const releaseTable = (tableId, reservation, nextStatus) => {
     );
 
     setTableStateForReservation(nextReservation, nextStatus, currentReservation.status);
-    updateRemoteReservation(nextReservation).catch((error) => {
-      console.warn("Unable to sync reservation update", error);
-    });
+    updateRemoteReservation(nextReservation, extra)
+      .then(() => {
+        if (currentReservation.source === "online") refreshPayments();
+      })
+      .catch((error) => {
+        console.warn("Unable to sync reservation update", error);
+      });
 
     if (changes.status && changes.status !== currentReservation.status) {
       logReservationEvent({
@@ -216,6 +225,9 @@ const releaseTable = (tableId, reservation, nextStatus) => {
         detail: [
           `${currentReservation.customerName} reservation for ${currentReservation.tableName}`,
           `moved from ${currentReservation.status} to ${changes.status}`,
+          ...("refundPayment" in extra
+            ? [extra.refundPayment ? "(the GCash payment is listed to send back)" : "(the GCash payment is kept)"]
+            : []),
         ].join(" "),
         reservation: nextReservation,
         previousStatus: currentReservation.status,

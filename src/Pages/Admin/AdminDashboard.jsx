@@ -234,6 +234,7 @@ export default function Dashboard({
         return <Events
           events={events}
           setEvents={setEvents}
+          setLogs={setLogs}
           tables={tables}
           reservations={reservations}
         />;
@@ -357,7 +358,9 @@ export default function Dashboard({
               onOpenReservations={(filter) =>
                 handleNavChange("reservations", { nav: "reservations", filter, key: `reservations-${Date.now()}` })
               }
+              onOpenEvents={() => handleNavChange("events")}
               onOpenAccounts={() => handleNavChange("accounts")}
+              events={events}
             />
             <Menu 
               onLogout={onLogout}

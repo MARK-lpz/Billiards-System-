@@ -1,3 +1,6 @@
+import Pagination from "../Global/Pagination";
+import { auditDayLabel, auditLevel } from "../../utils/auditReport";
+
 const typeIcon = {
   auth: "bi-shield-lock",
   sale: "bi-cash-stack",
@@ -17,35 +20,41 @@ const severityClass = {
 };
 
 const getSeverityDisplay = (log) => {
-  const action = String(log.action || "").toLowerCase();
-  const status = String(log.reservation?.currentStatus || log.reservation?.status || "").toLowerCase();
-
-  if (log.type === "reservation" && (action.includes("rejected") || status === "rejected")) {
-    return { label: "reject", className: severityClass.reject };
-  }
-
-  const severity = log.severity || "info";
-  return { label: severity, className: severityClass[severity] || severityClass.info };
+  const level = auditLevel(log);
+  return { label: level, className: severityClass[level] || severityClass.info };
 };
 
+// `logs` is the page shown; `pagination` (usePagination's shape) moves between pages;
+// `onPrint` opens the printable report.
 export default function AuditLogList({
   filter,
   filters,
   logs,
+  pagination,
   onFilterChange,
   onSelectLog,
+  onPrint,
 }) {
   return (
     <div className="card audit-log-card">
       <div className="card-body">
         <div className="audit-log-topbar">
-          <h6 className="audit-log-header">System Activity Log</h6>
+          <div className="audit-log-title-row">
+            <h6 className="audit-log-header">System Activity Log</h6>
+            {onPrint && (
+              <button type="button" className="reports-export-btn audit-report-open" onClick={onPrint}>
+                <i className="bi bi-printer me-2" aria-hidden="true"></i>
+                Print Report
+              </button>
+            )}
+          </div>
           <div className="audit-filter-row">
             {filters.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 className={`audit-filter-btn ${filter === item.id ? "active" : ""}`}
+                aria-pressed={filter === item.id}
                 onClick={() => onFilterChange(item.id)}
               >
                 {item.label} ({item.count})
@@ -73,7 +82,10 @@ export default function AuditLogList({
                   }`}
                   onClick={() => onSelectLog(log)}
                 >
-                  <div className="audit-log-time">{log.time}</div>
+                  <div className="audit-log-time">
+                    <span className="audit-log-date">{auditDayLabel(log.date)}</span>
+                    {log.time}
+                  </div>
                   <i className={`bi ${typeIcon[log.type] || typeIcon.other} audit-log-icon`}></i>
                   <span className={`badge audit-badge audit-badge-${log.type || "other"}`}>
                     {log.type || "other"}
@@ -93,6 +105,8 @@ export default function AuditLogList({
             })
           )}
         </div>
+
+        {pagination && <Pagination {...pagination} />}
       </div>
     </div>
   );

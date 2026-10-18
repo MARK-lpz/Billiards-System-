@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { fetchCustomerMessages } from "../../utils/customerMessageApi";
 import { formatEventWhen } from "../../utils/eventUpdates";
 import { describePayment, findConfirmation, formatRegisteredAt } from "../../utils/tournamentRegistrations";
+import PaymentStatusChip from "../Global/PaymentStatusChip";
+import { formatPayer, formatPeso as formatFee } from "../../utils/onlinePayments";
 
 const formatPeso = (amount) => `₱${Number(amount || 0).toLocaleString("en-PH")}`;
 
@@ -23,7 +25,9 @@ const TEXT_STATUS = {
  * One registered player: who they are, the tournament, and for an online
  * registration the number and payment from the confirmation the server saved.
  */
-export default function ParticipantModal({ registration, onClose, onOpenTournament }) {
+// `payment`: the entry fee this player paid on the website, if any (checked
+// under "Entry fees paid online" on the Tournament Schedule).
+export default function ParticipantModal({ registration, payment: feePayment = null, onClose, onOpenTournament }) {
   // { status: "loading" | "done" | "error", confirmation }
   const [lookup, setLookup] = useState(() => ({ status: registration.walkIn ? "done" : "loading", confirmation: null }));
 
@@ -134,6 +138,12 @@ export default function ParticipantModal({ registration, onClose, onOpenTourname
                         <dd>{TEXT_STATUS[confirmation.status] || confirmation.status}</dd>
                       </div>
                     </dl>
+                  )}
+                  {feePayment && (
+                    <p className="tourna-player-note tourna-player-fee">
+                      <PaymentStatusChip payment={feePayment} short /> {formatFee(feePayment.amount)} by GCash from {formatPayer(feePayment)}.
+                      {feePayment.status === "held" ? " Check it under Entry fees paid online." : ""}
+                    </p>
                   )}
                 </div>
               )}

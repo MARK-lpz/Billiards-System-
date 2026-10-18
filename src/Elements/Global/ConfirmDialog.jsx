@@ -15,6 +15,10 @@ export default function ConfirmDialog({
   // served, can pass "btn-success" and its own icon.
   confirmClassName = "btn-danger",
   icon = "bi-exclamation-triangle-fill",
+  // A question the action needs answered first (e.g. whether to give a payment
+  // back), shown under the message; `confirmDisabled` holds the button until then.
+  children = null,
+  confirmDisabled = false,
   onConfirm,
   onClose,
 }) {
@@ -46,12 +50,13 @@ export default function ConfirmDialog({
               {detail && (
                 <p className={`confirm-dialog-detail ${confirmClassName === "btn-success" ? "success" : ""}`}>{detail}</p>
               )}
+              {children}
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={onClose}>
                 {cancelLabel}
               </button>
-              <button type="button" className={`btn ${confirmClassName}`} onClick={onConfirm}>
+              <button type="button" className={`btn ${confirmClassName}`} onClick={onConfirm} disabled={confirmDisabled}>
                 {confirmLabel}
               </button>
             </div>

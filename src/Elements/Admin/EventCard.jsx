@@ -1,5 +1,7 @@
 import { formatEventWhen, wasRescheduled } from "../../utils/eventUpdates";
 import { eventMediaUrl, getEventMedia } from "../../utils/eventMedia";
+import CancelledNoticeControl from "../Global/CancelledNoticeControl";
+import TournamentPayments from "../Global/TournamentPayments";
 
 const formatAssignedTables = (assignedTables = [], tables = []) => {
   const labels = (assignedTables || [])
@@ -15,7 +17,8 @@ const formatAssignedTables = (assignedTables = [], tables = []) => {
   return labels.length ? labels.join(", ") : "Not assigned";
 };
 
-export default function EventCard({ event, tables = [], onEdit, onMarkComplete, onCancel }) {
+// `setLogs`: the Audit Trail, for the entry fees checked or sent back here.
+export default function EventCard({ event, tables = [], now, setLogs, onEdit, onMarkComplete, onCancel, onNoticeChange }) {
   return (
     <div className={`card events-card ${event.status === "upcoming" ? "events-card-upcoming" : ""}`}>
       <div className="card-body">
@@ -100,6 +103,16 @@ export default function EventCard({ event, tables = [], onEdit, onMarkComplete, 
           </div>
         )}
 
+        {/* Entry fees paid on the website: checked, or sent back, from here too. */}
+        <TournamentPayments
+          event={event}
+          setLogs={setLogs}
+          staff="Admin"
+          heading="Entry fees paid online"
+          className="events-participants"
+          labelClassName="events-participants-label"
+        />
+
         {/* Actions (for upcoming events only) */}
         {event.status === "upcoming" && (
           <div className="events-actions">
@@ -126,11 +139,14 @@ export default function EventCard({ event, tables = [], onEdit, onMarkComplete, 
         )}
 
         {event.status === "cancelled" && (
-          <p className="events-locked-note">
-            <i className="bi bi-x-circle me-2"></i>
-            This tournament was cancelled. Registration is closed.
-            {event.cancelReason ? ` Reason: ${event.cancelReason}` : ""}
-          </p>
+          <>
+            <p className="events-locked-note">
+              <i className="bi bi-x-circle me-2"></i>
+              This tournament was cancelled. Registration is closed.
+              {event.cancelReason ? ` Reason: ${event.cancelReason}` : ""}
+            </p>
+            {onNoticeChange && <CancelledNoticeControl event={event} now={now} onChange={onNoticeChange} />}
+          </>
         )}
       </div>
     </div>

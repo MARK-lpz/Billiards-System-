@@ -1,0 +1,197 @@
+import { useEffect, useState } from "react";
+import PaymentStatusChip from "../Global/PaymentStatusChip";
+import { fetchGcashDay } from "../../utils/paymentsApi";
+import { formatPayer, formatPeso } from "../../utils/onlinePayments";
+import { dayInManila } from "../../utils/siteSettings";
+
+// Read once when the report opens, never while rendering.
+const todayInManila = () => dayInManila(Date.now());
+
+const formatClock = (ms) =>
+  ms ? new Date(ms).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" }) : "—";
+
+const sumOf = (payments) => payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+
+// What a payment was for, under who it came from.
+const PAID_FOR = {
+  pos: "Sale at the counter",
+  reservation: "Table booking (website)",
+  tournament: "Tournament entry fee (website)",
+};
+
+/**
+ * One day's GCash, to tick off against the history in the Break & Chill GCash
+ * app: what came in (counter sales, and website payments whatever became of
+ * them) and what was sent back by GCash. Read from the server, so every
+ * device's counter sales are in it.
+ */
+export default function GcashDayCheck() {
+  const [day, setDay] = useState(todayInManila);
+  const [maxDay] = useState(todayInManila);
+  // Bumped by Refresh to read the same day again.
+  const [asked, setAsked] = useState(0);
+  const [result, setResult] = useState({ day: null, asked: -1, data: null, error: "" });
+
+  useEffect(() => {
+    let active = true;
+    fetchGcashDay(day)
+      .then((data) => {
+        if (active) setResult({ day, asked, data, error: "" });
+      })
+      .catch((error) => {
+        if (active) setResult({ day, asked, data: null, error: error.message || "Unable to load that day's GCash payments." });
+      });
+    return () => {
+      active = false;
+    };
+  }, [day, asked]);
+
+  const loading = result.day !== day || result.asked !== asked;
+  // The day's list stays on screen while the same day is read again.
+  const shown = result.day === day ? result.data : null;
+  const received = shown?.received || [];
+  const sentBack = shown?.sentBack || [];
+  const totalIn = sumOf(received);
+  const totalOut = sumOf(sentBack);
+
+  const stats = [
+    { label: `Received (${received.length})`, value: formatPeso(totalIn), icon: "bi-box-arrow-in-down", tone: "green" },
+    { label: `Sent back by GCash (${sentBack.length})`, value: formatPeso(totalOut), icon: "bi-arrow-counterclockwise", tone: "yellow" },
+    { label: "Net for the day", value: formatPeso(totalIn - totalOut), icon: "bi-phone", tone: "blue" },
+  ];
+
+  return (
+    <div className="gcash-check">
+      <div className="reports-toolbar">
+        <div className="reports-toolbar-fields">
+          <div>
+            <label className="reports-toolbar-label" htmlFor="gcash-check-day">Day</label>
+            <input
+              id="gcash-check-day"
+              type="date"
+              className="reports-toolbar-select"
+              value={day}
+              max={maxDay}
+              onChange={(event) => event.target.value && setDay(event.target.value)}
+            />
+          </div>
+        </div>
+        <button type="button" className="reports-export-btn" onClick={() => setAsked((count) => count + 1)} disabled={loading}>
+          <i className="bi bi-arrow-clockwise me-2"></i>
+          {loading ? "Loading..." : "Refresh"}
+        </button>
+      </div>
+
+      <p className="gcash-check-note">
+        <i className="bi bi-info-circle" aria-hidden="true"></i>
+        <span>
+          Open the history in the Break &amp; Chill GCash app for this day and tick each one off. A payment in the app
+          that is not here, or one here that is not in the app, needs a look.
+        </span>
+      </p>
+
+      {result.error && result.day === day && !loading ? (
+        <p className="gcash-check-error" role="alert">{result.error}</p>
+      ) : (
+        <>
+          <div className="row g-3 mb-4">
+            {stats.map((stat) => (
+              <div className="col-md-4" key={stat.label}>
+                <div className={`card reports-stat-card reports-stat-${stat.tone}`}>
+                  <div className="card-body">
+                    <i className={`bi ${stat.icon} reports-stat-icon`}></i>
+                    <div className="reports-stat-value">{shown ? stat.value : "—"}</div>
+                    <div className="reports-stat-label">{stat.label}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="card reports-card mb-4">
+            <div className="card-body">
+              <div className="reports-card-title">Received</div>
+              {received.length ? (
+                <div className="table-responsive">
+                  <table className="table reports-table gcash-check-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Time</th>
+                        <th scope="col">From</th>
+                        <th scope="col">Reference</th>
+                        <th scope="col" className="reports-num">Amount</th>
+                        <th scope="col">Now</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {received.map((payment) => (
+                        <tr key={payment.id}>
+                          <td>{formatClock(payment.createdAt)}</td>
+                          <td className="reports-table-name">
+                            {payment.participant || payment.customerName}
+                            <span className="gcash-check-sub">
+                              {PAID_FOR[payment.kind] || "Payment"}
+                              {payment.kind !== "pos" && payment.payerNumber ? ` · from ${formatPayer(payment)}` : ""}
+                            </span>
+                          </td>
+                          <td className="gcash-check-ref">{payment.reference}</td>
+                          <td className="reports-num reports-table-price">{formatPeso(payment.amount)}</td>
+                          <td>
+                            {payment.kind === "pos" ? (
+                              <span className="gcash-check-sub">Taken by {payment.decidedBy || "staff"}</span>
+                            ) : (
+                              <PaymentStatusChip payment={payment} short />
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="reports-empty-note">{loading && !shown ? "Loading..." : "No GCash came in on this day."}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="card reports-card">
+            <div className="card-body">
+              <div className="reports-card-title">Sent back by GCash</div>
+              {sentBack.length ? (
+                <div className="table-responsive">
+                  <table className="table reports-table gcash-check-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Time</th>
+                        <th scope="col">To</th>
+                        <th scope="col">Refund reference</th>
+                        <th scope="col" className="reports-num">Amount</th>
+                        <th scope="col">By</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sentBack.map((payment) => (
+                        <tr key={payment.id}>
+                          <td>{formatClock(payment.refundedAt)}</td>
+                          <td className="reports-table-name">
+                            {payment.participant || payment.customerName}
+                            <span className="gcash-check-sub">{formatPayer(payment)}</span>
+                          </td>
+                          <td className="gcash-check-ref">{payment.refundReference}</td>
+                          <td className="reports-num reports-table-price">{formatPeso(payment.amount)}</td>
+                          <td>{payment.refundedBy || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="reports-empty-note">{loading && !shown ? "Loading..." : "Nothing was sent back by GCash on this day."}</p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

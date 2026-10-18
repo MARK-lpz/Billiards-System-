@@ -3,6 +3,7 @@ import "../../styles/Admin/PoolTables.css";
 import { formatHoursLabel } from "../../utils/reservations";
 import { formatPeso, getPlayedMinutes } from "../../utils/tableSession";
 import { countWaitingItems, getTableOrders } from "../../utils/tableOrders";
+import { useCounterGcash } from "../Global/useCounterGcash";
 
 // One table's part of the bill: its time, its orders, and what was paid before.
 function BillRows({ charge }) {
@@ -73,6 +74,8 @@ export default function EndSessionModal({
 }) {
   // The list of tables that can join, while it is open.
   const [picking, setPicking] = useState(false);
+  // GCash goes to the hall's own account (Admin > Website); its QR shows on Pay.
+  const counterGcash = useCounterGcash();
 
   useEffect(() => {
     const closeOnEscape = (event) => {
@@ -243,11 +246,18 @@ export default function EndSessionModal({
                     className={`payment-method-btn ${method === "ewallet" ? "active" : ""}`}
                     aria-pressed={method === "ewallet"}
                     onClick={() => onMethodChange("ewallet")}
+                    disabled={!counterGcash.ready}
                   >
                     <i className="bi bi-phone me-2"></i>
                     GCash
                   </button>
                 </div>
+              )}
+              {toPay && counterGcash.note && (
+                <p className="cart-gcash-note is-off">
+                  <i className="bi bi-info-circle" aria-hidden="true"></i>
+                  <span>{counterGcash.note}</span>
+                </p>
               )}
 
               <div className="pool-end-actions">

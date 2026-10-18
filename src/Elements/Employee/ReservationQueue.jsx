@@ -4,8 +4,11 @@ import ConfirmDialog from "../Global/ConfirmDialog";
 import Pagination from "../Global/Pagination";
 import usePagination from "../Global/usePagination";
 import { PAGE_SIZE } from "../../utils/pagination";
-import { describeReservationTime, getArrivalWindow } from "../../utils/reservations";
+import { describeReservationTime, getArrivalWindow, hasReservationEnded } from "../../utils/reservations";
 import { getReservationIssues, getReservationMode } from "../../utils/reservationIssues";
+import PaymentStatusChip from "../Global/PaymentStatusChip";
+import RefundChoice from "../Global/RefundChoice";
+import { describeRefund, findReservationPayment, formatPayer, formatPeso, needsRefundChoice } from "../../utils/onlinePayments";
 
 const HISTORY_STATUSES = new Set(["completed", "cancelled", "rejected", "expired"]);
 
@@ -51,11 +54,24 @@ export default function ReservationQueue({
   setReservationFilter,
   onBookingStatus,
   onCheckPayment,
+  // Approves or rejects a pending walk-in booking: (booking, "approved" | "rejected").
+  onDecide,
+  // The website's GCash payments (an online booking's), and sending one back: (payment, booking).
+  payments = [],
+  onRefund,
   // A booking opened from the bell: the list opens at its page, marked and in view.
   highlightId = null,
 }) {
-  // Cancelling cannot be undone, so the click only arms the confirmation.
+  // Cancelling or rejecting cannot be undone, so the click only arms the confirmation.
   const [cancelTarget, setCancelTarget] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null);
+  // For a cancelled booking whose payment was accepted: "refund" or "keep".
+  const [refundChoice, setRefundChoice] = useState("");
+  const paymentOf = (booking) => (booking.source === "online" ? findReservationPayment(payments, booking.id) : null);
+  const openCancel = (booking) => {
+    setRefundChoice("");
+    setCancelTarget(booking);
+  };
   // The clock Mark Arrived is judged by. Booking times are whole minutes, so it
   // ticks at the start of each minute and the button turns on right on time.
   const [now, setNow] = useState(() => Date.now());
@@ -76,14 +92,30 @@ export default function ReservationQueue({
   // Takes the booking as an argument rather than reading `cancelTarget` from
   // the closure: the React Compiler narrows a closed-over `cancelTarget.id` into
   // a render-time memo check, which throws while the target is still null.
-  const confirmCancel = (booking) => {
-    onBookingStatus(booking.id, "cancelled");
+  const confirmCancel = (booking, choice) => {
+    const asked = needsRefundChoice(paymentOf(booking));
+    onBookingStatus(booking.id, "cancelled", asked ? { refundPayment: choice === "refund" } : {});
     setCancelTarget(null);
+  };
+  const confirmReject = (booking) => {
+    onDecide(booking, "rejected");
+    setRejectTarget(null);
   };
 
   // What is wrong with each booking right now, judged on the same clock.
-  const checkBooking = (booking) =>
-    getReservationIssues({ booking, tables, reservations: allReservations, now: new Date(now) });
+  // A website payment waiting to be sent back needs the desk too, whatever its booking's state.
+  const checkBooking = (booking) => {
+    const checked = getReservationIssues({ booking, tables, reservations: allReservations, now: new Date(now) });
+    const payment = paymentOf(booking);
+    if (payment?.status !== "refund_due") return checked;
+    return {
+      ...checked,
+      issues: [
+        ...checked.issues,
+        { level: "warning", text: `Send ${formatPeso(payment.amount)} back to ${formatPayer(payment)} by GCash, then mark it sent back.` },
+      ],
+    };
+  };
   const needsAttention = allReservations.filter((booking) => checkBooking(booking).issues.length > 0);
   const [sortOrder, setSortOrder] = useState("newest");
   const rows = sortBookings(reservationFilter === "issues" ? needsAttention : reservations, sortOrder);
@@ -144,7 +176,7 @@ export default function ReservationQueue({
     (booking.status === "pending"
       ? booking.source === "online"
         ? "Paid online by GCash. Check the payment to approve."
-        : "Waiting for admin approval"
+        : "Booked at the hall. Approve it to hold the table."
       : booking.source === "existing"
         ? "Imported from table status"
         : getReservationMode(booking).detail);
@@ -214,6 +246,8 @@ export default function ReservationQueue({
                   const arrival = getArrivalWindow(booking, new Date(now));
                   const mode = getReservationMode(booking);
                   const { issues, seatBlock, seatHint } = checkBooking(booking);
+                  const tooLate = booking.status === "pending" && hasReservationEnded(booking, new Date(now));
+                  const payment = paymentOf(booking);
                   const worst = issues.some((issue) => issue.level === "error")
                     ? "error"
                     : issues.length
@@ -248,9 +282,15 @@ export default function ReservationQueue({
                         <span className={`rd-status ${getStatusClass(booking.status)}`}>
                           {getStatusLabel(booking.status)}
                         </span>
+                        {payment && (
+                          <div className="rd-pay-status">
+                            <PaymentStatusChip payment={payment} short />
+                          </div>
+                        )}
                       </td>
                       <td className="rd-table-notes">
                         <div>{getNote(booking)}</div>
+                        {payment?.status === "refunded" && <div className="rd-pay-note">{describeRefund(payment)}</div>}
                         {issues.length > 0 && (
                           <ul className="rd-issues" aria-label={`Problems with ${booking.customerName}'s booking`}>
                             {issues.map((issue) => (
@@ -267,9 +307,15 @@ export default function ReservationQueue({
                       </td>
                       <td>
                         <div className="rd-actions">
-                          {/* Online bookings are paid by GCash, so the desk can approve
-                              them once the payment is found; other pending ones stay
-                              with the admin. */}
+                          {payment?.status === "refund_due" && (
+                            <button type="button" className="rd-primary-btn" onClick={() => onRefund(payment, booking)}>
+                              <i className="bi bi-arrow-counterclockwise"></i>
+                              Send Back
+                            </button>
+                          )}
+
+                          {/* The desk approves both kinds: an online booking once its
+                              GCash payment is found, a walk-in one on the spot. */}
                           {booking.status === "pending" && booking.source === "online" && (
                             <button
                               type="button"
@@ -282,13 +328,26 @@ export default function ReservationQueue({
                           )}
 
                           {booking.status === "pending" && booking.source !== "online" && (
-                            <button
-                              type="button"
-                              className="rd-secondary-btn"
-                              disabled
-                            >
-                              Waiting Approval
-                            </button>
+                            <>
+                              {/* Too late to hold a table once its time is over. */}
+                              <button
+                                type="button"
+                                className="rd-primary-btn"
+                                onClick={() => onDecide(booking, "approved")}
+                                disabled={tooLate}
+                                title={tooLate ? "Its time has passed. Reject it instead." : undefined}
+                              >
+                                <i className="bi bi-check2-circle"></i>
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                className="rd-secondary-btn"
+                                onClick={() => setRejectTarget(booking)}
+                              >
+                                Reject
+                              </button>
+                            </>
                           )}
 
                           {(booking.status === "approved" || booking.status === "reserved") && (
@@ -341,7 +400,7 @@ export default function ReservationQueue({
                             <button
                               type="button"
                               className="rd-danger-btn"
-                              onClick={() => setCancelTarget(booking)}
+                              onClick={() => openCancel(booking)}
                             >
                               Cancel
                             </button>
@@ -395,8 +454,30 @@ export default function ReservationQueue({
           detail="This cannot be undone. The booking moves to history and has to be created again if the customer still wants it."
           confirmLabel="Yes, Cancel Reservation"
           cancelLabel="Keep Reservation"
-          onConfirm={() => confirmCancel(cancelTarget)}
+          confirmDisabled={needsRefundChoice(paymentOf(cancelTarget)) && !refundChoice}
+          onConfirm={() => confirmCancel(cancelTarget, refundChoice)}
           onClose={() => setCancelTarget(null)}
+        >
+          <RefundChoice payment={paymentOf(cancelTarget)} value={refundChoice} onChange={setRefundChoice} />
+        </ConfirmDialog>
+      )}
+
+      {rejectTarget && (
+        <ConfirmDialog
+          title="Reject this reservation?"
+          message={
+            <>
+              <strong>{rejectTarget.customerName}</strong>&apos;s request for {rejectTarget.tableName} on{" "}
+              {rejectTarget.date}
+              {rejectTarget.time ? ` at ${rejectTarget.time}` : ""} will be turned down and the slot freed for
+              someone else.
+            </>
+          }
+          detail="This cannot be undone. The booking moves to history and has to be created again if the customer still wants it."
+          confirmLabel="Yes, Reject Reservation"
+          cancelLabel="Keep Reservation"
+          onConfirm={() => confirmReject(rejectTarget)}
+          onClose={() => setRejectTarget(null)}
         />
       )}
     </section>

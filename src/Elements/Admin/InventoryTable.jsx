@@ -31,7 +31,7 @@ export default function InventoryTable({
                 <th>Product No.</th>
                 <th>Product Name</th>
                 <th>Category</th>
-                <th>Price</th>
+                <th>Retail Price</th>
                 <th>Stock</th>
                 <th>Min Stock</th>
                 <th>Expiry</th>
@@ -87,6 +87,10 @@ export default function InventoryTable({
                     <td className="inventory-price">
                       ₱{product.price.toLocaleString()}
                       <span className="inventory-price-unit"> / pc</span>
+                      {/* What the hall paid for it; products added before this was kept have none. */}
+                      {Number(product.originalPrice) > 0 && (
+                        <span className="inventory-price-original">Original ₱{Number(product.originalPrice).toLocaleString()}</span>
+                      )}
                     </td>
                     <td>
                       <div className="inventory-stock-cell">

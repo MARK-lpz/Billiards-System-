@@ -694,7 +694,19 @@
 
 /* ── Print / Download: the sheet in a pop-up (SalesReportModal.jsx) ─────────── */
 .sales-report-modal .sales-report-dialog { max-width: min(1180px, calc(100vw - 32px)); }
-.sales-report-modal .modal-body { max-height: calc(100vh - 250px); overflow-y: auto; }
+/* The title, the choices and the buttons stay in view; only the sheet scrolls,
+   so on a short screen (a phone) nothing is cut off. */
+.sales-report-modal .modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+}
+.sales-report-modal .modal-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
+@media (max-width: 576px) {
+  .sales-report-modal .modal-footer { flex-direction: row; flex-wrap: wrap; }
+  .sales-report-modal .modal-footer .btn { flex: 1 1 auto; width: auto; justify-content: center; }
+}
 
 /* Paper size and orientation, under the title; the sheet scrolls under them */
 .srp-preview-bar {
@@ -841,3 +853,55 @@
 .srp-print-body .srp-scroll { overflow: visible; }
 .srp-print-body .srp-table thead { display: table-header-group; }
 .srp-print-body .srp-table tr { break-inside: avoid; }
+
+/* GCash Check: one day's GCash in and out, to tick off against the GCash app */
+.gcash-check-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: -6px 0 18px;
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.gcash-check-note i {
+  margin-top: 2px;
+  color: #38bdf8;
+}
+
+.gcash-check-error {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gcash-check-table td {
+  vertical-align: middle;
+}
+
+.gcash-check-sub {
+  display: block;
+  margin-top: 2px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.gcash-check-ref {
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.light .gcash-check-note,
+.light .gcash-check-sub { color: var(--text-muted); }
+.light .gcash-check-note i { color: #0369a1; }
+.light .gcash-check-error { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }

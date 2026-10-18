@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import ConfirmDialog from "../Global/ConfirmDialog";
+import { useCounterGcash } from "../Global/useCounterGcash";
 
 // The pop-up is drawn at the app's theme wrapper: the cart is sticky, which makes
 // it its own layer, so a pop-up inside it could end up under the product grid.
@@ -36,6 +37,8 @@ export default function CartPanel({
   const [removeTarget, setRemoveTarget] = useState(null);
   // The whole bill about to be removed (Remove Transaction), waiting for staff to confirm.
   const [removingBill, setRemovingBill] = useState(null);
+  // GCash is taken to the hall's own account (Admin > Website); its QR shows on Pay.
+  const counterGcash = useCounterGcash();
 
   const askToRemove = (item, nextQty) => {
     const removing = item.qty - nextQty;
@@ -365,23 +368,25 @@ export default function CartPanel({
                 className={`payment-method-btn ${method === "ewallet" ? "active" : ""}`}
                 aria-pressed={method === "ewallet"}
                 onClick={() => onSetMethod("ewallet")}
+                disabled={!counterGcash.ready}
               >
                 <i className="bi bi-phone"></i>
                 GCash
               </button>
             </div>
 
-            {method === "ewallet" && (
-              <div className="gcash-qr-panel">
-                <div className="gcash-qr-copy">
-                  <strong>GCash QR Payment</strong>
-                  <span>Let the customer scan before confirming payment.</span>
-                </div>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`GCash Break & Chill amount ${total.toFixed(2)}`)}`}
-                  alt="GCash payment QR code"
-                />
-              </div>
+            {counterGcash.note ? (
+              <p className="cart-gcash-note is-off">
+                <i className="bi bi-info-circle" aria-hidden="true"></i>
+                <span>{counterGcash.note}</span>
+              </p>
+            ) : (
+              method === "ewallet" && (
+                <p className="cart-gcash-note">
+                  <i className="bi bi-qr-code" aria-hidden="true"></i>
+                  <span>Press Pay to show the customer the hall&apos;s GCash QR.</span>
+                </p>
+              )
             )}
 
             <button className="process-payment-btn" onClick={onProcessPayment} disabled={cart.length === 0}>

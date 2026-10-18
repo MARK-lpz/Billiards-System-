@@ -8,6 +8,7 @@ import TableCheckout from "../../Elements/Admin/TableCheckout";
 import TableOrderModal from "../../Elements/Admin/TableOrderModal";
 import useTableOrders from "../../Elements/Admin/useTableOrders";
 import CancelReservationModal from "../../Elements/Admin/CancelReservationModal";
+import { useOnlinePayments } from "../../Elements/Global/useOnlinePayments";
 import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
 import Toast from "../../Elements/Global/Toast";
 import EmployeeBell from "../../Elements/Employee/EmployeeBell";
@@ -57,10 +58,15 @@ export default function EmployeeDashboard({
   reservations,
   setReservations,
   events,
+  // Shows at once what the front desk's own tournament requests changed (a
+  // walk-in signed up, a cancelled one hidden); the server's copy follows.
+  setEvents,
   theme,
   setTheme,
 }) {
   const { addNotification, showToast } = useNotifications();
+  // A website booking's GCash payment moves with it on the server; asked again after a cancel.
+  const { refresh: refreshPayments } = useOnlinePayments();
   const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed, navOpen, setNavOpen, shellClassName } =
     useStaffShell("employee-sidebar-collapsed");
   // Must match a sidebar nav id, otherwise nothing is highlighted on load and
@@ -251,13 +257,22 @@ export default function EmployeeDashboard({
   };
 
   // Runs once the Cancel pop-up is confirmed. The booking itself is cancelled
-  // too, or the reservations sync would mark the table reserved again.
-  const cancelReservation = (id) => {
+  // too, or the reservations sync would mark the table reserved again. `extra`:
+  // whether to give a website booking's accepted GCash payment back.
+  const cancelReservation = (id, extra = {}) => {
     const table = tables.find((t) => t.id === id);
     if (!table) return;
 
     updateTable(id, ENDED_SESSION_FIELDS);
-    saveTableReservationStatus({ table, reservations, setReservations, from: ["approved", "reserved", "arrived"], status: "cancelled" });
+    saveTableReservationStatus({
+      table,
+      reservations,
+      setReservations,
+      from: ["approved", "reserved", "arrived"],
+      status: "cancelled",
+      extra,
+      onSaved: refreshPayments,
+    });
     addLog({
       action: "Cancelled reservation",
       detail: `Cancelled reservation for ${getTableLabel(table)}`,
@@ -299,6 +314,8 @@ export default function EmployeeDashboard({
           <TournamentSchedule
             key={focus?.key || "tournaments"}
             events={events}
+            setEvents={setEvents}
+            setLogs={setLogs}
             tables={tables}
             focusPlayer={focus?.nav === "tournaments" ? focus : null}
             seen={seenPlayers}
@@ -389,9 +406,10 @@ export default function EmployeeDashboard({
             {cancelTable && (
               <CancelReservationModal
                 table={cancelTable}
+                reservations={reservations}
                 onClose={() => setCancelTableId(null)}
-                onConfirm={() => {
-                  cancelReservation(cancelTable.id);
+                onConfirm={(extra) => {
+                  cancelReservation(cancelTable.id, extra);
                   setCancelTableId(null);
                 }}
               />

@@ -21,7 +21,10 @@ const parseResponse = async (response, fallbackMessage) => {
 export const fetchSiteSettings = async () =>
   parseResponse(await apiFetch(SITE_SETTINGS_API_URL), "Unable to load the website settings.");
 
-/** Saves one section ("gcash", "business", "announcement" or "hours"); resolves with every section. */
+/**
+ * Saves one section ("gcash", "business", "announcement", "hours", "showcase",
+ * "bookingSteps" or "footer"); resolves with every section.
+ */
 export const saveSiteSection = async (section, values) =>
   parseResponse(
     await apiFetch(SITE_SETTINGS_API_URL, {

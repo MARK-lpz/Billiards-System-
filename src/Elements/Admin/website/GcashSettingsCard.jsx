@@ -29,6 +29,7 @@ export default function GcashSettingsCard({ setLogs }) {
   const fileInput = useRef(null);
   const numberWarning = number && !isValidSmsNumber(number) ? "Enter the 11-digit GCash number, 09XXXXXXXXX." : "";
   const ready = draft.saved.ready;
+  const name = accountName?.trim() || "";
 
   const pickQr = async (event) => {
     const file = event.target.files?.[0];
@@ -56,6 +57,26 @@ export default function GcashSettingsCard({ setLogs }) {
       description="The account customers pay into when they book a table or join a paid tournament online."
       chip={ready ? { tone: "on", label: "Online payment on" } : { tone: "off", label: "Online payment off" }}
       draft={draft}
+      preview={
+        qr && name ? (
+          <div className="website-gcash-preview">
+            <img src={gcashQrUrl({ qr })} alt="The GCash QR customers will scan" />
+            <p>
+              Pay to <strong>{name}</strong>
+            </p>
+            {number && isValidSmsNumber(number) && (
+              <p>
+                GCash number <strong>{formatMobile(number)}</strong>
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="website-preview-empty">
+            &ldquo;Online payment is not available yet. Please pay at the hall.&rdquo; Bookings and paid tournament sign-ups
+            wait until the QR and the account name are saved.
+          </p>
+        )
+      }
     >
       {!ready && (
         <p className="website-note warning">
@@ -65,68 +86,61 @@ export default function GcashSettingsCard({ setLogs }) {
         </p>
       )}
 
-      <div className="website-gcash">
-        <div className="website-qr">
-          {qr ? (
-            <img src={gcashQrUrl({ qr })} alt="The GCash QR customers will scan" />
-          ) : (
-            <div className="website-qr-empty">
-              <i className="bi bi-qr-code" aria-hidden="true"></i>
-              No QR yet
+      <div className="website-fields">
+        <div className="website-field">
+          QR picture
+          <div className="website-upload">
+            <div className="website-thumb is-qr">
+              {qr ? <img src={gcashQrUrl({ qr })} alt="" /> : <i className="bi bi-qr-code" aria-hidden="true"></i>}
             </div>
-          )}
-          <div className="website-qr-actions">
-            <button type="button" className="website-btn secondary" onClick={() => fileInput.current?.click()} disabled={uploading}>
-              <i className="bi bi-upload" aria-hidden="true"></i>
-              {qr ? "Replace QR" : "Upload QR"}
-            </button>
-            <input ref={fileInput} type="file" accept={QR_TYPES.join(",")} onChange={pickQr} hidden />
-            {qr && (
-              <button type="button" className="website-btn ghost" onClick={() => draft.update("qr", null)}>
-                Remove
-              </button>
-            )}
-          </div>
-          {uploading && <p className="website-hint">Uploading... {upload.progress}%</p>}
-          {upload?.error && <p className="website-hint error">{upload.error}</p>}
-          <p className="website-hint">In the GCash app: Receive, then Download QR. Upload that picture here.</p>
-        </div>
-
-        <div className="website-fields">
-          <label className="website-field">
-            Account name
-            <input
-              type="text"
-              value={accountName || ""}
-              maxLength={60}
-              placeholder="As GCash shows it, e.g. JU** D** C."
-              onChange={(event) => draft.update("accountName", event.target.value)}
-            />
-            <em>Customers check this name before they send.</em>
-          </label>
-          <label className="website-field">
-            <span>
-              GCash number <span className="website-optional">(optional)</span>
-            </span>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={number || ""}
-              maxLength={11}
-              placeholder="09XXXXXXXXX"
-              onChange={(event) => draft.update("number", sanitizePhoneInput(event.target.value))}
-            />
-            {numberWarning ? <em className="error">{numberWarning}</em> : <em>Lets customers send without scanning.</em>}
-          </label>
-
-          <div className="website-preview" aria-label="What customers see">
-            <span className="website-preview-label">Customers see</span>
-            <p>
-              Pay to <strong>{accountName?.trim() || "(account name)"}</strong>
-              {number && isValidSmsNumber(number) ? ` · ${formatMobile(number)}` : ""}
-            </p>
+            <div className="website-upload-side">
+              <div className="website-inline-actions">
+                <button type="button" className="website-btn secondary" onClick={() => fileInput.current?.click()} disabled={uploading}>
+                  <i className="bi bi-upload" aria-hidden="true"></i>
+                  {qr ? "Replace QR" : "Upload QR"}
+                </button>
+                {qr && (
+                  <button type="button" className="website-btn ghost" onClick={() => draft.update("qr", null)}>
+                    Remove
+                  </button>
+                )}
+              </div>
+              <input ref={fileInput} type="file" accept={QR_TYPES.join(",")} onChange={pickQr} hidden />
+              {uploading ? (
+                <em>Uploading... {upload.progress}%</em>
+              ) : upload?.error ? (
+                <em className="error">{upload.error}</em>
+              ) : (
+                <em>In the GCash app: Receive, then Download QR. Upload that picture here.</em>
+              )}
+            </div>
           </div>
         </div>
+        <label className="website-field">
+          Account name
+          <input
+            type="text"
+            value={accountName || ""}
+            maxLength={60}
+            placeholder="As GCash shows it, e.g. JU** D** C."
+            onChange={(event) => draft.update("accountName", event.target.value)}
+          />
+          <em>Customers check this name before they send.</em>
+        </label>
+        <label className="website-field">
+          <span>
+            GCash number <span className="website-optional">(optional)</span>
+          </span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={number || ""}
+            maxLength={11}
+            placeholder="09XXXXXXXXX"
+            onChange={(event) => draft.update("number", sanitizePhoneInput(event.target.value))}
+          />
+          {numberWarning ? <em className="error">{numberWarning}</em> : <em>Lets customers send without scanning.</em>}
+        </label>
       </div>
     </SiteCard>
   );

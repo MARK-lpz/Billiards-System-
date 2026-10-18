@@ -22,6 +22,7 @@ export default function Inventory({ products, setProducts, focusProductId = null
     name: "",
     category: "Food",
     expiryDate: "",
+    originalPrice: 0,
     price: 0,
     stock: 0,
     minStock: 10,
@@ -71,14 +72,15 @@ export default function Inventory({ products, setProducts, focusProductId = null
     const cleaned = {
       ...form,
       name: form.name.trim(),
+      originalPrice: Number(form.originalPrice),
       price: Number(form.price),
       stock: Number(form.stock),
       minStock: Number(form.minStock),
     };
     if (editId) {
-      // Only the price is taken from the form: everything else stays as stored,
-      // so a sale or restock made while the form was open is kept.
-      setProducts(prev => prev.map(p => p.id === editId ? { ...p, price: cleaned.price } : p));
+      // Only the two prices are taken from the form: everything else stays as
+      // stored, so a sale or restock made while the form was open is kept.
+      setProducts(prev => prev.map(p => p.id === editId ? { ...p, originalPrice: cleaned.originalPrice, price: cleaned.price } : p));
       addNotification({ message: `${cleaned.name} inventory details updated.` });
     } else {
       // The number comes from the latest list and is set after the form, so a
@@ -127,7 +129,7 @@ export default function Inventory({ products, setProducts, focusProductId = null
   };
 
   const openAddModal = () => {
-    setForm({ name: "", category: "Food", expiryDate: "", price: 0, stock: 0, minStock: 10, unit: "pcs" });
+    setForm({ name: "", category: "Food", expiryDate: "", originalPrice: 0, price: 0, stock: 0, minStock: 10, unit: "pcs" });
     setEditId(null);
     setModal("form");
   };
@@ -197,12 +199,12 @@ export default function Inventory({ products, setProducts, focusProductId = null
       };
     }
 
-    const price = `₱${(Number(product.price) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const toPeso = (value) => `₱${(Number(value) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const expiry = product.expiryDate ? `expires ${formatExpiryDate(product.expiryDate)}` : "no expiry date";
     return {
       title: "Add Product?",
       message: `Add ${name} to inventory as Product #${target.productNumber}?`,
-      detail: `${product.category} · ${price} per piece · ${stock} pcs in stock (low-stock alert at ${Number(product.minStock) || 0} pcs) · ${expiry}. It shows up in the Sales / POS right away. Afterwards only its price can be edited; stock and expiry date change through Restock.`,
+      detail: `${product.category} · bought at ${toPeso(product.originalPrice)}, sold at ${toPeso(product.price)} per piece · ${stock} pcs in stock (low-stock alert at ${Number(product.minStock) || 0} pcs) · ${expiry}. It shows up in the Sales / POS right away at the retail price. Afterwards only its prices can be edited; stock and expiry date change through Restock.`,
       confirmLabel: "Yes, Add Product",
       icon: "bi-plus-circle",
     };

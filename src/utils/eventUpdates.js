@@ -3,9 +3,25 @@ import { getTodayDate } from "./reservations";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const CANCELLED_NOTICE_DAYS = 7;
+// A cancelled tournament is announced on the website for this many days after
+// it was cancelled, or until its own day is over if that comes first.
+export const CANCELLED_NOTICE_DAYS = 3;
 
 export const MAX_EVENT_REASON_LENGTH = 200;
+
+// The game a tournament is played in, named as on the admin's Game Type list.
+const GAME_TYPE_LABELS = {
+  "8-ball": "8-Ball",
+  "9-ball": "9-Ball",
+  "10-ball": "10-Ball",
+  "straight-pool": "Straight Pool",
+  "one-pocket": "One Pocket",
+  "bank-pool": "Bank Pool",
+  rotation: "Rotation",
+  cutthroat: "Cutthroat",
+};
+
+export const gameTypeLabel = (value) => GAME_TYPE_LABELS[String(value || "").toLowerCase()] || String(value || "");
 
 export const formatEventWhen = (date, time) => {
   const day = date ? new Date(`${date}T00:00:00`) : null;
@@ -78,18 +94,36 @@ export const describeDaysAway = (date, now = Date.now()) => {
   return `In ${days} days`;
 };
 
+/**
+ * When a cancelled tournament stops being announced on the website (ms): its
+ * own day's end or CANCELLED_NOTICE_DAYS after it was cancelled, whichever
+ * comes first; null when neither is known.
+ */
+export const getCancelledNoticeEnd = (event) => {
+  const dayEnd = endOfEventDay(event);
+  const cancelledAt = Date.parse(event?.cancelledAt || "");
+  const limits = [dayEnd, Number.isFinite(cancelledAt) ? cancelledAt + CANCELLED_NOTICE_DAYS * DAY_MS : null].filter(
+    (limit) => limit !== null
+  );
+  return limits.length ? Math.min(...limits) : null;
+};
+
+/** Whether the website still announces this cancelled tournament (staff may hide it sooner). */
+export const isCancelledNoticeShowing = (event, now = Date.now()) => {
+  if (statusOf(event) !== "cancelled" || event.noticeHidden) return false;
+  const end = getCancelledNoticeEnd(event);
+  return end !== null && end >= now;
+};
+
 export const getEventNotices = (events = [], now = Date.now()) =>
   events
     .filter((event) => {
       const status = statusOf(event);
-      const isCancelled = status === "cancelled";
-      if (!isCancelled && !(["upcoming", "active"].includes(status) && wasRescheduled(event))) return false;
+      if (status === "cancelled") return isCancelledNoticeShowing(event, now);
+      if (!(["upcoming", "active"].includes(status) && wasRescheduled(event))) return false;
 
       const dayEnd = endOfEventDay(event);
-      if (dayEnd !== null) return dayEnd >= now;
-
-      const cancelledAt = Date.parse(event.cancelledAt || "");
-      return isCancelled && Number.isFinite(cancelledAt) && now - cancelledAt <= CANCELLED_NOTICE_DAYS * DAY_MS;
+      return dayEnd !== null && dayEnd >= now;
     })
     .map((event) => ({ event, type: statusOf(event) === "cancelled" ? "cancelled" : "rescheduled" }))
     .sort((first, second) => String(first.event.date || "9999").localeCompare(String(second.event.date || "9999")));

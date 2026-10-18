@@ -76,7 +76,7 @@
 
 .detail-label {
   font-family: var(--bc-font-body);
-  color: rgba(255,255,255,0.38);
+  color: rgba(255,255,255,0.62);
   font-size: 12px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -140,4 +140,70 @@
   color: rgba(255, 255, 255, 0.58);
   font-size: 0.9rem;
   line-height: 1.6;
+}
+
+
+/* Where a sent booking or sign-up stands, on the page after sending (updates by itself) */
+.request-status {
+  --status: #ffd23f;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 16px 0 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 210, 63, 0.45);
+  border-radius: 12px;
+  background: rgba(255, 210, 63, 0.08);
+  text-align: left;
+}
+
+.request-status > i {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--status);
+  font-size: 1.35rem;
+}
+
+.request-status-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.request-status-kicker {
+  color: #9ba59e;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.request-status-title {
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.request-status p {
+  margin: 4px 0 0;
+  color: #e2e6e0;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.request-status .request-status-note {
+  color: #9ba59e;
+  font-size: 12px;
+}
+
+.request-status.is-approved,
+.request-status.is-done {
+  --status: #4fe06a;
+  border-color: rgba(79, 224, 106, 0.45);
+  background: rgba(79, 224, 106, 0.08);
+}
+
+.request-status.is-declined {
+  --status: #ff6b6d;
+  border-color: rgba(255, 107, 109, 0.45);
+  background: rgba(239, 43, 45, 0.08);
 }

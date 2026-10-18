@@ -72,7 +72,8 @@ export const describePeriod = ({ type, date, month, year, from, to }) => {
 const periodPrefix = ({ type, date, month, year }) =>
   type === "daily" ? date : type === "monthly" ? `${year}-${month}` : String(year);
 
-const inPeriod = (date, period) => {
+/** Whether a day (YYYY-MM-DD) falls in the period; the audit report uses it too. */
+export const inPeriod = (date, period) => {
   if (period.type === "range") return date >= period.from && date <= period.to;
   return date.startsWith(periodPrefix(period));
 };

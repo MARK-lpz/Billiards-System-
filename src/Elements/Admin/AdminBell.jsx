@@ -14,12 +14,13 @@ import {
   getExpiryAlerts,
 } from "../../utils/expiryAlerts";
 import { formatExpiryDate } from "../../utils/inventoryValidation";
+import useRefundsSection from "../Global/useRefundsSection";
 
 // The other notices the admin gets, under the low stock, all added by the server:
 // new online reservations, and an account's password reset by texted code (who,
 // never the password). The front desk's approvals, rejections and cancellations
 // are in the Audit Trail; the admin's own actions are toasts (see NotifContext).
-const OTHER_TYPES = new Set(["general", "online-reservation", "password-reset"]);
+const OTHER_TYPES = new Set(["general", "online-reservation", "password-reset", "login-locked"]);
 const isOtherNotice = (notice) => !notice.type || OTHER_TYPES.has(notice.type);
 
 const describeExpiry = ({ product, days }) => {
@@ -53,23 +54,32 @@ export default function AdminBell({
   onOpenTables,
   onEndSession,
   onOpenReservations,
+  onOpenEvents,
   onOpenAccounts,
+  events = [],
 }) {
   const timeUp = useTimeUpSection({ role: "admin", tables, reservations, onOpenTables, onEndSession });
+  // Website payments to send back: a booking's opens Reservations (its history),
+  // an entry fee the Events page, where each is sent back from.
+  const refunds = useRefundsSection({
+    events,
+    onOpen: (payment) => (payment.kind === "reservation" ? onOpenReservations("history") : onOpenEvents()),
+  });
 
   const lateChecks = getLatePaymentChecks(reservations, now);
   const [seenChecks, markChecksSeen] = useSeenLowStock(lateChecks.map(paymentCheckKey), SEEN_PAYMENT_CHECKS_KEY);
   const isNewCheck = (entry) => !seenChecks.has(paymentCheckKey(entry));
 
   // Opening an other notice: a booking goes to Reservations (on Pending while
-  // its payment still needs checking), a password reset to Accounts, where the
-  // reset history is. Anything else is only marked read.
+  // its payment still needs checking); a password reset, or a sign-in locked
+  // after wrong passwords, to Accounts, where a new password can be set.
+  // Anything else is only marked read.
   const openerOf = (notice) => {
     if (notice.type === "online-reservation") {
       const booking = reservations.find((entry) => String(entry.id) === String(notice.data?.reservationId));
       return () => onOpenReservations(booking?.status === "pending" ? "pending" : "all");
     }
-    return notice.type === "password-reset" ? onOpenAccounts : null;
+    return notice.type === "password-reset" || notice.type === "login-locked" ? onOpenAccounts : null;
   };
 
   const alerts = getLowStock(products);
@@ -84,6 +94,7 @@ export default function AdminBell({
 
   const sections = [
     timeUp.section,
+    refunds.section,
     {
       key: "payment-checks",
       title: "Payment checks",
@@ -180,6 +191,7 @@ export default function AdminBell({
       others={{ title: "Other notices", filter: isOtherNotice, openerOf, empty: "No other notices." }}
       onMarkAllSeen={() => {
         timeUp.markAllSeen();
+        refunds.markAllSeen();
         markChecksSeen(lateChecks.map(paymentCheckKey));
         markSeen(alerts.map(lowStockKey));
         markExpirySeen(expiring.map(expiryAlertKey));

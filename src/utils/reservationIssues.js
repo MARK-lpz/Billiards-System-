@@ -151,12 +151,14 @@ export const getReservationIssues = ({ booking, tables = [], reservations = [], 
   }
 
   if (booking.status === "pending") {
+    // An online booking waits on its GCash payment; a walk-in one only on the desk's yes.
+    const paid = booking.source === "online";
     if (range && range.end <= now) {
       add("error", `Its time (${describeReservationTime(booking)}) passed without approval. Reject it to clear the slot.`);
     } else if (range && range.start <= now) {
-      add("error", `Its time started at ${formatTimeOfDay(range.start)} and it is still not approved. Check the payment now.`);
+      add("error", `Its time started at ${formatTimeOfDay(range.start)} and it is still not approved. ${paid ? "Check the payment now." : "Approve or reject it now."}`);
     } else if (range && booking.date === today && range.start - now <= 60 * 60 * 1000) {
-      add("warning", `Starts at ${formatTimeOfDay(range.start)}. Check the payment before the guest arrives.`);
+      add("warning", `Starts at ${formatTimeOfDay(range.start)}. ${paid ? "Check the payment" : "Approve or reject it"} before the guest arrives.`);
     }
     if (booking.source === "online" && !String(booking.paymentReference || "").trim()) {
       add("warning", "No GCash reference was sent. Find the payment by amount and name.");

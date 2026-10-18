@@ -1,3 +1,4 @@
+import { useState } from "react";
 import "../../styles/Admin/Reservations.css";
 import ReservationFilters from "../../Elements/Admin/ReservationFilters";
 import ReservationHeader from "../../Elements/Admin/ReservationHeader";
@@ -5,6 +6,12 @@ import ReservationModal from "../../Elements/Admin/ReservationModal";
 import ReservationsTable from "../../Elements/Admin/ReservationsTable";
 import useAdminReservations from "../../Elements/Admin/useAdminReservations";
 import Pagination from "../../Elements/Global/Pagination";
+import PaymentReviewModal from "../../Elements/Global/PaymentReviewModal";
+import RefundModal from "../../Elements/Global/RefundModal";
+import { useOnlinePayments } from "../../Elements/Global/useOnlinePayments";
+import { appendAuditLog } from "../../utils/audit";
+import { describeReservationTime } from "../../utils/reservations";
+import { describeRefund, findReservationPayment, formatPayer, formatPeso } from "../../utils/onlinePayments";
 
 // `initialFilter`: the list to open on, e.g. "pending" from the bell's payment checks.
 export default function Reservations({
@@ -30,6 +37,31 @@ export default function Reservations({
     setTableCharges,
     setLogs,
   });
+  // The website's GCash payments: one opened with its receipt, or being sent back
+  // ({ payment, reservation }).
+  const { payments, applySaved } = useOnlinePayments();
+  const [paymentShown, setPaymentShown] = useState(null);
+  const [refundTarget, setRefundTarget] = useState(null);
+  const whatFor = (reservation) =>
+    `${reservation.tableName}, ${reservation.date} (${describeReservationTime(reservation)})`;
+  // Looked up again, so an open window follows the payment as it moves on.
+  const livePayment = (entry) => (entry ? findReservationPayment(payments, entry.reservation.id) || entry.payment : null);
+
+  const finishRefund = (saved) => {
+    const reservation = refundTarget?.reservation;
+    applySaved(saved);
+    appendAuditLog(setLogs, {
+      type: "reservation",
+      staff: "Admin",
+      entity: "reservation",
+      severity: "info",
+      action: "Sent back online payment",
+      detail: `${saved.customerName}'s ${formatPeso(saved.amount)} GCash payment${
+        reservation ? ` for ${whatFor(reservation)}` : ""
+      } went back to ${formatPayer(saved)}. ${describeRefund(saved)}`,
+    });
+    setRefundTarget(null);
+  };
 
   return (
     <div className="reservations-container">
@@ -53,6 +85,9 @@ export default function Reservations({
         reservations={reservationState.filteredReservations}
         onUpdate={reservationState.updateReservation}
         onEdit={reservationState.openEdit}
+        payments={payments}
+        onViewPayment={(payment, reservation) => setPaymentShown({ payment, reservation })}
+        onRefund={(payment, reservation) => setRefundTarget({ payment, reservation })}
         emptyMessage={
           reservationState.search
             ? `No reservations match "${reservationState.search}"`
@@ -70,6 +105,32 @@ export default function Reservations({
         total={reservationState.totalMatches}
         goToPage={reservationState.goToPage}
       />
+
+      {paymentShown && (
+        <PaymentReviewModal
+          key={paymentShown.payment.id}
+          payment={livePayment(paymentShown)}
+          lines={[
+            ["Customer", paymentShown.reservation.customerName],
+            ["Booking", whatFor(paymentShown.reservation)],
+          ]}
+          onRefund={(payment) => {
+            setPaymentShown(null);
+            setRefundTarget({ payment, reservation: paymentShown.reservation });
+          }}
+          onClose={() => setPaymentShown(null)}
+        />
+      )}
+
+      {refundTarget && (
+        <RefundModal
+          key={refundTarget.payment.id}
+          payment={refundTarget.payment}
+          forWhat={whatFor(refundTarget.reservation)}
+          onDone={finishRefund}
+          onClose={() => setRefundTarget(null)}
+        />
+      )}
 
       {reservationState.modal === "form" && (
         <ReservationModal

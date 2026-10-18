@@ -1,6 +1,9 @@
 import { useState } from "react";
 import ConfirmDialog from "../Global/ConfirmDialog";
+import PaymentStatusChip from "../Global/PaymentStatusChip";
+import RefundChoice from "../Global/RefundChoice";
 import { describeReservationTime } from "../../utils/reservations";
+import { findReservationPayment, needsRefundChoice } from "../../utils/onlinePayments";
 
 const HISTORY_STATUSES = new Set(["completed", "rejected", "cancelled", "expired"]);
 
@@ -12,15 +15,26 @@ const getReservationMode = (reservation) => {
   return { label: "Walk-in", icon: "bi-person-walking", className: "reservations-mode-walkin" };
 };
 
-export default function ReservationsTable({ reservations, onUpdate, onEdit, emptyMessage }) {
+// `payments`: the website's GCash payments; `onViewPayment` / `onRefund` open
+// one (with its receipt) or send it back: (payment, reservation).
+export default function ReservationsTable({ reservations, onUpdate, onEdit, emptyMessage, payments = [], onViewPayment, onRefund }) {
   // Cancelling cannot be undone, so the click only arms the confirmation.
   const [cancelTarget, setCancelTarget] = useState(null);
+  // For a cancelled booking whose payment was accepted: "refund" or "keep".
+  const [refundChoice, setRefundChoice] = useState("");
+  const paymentOf = (reservation) =>
+    String(reservation.source || "").toLowerCase() === "online" ? findReservationPayment(payments, reservation.id) : null;
+  const openCancel = (reservation) => {
+    setRefundChoice("");
+    setCancelTarget(reservation);
+  };
 
   // Takes the reservation as an argument rather than reading `cancelTarget` from
   // the closure: the React Compiler narrows a closed-over `cancelTarget.id` into
   // a render-time memo check, which throws while the target is still null.
-  const confirmCancel = (reservation) => {
-    onUpdate(reservation.id, { status: "rejected" });
+  const confirmCancel = (reservation, choice) => {
+    const asked = needsRefundChoice(paymentOf(reservation));
+    onUpdate(reservation.id, { status: "rejected" }, asked ? { refundPayment: choice === "refund" } : {});
     setCancelTarget(null);
   };
 
@@ -53,6 +67,7 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
                 reservations.map(r => {
                   const isHistorical = HISTORY_STATUSES.has(r.status);
                   const mode = getReservationMode(r);
+                  const payment = paymentOf(r);
 
                   return (
                     <tr key={r.id}>
@@ -74,10 +89,27 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
                         <span className={`badge reservations-badge-${r.status}`}>
                           {r.status}
                         </span>
+                        {payment && (
+                          <div className="reservations-pay-status">
+                            <PaymentStatusChip payment={payment} short />
+                          </div>
+                        )}
                       </td>
                       <td className="reservations-notes">{r.notes || "—"}</td>
                       <td>
                         <div className="reservations-actions">
+                          {payment?.status === "refund_due" && (
+                            <button className="btn btn-sm btn-success" onClick={() => onRefund(payment, r)}>
+                              <i className="bi bi-arrow-counterclockwise me-1"></i>
+                              Send Back
+                            </button>
+                          )}
+                          {payment && (
+                            <button className="btn btn-sm btn-outline-info" onClick={() => onViewPayment(payment, r)}>
+                              <i className="bi bi-receipt me-1"></i>
+                              Receipt
+                            </button>
+                          )}
                           {r.status === "pending" && (
                             <>
                               <button
@@ -107,7 +139,7 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
                               </button>
                               <button
                                 className="btn btn-sm btn-danger"
-                                onClick={() => setCancelTarget(r)}
+                                onClick={() => openCancel(r)}
                               >
                                 <i className="bi bi-x-circle me-1"></i>
                                 Cancel
@@ -146,9 +178,12 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
           detail="This cannot be undone. The booking moves to history and has to be created again if the customer still wants it."
           confirmLabel="Yes, Cancel Reservation"
           cancelLabel="Keep Reservation"
-          onConfirm={() => confirmCancel(cancelTarget)}
+          confirmDisabled={needsRefundChoice(paymentOf(cancelTarget)) && !refundChoice}
+          onConfirm={() => confirmCancel(cancelTarget, refundChoice)}
           onClose={() => setCancelTarget(null)}
-        />
+        >
+          <RefundChoice payment={paymentOf(cancelTarget)} value={refundChoice} onChange={setRefundChoice} />
+        </ConfirmDialog>
       )}
     </div>
   );
