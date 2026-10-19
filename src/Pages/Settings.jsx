@@ -5,7 +5,6 @@ import {
   applyBrowserData,
   backupFileName,
   buildBackupFile,
-  collectBrowserData,
   parseBackupFile,
 } from "../utils/backup";
 import { exportServerBackup, restoreServerBackup } from "../utils/backupApi";
@@ -61,11 +60,10 @@ export default function Settings({ theme, setTheme, canManageBackups = false, sh
 
   const credentials = { username, password };
 
-  // Server tables and this browser's records, gathered into one file.
+  // The server's tables, in one file: the server keeps everything now.
   const buildCurrentBackup = async (creds) => {
     const server = await exportServerBackup(creds);
-    const browser = collectBrowserData(localStorage);
-    return buildBackupFile({ server, browser, createdBy: creds.username });
+    return buildBackupFile({ server, createdBy: creds.username });
   };
 
   const handleDownload = async (creds) => {
@@ -200,8 +198,9 @@ export default function Settings({ theme, setTheme, canManageBackups = false, sh
           <div className="settings-backup-note">
             <i className="bi bi-info-circle" aria-hidden="true"></i>
             <span>
-              Inventory, sales, equipment, customers and the audit log are stored in this browser only. Take backups
-              from the computer where that work is done. Staff accounts and passwords are never included.
+              Everything is kept on the server, so a backup from any computer has all of it: bookings, tournaments,
+              tables, equipment, the inventory, sales and the audit log. Staff accounts and passwords are never
+              included.
             </span>
           </div>
 

@@ -13,7 +13,7 @@ export const DEFAULT_SITE_SETTINGS = {
   business: { address: "", mapsUrl: "", phone: "", facebookUrl: "" },
   announcement: { enabled: false, message: "", startDate: "", endDate: "" },
   hours: DEFAULT_RESERVATION_HOURS,
-  // A slide without its own photo uses the site's picture (DEFAULT_SLIDE_PICTURE).
+  // A slide without its own photo shows the table's felt instead (see slidePictureUrl).
   showcase: {
     slides: [
       {
@@ -66,10 +66,8 @@ export const SLIDE_POSITIONS = [
   { value: "right", label: "Right side" },
 ];
 
-export const DEFAULT_SLIDE_PICTURE = "/guest-billiards-hero.png";
-
-/** A slide's photo, or the site's own picture when it has none. */
-export const slidePictureUrl = (slide) => (slide?.image?.path ? eventMediaUrl(slide.image) : DEFAULT_SLIDE_PICTURE);
+/** A slide's photo, or "" when it has none: the slide then shows the felt. */
+export const slidePictureUrl = (slide) => (slide?.image?.path ? eventMediaUrl(slide.image) : "");
 
 /** Every section, what the server sent over the defaults. */
 export const mergeSiteSettings = (settings) =>

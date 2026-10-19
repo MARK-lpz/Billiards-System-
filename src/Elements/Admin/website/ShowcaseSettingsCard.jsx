@@ -53,10 +53,15 @@ const describeSlides = (saved, draft) => {
 
 // How the slide looks on the website, cropped as a computer (2:1) or a phone (4:5) shows it.
 function SlidePreview({ slide, shape }) {
+  const picture = slidePictureUrl(slide);
   return (
     <figure className={`website-slide-shot is-${shape}`}>
       <div className="website-slide-frame">
-        <img src={slidePictureUrl(slide)} alt="" style={{ objectPosition: slide.position }} />
+        {picture ? (
+          <img src={picture} alt="" style={{ objectPosition: slide.position }} />
+        ) : (
+          <div className="website-slide-felt" aria-hidden="true"></div>
+        )}
         <div className="website-slide-caption">
           <strong>{slide.title.trim() || "(title)"}</strong>
           {slide.text.trim() && <span>{slide.text}</span>}
@@ -69,7 +74,7 @@ function SlidePreview({ slide, shape }) {
 
 /**
  * The hall's own slides in the showcase at the top of the home page: a title,
- * a line of text and a photo each (no photo: the site's own picture). Open
+ * a line of text and a photo each (no photo: the table's felt). Open
  * tournaments with a poster get their slides on their own and show first.
  * Photos are made smaller before upload, which also drops the camera's details
  * (such as where it was taken).
@@ -242,7 +247,7 @@ export default function ShowcaseSettingsCard({ setLogs }) {
                         </button>
                         {slide.image && (
                           <button type="button" className="website-btn ghost" onClick={() => updateSlide(slide.id, { image: null })}>
-                            Use the site&apos;s picture
+                            Remove photo
                           </button>
                         )}
                       </div>
@@ -253,7 +258,7 @@ export default function ShowcaseSettingsCard({ setLogs }) {
                       ) : upload?.warning ? (
                         <em className="warning">{upload.warning}</em>
                       ) : (
-                        <em>{slide.image ? "Its own photo." : "None yet: it uses the site's picture."} JPG, PNG or WebP.</em>
+                        <em>{slide.image ? "Its own photo." : "None yet: it shows the green felt."} JPG, PNG or WebP.</em>
                       )}
                     </div>
                     <label className="website-field">

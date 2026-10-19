@@ -342,6 +342,14 @@
   object-fit: cover;
 }
 
+/* A slide with no photo of its own: the table's felt, lit from above */
+.guest-carousel-felt {
+  width: 100%;
+  height: 100%;
+  background-color: #13704a;
+  background-image: radial-gradient(ellipse 70% 65% at 50% 35%, rgba(255, 255, 255, 0.16), transparent 70%), var(--bc-grain);
+}
+
 /* Kept clear of the arrows (15% each side) and the indicators */
 .guest-carousel-caption {
   position: absolute;

@@ -309,7 +309,8 @@ export default function GuestLanding({
               }
 
               // A slide with the hall's own photo keeps it in view: a lighter
-              // shade, and the words at the bottom. The site's picture keeps them centred.
+              // shade, and the words at the bottom. Without one, the felt keeps them centred.
+              const picture = slidePictureUrl(slide);
               return (
                 <div
                   key={slide.key}
@@ -317,7 +318,11 @@ export default function GuestLanding({
                   aria-hidden={!active}
                   inert={!active}
                 >
-                  <img src={slidePictureUrl(slide)} alt="" style={{ objectPosition: slide.position }} />
+                  {picture ? (
+                    <img src={picture} alt="" style={{ objectPosition: slide.position }} />
+                  ) : (
+                    <div className="guest-carousel-felt" aria-hidden="true"></div>
+                  )}
                   <div className="guest-carousel-caption">
                     <p>BREAK &amp; CHILL BILLIARD HALL</p>
                     <Heading>{slide.title}</Heading>

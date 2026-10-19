@@ -1,18 +1,21 @@
 /**
- * The backup file brings together the two places this system keeps data:
+ * The backup file holds what the server keeps in MySQL: bookings, tournaments,
+ * pool tables, equipment, the inventory, sales, table bills, the audit log,
+ * reported issues and the rest (see backend/api/backup.php).
  *
- *  - server: shared tables in MySQL (reservations, tournaments, issues...)
- *  - browser: records that only ever live in this computer's browser storage
- *    (inventory, sales, equipment, customers, audit log). These are the ones
- *    lost when a browser is cleared, so a backup without them is not a backup.
+ * Older versions kept the inventory, sales and the audit log in each browser,
+ * so their backups carry a browser part too. It is still restored into this
+ * browser, and the app then sends whatever the server does not have yet on to
+ * it. New backups have no browser part: everything is on the server.
  *
  * Kept free of React and fetch so it can be checked on its own.
  */
 export const BACKUP_FORMAT = "break-and-chill-backup";
 export const BACKUP_VERSION = 1;
 
-// Business records only. Sessions, the saved theme, notifications, POS carts
-// and anything account or password related are deliberately left out.
+// The browser part of an older backup. Business records only: sessions, the
+// saved theme, notifications, POS carts and anything account or password
+// related were always left out.
 export const BROWSER_SECTIONS = [
   { key: "products", label: "Inventory products" },
   { key: "transactions", label: "Sales transactions" },
@@ -32,6 +35,10 @@ export const SERVER_SECTIONS = [
   { key: "employee_issues", label: "Reported issues" },
   { key: "notifications", label: "Notifications" },
   { key: "customer_messages", label: "Customer messages" },
+  { key: "inventory_items", label: "Inventory products" },
+  { key: "sales_ledger", label: "Sales" },
+  { key: "table_charge_ledger", label: "Table bills" },
+  { key: "audit_ledger", label: "Audit log entries" },
 ];
 
 const countOf = (value) => {
@@ -40,25 +47,7 @@ const countOf = (value) => {
   return value === null || value === undefined ? 0 : 1;
 };
 
-export const collectBrowserData = (storage) => {
-  const browser = {};
-
-  BROWSER_SECTIONS.forEach(({ key }) => {
-    const raw = storage.getItem(key);
-    if (raw === null) return;
-
-    try {
-      browser[key] = JSON.parse(raw);
-    } catch {
-      // A value that is not valid JSON is kept as-is rather than dropped.
-      browser[key] = raw;
-    }
-  });
-
-  return browser;
-};
-
-export const buildBackupFile = ({ server, browser, createdBy, now = new Date() }) => ({
+export const buildBackupFile = ({ server, browser = {}, createdBy, now = new Date() }) => ({
   format: BACKUP_FORMAT,
   version: BACKUP_VERSION,
   createdAt: now.toISOString(),

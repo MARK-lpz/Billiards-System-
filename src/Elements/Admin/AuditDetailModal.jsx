@@ -37,7 +37,7 @@ const buildContextFields = (log) => {
     return [
       {
         label: "Total",
-        value: log.payment?.total ? `â‚±${Number(log.payment.total).toFixed(2)}` : null,
+        value: log.payment?.total ? `₱${Number(log.payment.total).toFixed(2)}` : null,
       },
       { label: "Method", value: log.payment?.method },
       { label: "Reference", value: log.payment?.referenceNumber },

@@ -9,8 +9,8 @@ const sameJson = (first, second) => JSON.stringify(first) === JSON.stringify(sec
 const plainName = (item) => item?.name || (item?.id !== undefined ? `Item ${item.id}` : "An item");
 
 /**
- * Keeps a list the staff screens share (pool tables, equipment, tournaments)
- * in step with the server's copy:
+ * Keeps a list the staff screens share (pool tables, equipment, inventory
+ * products, tournaments) in step with the server's copy:
  * - It reads the server's copy every few seconds and shows it, unless this
  *   screen has changes of its own still to send.
  * - When this screen changes the list (and `canSave`), it sends only the items
@@ -20,6 +20,9 @@ const plainName = (item) => item?.name || (item?.id !== undefined ? `Item ${item
  *   note says why.
  * The very first read of an empty list keeps this screen's own, which is how
  * a new system gets its first tables.
+ * `rebase(before, mine, latest)`, when given, makes a refused change again on
+ * the latest copy instead (a sale's stock taken off the latest count), or
+ * returns null to show the latest with the note.
  */
 export default function useServerList({
   name,
@@ -32,6 +35,8 @@ export default function useServerList({
   canCreate = true,
   canRemove = true,
   describe = plainName,
+  rebase = null,
+  pollMs = POLL_MS,
 }) {
   // The server's copy as last read (id -> JSON), or null until it has been read.
   const snapshot = useRef(null);
@@ -47,14 +52,14 @@ export default function useServerList({
   // Read by the callbacks below; kept current before any of them can run.
   useLayoutEffect(() => {
     listRef.current = list;
-    options.current = { name, setList, fetchList, saveChanges, canSave, canCreate, canRemove, describe };
+    options.current = { name, setList, fetchList, saveChanges, canSave, canCreate, canRemove, describe, rebase };
   });
 
   // Shows the server's copy. Unless `force`, not while this screen still has
   // changes of its own to send. Returns the items shown, or null.
   const showServerCopy = async (force) => {
     const asked = generation.current;
-    const { items, versions: serverVersions } = await options.current.fetchList();
+    const { items, versions: serverVersions, fresh } = await options.current.fetchList();
     if (asked !== generation.current) return null;
     if (saving.current && !force) return null;
 
@@ -64,6 +69,10 @@ export default function useServerList({
       versions.current = {};
       return items;
     }
+    // Nothing was ever saved there (`fresh`): a screen that cannot add items
+    // keeps its own list for the admin's screen to put there, rather than
+    // taking the empty one.
+    if (fresh && !items.length && !options.current.canCreate && listRef.current.length) return null;
     // A screen that saves keeps its unsent changes; one that only reads shows the server's.
     if (!first && !force && options.current.canSave) {
       const { canCreate: mayCreate, canRemove: mayRemove } = options.current;
@@ -99,14 +108,14 @@ export default function useServerList({
     };
 
     poll();
-    const interval = setInterval(poll, POLL_MS);
+    const interval = setInterval(poll, pollMs);
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
     // showServerCopy only reads refs, so the poll restarts only when switched on
     // or off, or when saving is allowed or not (a sign-in or sign-out).
-  }, [enabled, canSave]);
+  }, [enabled, canSave, pollMs]);
 
   useEffect(() => {
     if (!enabled || !canSave || snapshot.current === null || saving.current) return;
@@ -161,7 +170,29 @@ export default function useServerList({
           const latestById = new Map(latest.map((item) => [String(item.id), JSON.stringify(item)]));
           const mine = new Map(changes.upsert.map(({ item }) => [String(item.id), item]));
           // Someone else made the very same change: nothing to tell.
-          const lost = error.conflicts.filter((id) => !mine.has(id) || latestById.get(id) !== JSON.stringify(mine.get(id)));
+          let lost = error.conflicts.filter((id) => !mine.has(id) || latestById.get(id) !== JSON.stringify(mine.get(id)));
+          // Every change in the refused save made again on the latest copy, where it can be.
+          const redo = options.current.rebase;
+          if (redo && lost.length) {
+            const redone = new Map();
+            mine.forEach((item, id) => {
+              const base = before.has(id) ? JSON.parse(before.get(id)) : null;
+              const current = latestById.has(id) ? JSON.parse(latestById.get(id)) : null;
+              const again = redo(base, item, current);
+              if (again) redone.set(id, again);
+            });
+            const removedAgain = new Set(changes.remove.map(({ id }) => id).filter((id) => !error.conflicts.includes(id)));
+            if (redone.size || removedAgain.size) {
+              options.current.setList((current) => {
+                const ids = new Set(current.map((item) => String(item.id)));
+                const added = [...redone.entries()].filter(([id]) => !ids.has(id)).map(([, item]) => item);
+                return [...current.map((item) => redone.get(String(item.id)) || item), ...added].filter(
+                  (item) => !removedAgain.has(String(item.id))
+                );
+              });
+            }
+            lost = lost.filter((id) => !redone.has(id));
+          }
           if (!lost.length) return;
           const names = lost.map((id) => label(mine.get(id) || JSON.parse(before.get(id) || "null")));
           announceSyncNotice({

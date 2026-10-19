@@ -27,14 +27,17 @@ import { SiteSettingsProvider } from './Elements/Global/SiteSettingsProvider'
 import { OnlinePaymentsProvider } from './Elements/Global/OnlinePaymentsProvider'
 import SyncNotices from './Elements/Global/SyncNotices'
 import useServerList from './Elements/Global/useServerList'
+import useServerLedger from './Elements/Global/useServerLedger'
 import { initialReservations } from './utils/reservations'
 
 import { fetchRemoteReservations } from './utils/reservationApi'
 import { fetchReservationSettings, updateReservationSettings } from './utils/reservationSettingsApi'
 import { fetchRemoteTables, saveRemoteTableChanges } from './utils/tableApi'
 import { fetchRemoteEquipment, saveRemoteEquipmentChanges } from './utils/equipmentApi'
-import { createAuditEntry, normalizeAuditLogs } from './utils/audit'
 import { normalizeProductNumbers } from './utils/productNumbers'
+import { fetchRemoteProducts, saveRemoteProductChanges } from './utils/productApi'
+import { auditLedger, salesLedger, tableChargeLedger } from './utils/ledgerApi'
+import { mergeChanges } from './utils/listSync'
 import { TABLE_CHARGES_STORAGE_KEY } from './utils/tableCharges'
 import { applyTableHolds } from './utils/tableHolds'
 import { clearSignedInUser, getAuthToken, getSignedInUser, noteSignInEnded } from './utils/session'
@@ -96,6 +99,28 @@ const PUBLIC_ROUTES = {
 }
 
 const getPublicView = () => "guest"
+
+// The two made-up entries an older version started every browser's audit log with.
+const isSampleLog = (entry) =>
+  (entry?.id === 1 && entry?.detail === 'Successful login from 192.168.1.1') ||
+  (entry?.id === 2 && entry?.detail === 'Transaction #12345 - ₱150.00')
+
+// Reported issues reach the log from the server (api/issues.php), so they are
+// not sent to the audit log as well.
+const isAuditLedgerEntry = (entry) =>
+  Boolean(entry) && !entry.remoteIssue && entry.type !== 'issue' && entry.entity !== 'issue' && !isSampleLog(entry)
+
+// A product change refused because another counter changed it first, made
+// again on the latest copy: a new product is added again, and a sale or a
+// restock moves the latest stock by its own amount.
+const rebaseStock = (before, mine, latest) => {
+  if (!before) return latest ? null : mine
+  return mergeChanges(before, mine, latest, { add: ['stock'] })
+}
+
+const describeSale = (sale) => `The sale at ${sale?.time || 'the counter'}`
+const describeTableCharge = (charge) => `${charge?.tableName || 'A table'}'s bill`
+const describeAuditEntry = (entry) => `The entry "${entry?.action || 'Activity'}"`
 
 const sanitizeEvents = (events) =>
   Array.isArray(events) ? events.filter((event) => !legacyEventIds.has(event?.id)) : initialEvents
@@ -161,15 +186,12 @@ function App() {
   })
 
   const [logs, setLogs] = useState(() => {
-    const initialLogs = [
-      createAuditEntry({ id: 1, timestamp: '2026-04-19T14:32:05+08:00', type: 'auth', staff: 'Admin', action: 'logged in', detail: 'Successful login from 192.168.1.1', entity: 'session' }),
-      { id: 2, time: '14:35:12', type: 'sale', staff: 'Staff A', action: 'processed sale', detail: 'Transaction #12345 - ₱150.00' },
-    ]
     try {
       const stored = localStorage.getItem('activityLogs')
-      return stored ? JSON.parse(stored) : initialLogs
+      const parsed = stored ? JSON.parse(stored) : []
+      return Array.isArray(parsed) ? parsed.filter((entry) => !isSampleLog(entry)) : []
     } catch {
-      return initialLogs
+      return []
     }
   })
 
@@ -299,6 +321,55 @@ function App() {
     saveChanges: saveRemoteEventChanges,
     canSave: adminSignedIn,
     canRemove: false,
+  })
+  // The inventory: a sale or a table's order at any counter changes a product's
+  // stock; only the admin adds, edits or deletes a product.
+  useServerList({
+    name: 'products',
+    list: products,
+    setList: setProducts,
+    fetchList: fetchRemoteProducts,
+    saveChanges: saveRemoteProductChanges,
+    enabled: staffSignedIn,
+    canSave: staffSignedIn,
+    canCreate: adminSignedIn,
+    canRemove: adminSignedIn,
+    rebase: rebaseStock,
+    pollMs: 5000,
+  })
+  // Sales, table bills and the audit log keep growing, so they are read in
+  // steps (useServerLedger.js). Every counter sees every sale and every bill
+  // waiting to be paid; every staff screen adds to the audit log, and only the
+  // admin reads it.
+  useServerLedger({
+    name: 'sales',
+    list: transactions,
+    setList: setTransactions,
+    ...salesLedger,
+    enabled: staffSignedIn,
+    sortKey: (sale) => Number(sale.id),
+    pollMs: 5000,
+    describe: describeSale,
+  })
+  useServerLedger({
+    name: 'table bills',
+    list: tableCharges,
+    setList: setTableCharges,
+    ...tableChargeLedger,
+    enabled: staffSignedIn,
+    describe: describeTableCharge,
+  })
+  useServerLedger({
+    name: 'audit log',
+    list: logs,
+    setList: setLogs,
+    ...auditLedger,
+    enabled: staffSignedIn,
+    canRead: adminSignedIn,
+    include: isAuditLedgerEntry,
+    sortKey: (entry) => Date.parse(entry.timestamp),
+    pollMs: 10000,
+    describe: describeAuditEntry,
   })
 
   // The server ended this tab's sign-in (signed out elsewhere, or idle too
@@ -469,28 +540,12 @@ function App() {
     return () => window.removeEventListener("popstate", handlePopState)
   }, [currentView, isStaffApp])
 
-  // Another tab's copy is taken for what lives only in this browser. Pool tables,
-  // equipment and tournaments are not: they come from the server, so a stale
-  // tab (or another sign-in) can never push its copy through this one.
+  // Another tab's copy is taken for what lives only in this browser. The lists
+  // the server keeps (pool tables, equipment, tournaments, the inventory, sales,
+  // table bills, the audit log) are not, so a stale tab (or another sign-in) can
+  // never push its copy through this one.
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (e.key === 'activityLogs') {
-        try {
-          const nextLogs = e.newValue ? normalizeAuditLogs(JSON.parse(e.newValue)) : []
-          setLogs(nextLogs)
-        } catch (error) {
-          console.warn('Failed to parse activity logs from storage', error)
-        }
-      }
-
-      if (e.key === TABLE_CHARGES_STORAGE_KEY) {
-        try {
-          setTableCharges(e.newValue ? JSON.parse(e.newValue) : [])
-        } catch (error) {
-          console.warn('Failed to parse table charges from storage', error)
-        }
-      }
-
       if (e.key === 'reservations') {
         try {
           const nextReservations = e.newValue ? JSON.parse(e.newValue) : initialReservations
@@ -504,35 +559,15 @@ function App() {
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
-  // Pool tables, equipment and tournaments are not reloaded from this browser:
-  // they come from the server every few seconds.
+  // The lists the server keeps are not reloaded from this browser: they come
+  // from the server every few seconds.
   const handleReload = () => {
     setLoading(true)
-
-    try {
-      const stored = localStorage.getItem('activityLogs')
-      if (stored) setLogs(JSON.parse(stored))
-    } catch (error) { console.warn('Unable to reload activity logs', error) }
-
-    try {
-      const stored = localStorage.getItem('products')
-      if (stored) setProducts(normalizeProductNumbers(JSON.parse(stored)))
-    } catch (error) { console.warn('Unable to reload products', error) }
-
-    try {
-      const stored = localStorage.getItem('transactions')
-      if (stored) setTransactions(JSON.parse(stored))
-    } catch (error) { console.warn('Unable to reload transactions', error) }
 
     try {
       const stored = localStorage.getItem('reservations')
       if (stored) setReservations(JSON.parse(stored))
     } catch (error) { console.warn('Unable to reload reservations', error) }
-
-    try {
-      const stored = localStorage.getItem(TABLE_CHARGES_STORAGE_KEY)
-      if (stored) setTableCharges(JSON.parse(stored))
-    } catch (error) { console.warn('Unable to reload table charges', error) }
 
 
     try {

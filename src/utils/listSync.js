@@ -1,5 +1,5 @@
 // Helpers for the lists the staff screens share through the server (pool
-// tables, equipment, tournaments). The server keeps each item with a version;
+// tables, equipment, inventory products, tournaments). The server keeps each item with a version;
 // a screen sends only what it changed, each item with the version it last saw,
 // so it can never overwrite a list it did not read, nor an item someone else
 // changed in the meantime. See backend/config/collection.php.
@@ -40,6 +40,24 @@ export const diffList = (snapshot, list, versions, { canCreate = true, canRemove
 };
 
 export const hasChanges = (changes) => changes.upsert.length > 0 || changes.remove.length > 0;
+
+/**
+ * One screen's change to an item, made again on the latest copy: each field it
+ * changed takes its value, the rest stay as the latest has them. Fields in
+ * `add` (a stock count) take the difference instead, so two counters selling
+ * the same product at once both take theirs off. Null when the item is gone.
+ */
+export const mergeChanges = (before, mine, latest, { add = [] } = {}) => {
+  if (!before || !mine || !latest) return null;
+  const merged = { ...latest };
+  Object.keys(mine).forEach((key) => {
+    if (JSON.stringify(mine[key]) === JSON.stringify(before[key])) return;
+    merged[key] = add.includes(key)
+      ? Math.max(0, (Number(latest[key]) || 0) + (Number(mine[key]) || 0) - (Number(before[key]) || 0))
+      : mine[key];
+  });
+  return merged;
+};
 
 // Several items removed in one save need confirming to the server (it refuses
 // a mass removal otherwise). Only an explicit delete on screen confirms, by

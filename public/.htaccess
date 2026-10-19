@@ -1,0 +1,51 @@
+# Break & Chill on the hosting. Vite copies this file into dist/, so it is
+# uploaded with the build to both breakandchill.com and app.breakandchill.com.
+
+Options -Indexes
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # One address for everyone: https, and breakandchill.com without "www"
+  # (the customer site's calls to the API only work from that address).
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+  # The API's settings and the customers' GCash receipts are never served
+  # (app.breakandchill.com; their own .htaccess refuses them too).
+  RewriteRule ^(config|Receipts)(/|$) - [F,L]
+
+  # On Hostinger the subdomain's folder is public_html/app, inside the customer
+  # site's folder: the staff app opens only as app.breakandchill.com, never as
+  # breakandchill.com/app/. Checked by the address typed, so app.breakandchill.com
+  # itself is never refused, however the hosting maps it to the folder.
+  RewriteCond %{HTTP_HOST} !^app\. [NC]
+  RewriteCond %{REQUEST_URI} ^/app(/|$) [NC]
+  RewriteRule ^ - [F,L]
+
+  # Files and folders that exist (the build's assets, api/, Media/) as they are.
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # A missing API or media file is a plain 404, not the app.
+  RewriteRule ^(api|Media)/ - [L]
+
+  # Every other address (/login, /tournaments, ...) is the app itself.
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  # index.html is checked again on every visit, so a new upload shows at once;
+  # the files in assets/ have their contents in their names, so they keep.
+  <FilesMatch "^index\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
