@@ -18,6 +18,9 @@ function getDBConnection() {
             DB_USER,
             DB_PASS
         );
+        // Philippine time for NOW() and every saved date, on Laragon and on the
+        // hosting alike (a hosting's MySQL often runs on UTC).
+        $pdo->exec("SET time_zone = '+08:00'");
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         return $pdo;

@@ -3,6 +3,7 @@ require_once '../config/cors.php';
 require_once '../config/database.php';
 require_once '../config/auth.php';
 require_once '../config/collection.php';
+require_once '../config/ledger.php';
 
 /*
  * Whole-system backup and restore for the shared (server) data.
@@ -15,9 +16,12 @@ require_once '../config/collection.php';
  * employee password hashes or sign-ins. Restoring also never touches who can
  * log in.
  *
- * Pool tables and equipment are kept one row per item (pool_table_items,
- * equipment_items; see config/collection.php). Their old one-blob tables are
- * still listed so a backup made before that change restores too.
+ * Pool tables, equipment and inventory products are kept one row per item
+ * (pool_table_items, equipment_items, inventory_items; see
+ * config/collection.php). The old one-blob tables are still listed so a backup
+ * made before that change restores too. Sales, the audit log and table bills
+ * are kept as ledgers (config/ledger.php); after a restore every screen reads
+ * them again from the start.
  */
 const BACKUP_TABLES = [
     'reservations',
@@ -31,17 +35,23 @@ const BACKUP_TABLES = [
     'employee_issues',
     'notifications',
     'customer_messages',
+    'inventory_items',
+    'sales_ledger',
+    'audit_ledger',
+    'table_charge_ledger',
 ];
 
 // Each list kept as rows, and the old table it was moved from.
 const BACKUP_LISTS = [
     'tables' => ['rows' => 'pool_table_items', 'legacy' => 'pool_table_status'],
     'equipment' => ['rows' => 'equipment_items', 'legacy' => 'equipment_status'],
+    'products' => ['rows' => 'inventory_items', 'legacy' => null],
 ];
 
 const BACKUP_FORMAT = 'break-and-chill-backup';
 // 2: pool tables and equipment as rows, and equipment included.
-const BACKUP_VERSION = 2;
+// 3: inventory products, sales, the audit log and table bills included.
+const BACKUP_VERSION = 3;
 
 function respond(int $status, array $body): void
 {
@@ -70,8 +80,11 @@ if ($username === '' || $password === '') {
 $pdo = getDBConnection();
 requireStaff($pdo, ['admin']);
 // The row tables exist (and hold the lists) before anything is read or replaced.
-foreach (['tables', 'equipment', 'events'] as $list) {
+foreach (['tables', 'equipment', 'products', 'events'] as $list) {
     openCollection($pdo, $list);
+}
+foreach (ledgerNames() as $ledger) {
+    openLedger($pdo, $ledger);
 }
 
 // A restore replaces the whole database, so on top of being signed in as the
@@ -183,10 +196,11 @@ if ($action === 'restore') {
         foreach (BACKUP_LISTS as $list => $tables) {
             if (array_key_exists($tables['rows'], $server['tables'])) {
                 $pdo->prepare('INSERT IGNORE INTO sync_collections (name) VALUES (?)')->execute([$list]);
-            } elseif (array_key_exists($tables['legacy'], $server['tables'])) {
+            } elseif ($tables['legacy'] && array_key_exists($tables['legacy'], $server['tables'])) {
                 remigrateCollection($pdo, $list);
             }
         }
+        restartLedgers($pdo);
 
         $pdo->commit();
     } catch (Throwable $error) {

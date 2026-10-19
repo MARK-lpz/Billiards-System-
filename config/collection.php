@@ -1,6 +1,6 @@
 <?php
-// The lists every staff screen shares (pool tables, equipment, tournaments),
-// kept one row per item, each with a version number.
+// The lists every staff screen shares (pool tables, equipment, inventory
+// products, tournaments), kept one row per item, each with a version number.
 //
 // A screen never sends a whole list to replace the stored one. It sends only
 // the items it changed, each with the version it last saw:
@@ -54,6 +54,10 @@ function collectionSpec(string $name): array
         'equipment' => [
             'name' => 'equipment', 'table' => 'equipment_items', 'id' => 'item_id', 'json' => 'item_json',
             'ordered' => true, 'tombstones' => true, 'maxBytes' => 20000, 'label' => 'equipment item',
+        ],
+        'products' => [
+            'name' => 'products', 'table' => 'inventory_items', 'id' => 'item_id', 'json' => 'item_json',
+            'ordered' => true, 'tombstones' => true, 'maxBytes' => 20000, 'label' => 'product',
         ],
         'events' => [
             'name' => 'events', 'table' => 'tournament_events', 'id' => 'id', 'json' => 'event_data',

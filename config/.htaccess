@@ -1,0 +1,9 @@
+# The API's settings and private files (the database login, the SMS key): only
+# the PHP files in api/ read them. The web never serves anything from here.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>
