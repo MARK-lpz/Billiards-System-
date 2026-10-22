@@ -2,6 +2,7 @@ import "../../styles/Guest/Qr/Qrbase.css";
 import "../../styles/Guest/Qr/QrHeader.css";
 import "../../styles/Guest/Qr/QrDisplay.css";
 import "../../styles/Guest/Qr/QrResponsive.css";
+import { SITE_HOST } from "../../utils/siteAddress";
 
 const QR_API = (url, size, theme) => {
   const bg = theme === "light" ? "ffffff" : "07080d";
@@ -9,7 +10,7 @@ const QR_API = (url, size, theme) => {
 };
 
 export default function TournamentQR({ onNavigateToForm, onBackToLogin, theme }) {
-  const url = "https://breakandchill.com/";
+  const url = `https://${SITE_HOST}/`;
   const qrSize = 280;
   const isLight = theme === "light";
 

@@ -1,9 +1,10 @@
 import { apiFetch } from "./apiFetch";
+import { SITE_HOST, APP_API_BASE } from "./siteAddress";
 
 // The website's GCash payments, for signed-in staff (api/payments.php).
 const PAYMENTS_API_URL = import.meta.env.VITE_PAYMENTS_API_URL || (
-  !import.meta.env.DEV && window.location.hostname === "breakandchill.com"
-    ? "https://app.breakandchill.com/api/payments.php"
+  !import.meta.env.DEV && window.location.hostname === SITE_HOST
+    ? `${APP_API_BASE}payments.php`
     : "/api/payments.php"
 );
 

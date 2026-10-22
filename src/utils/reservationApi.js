@@ -1,9 +1,10 @@
 import { findTableReservation } from './reservations';
 import { apiFetch } from "./apiFetch";
+import { SITE_HOST, APP_API_BASE } from "./siteAddress";
 
 const RESERVATION_API_URL = import.meta.env.VITE_RESERVATION_API_URL || (
-  !import.meta.env.DEV && window.location.hostname === 'breakandchill.com'
-    ? 'https://app.breakandchill.com/api/reservations.php'
+  !import.meta.env.DEV && window.location.hostname === SITE_HOST
+    ? `${APP_API_BASE}reservations.php`
     : '/api/reservations.php'
 );
 

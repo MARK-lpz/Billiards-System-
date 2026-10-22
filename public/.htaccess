@@ -1,5 +1,5 @@
 # Break & Chill on the hosting. Vite copies this file into dist/, so it is
-# uploaded with the build to both breakandchill.com and app.breakandchill.com.
+# uploaded with the build to both breakandchill.online and app.breakandchill.online.
 
 Options -Indexes
 DirectoryIndex index.html
@@ -8,7 +8,7 @@ DirectoryIndex index.html
   RewriteEngine On
   RewriteBase /
 
-  # One address for everyone: https, and breakandchill.com without "www"
+  # One address for everyone: https, and breakandchill.online without "www"
   # (the customer site's calls to the API only work from that address).
   RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
   RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
@@ -17,12 +17,12 @@ DirectoryIndex index.html
   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
   # The API's settings and the customers' GCash receipts are never served
-  # (app.breakandchill.com; their own .htaccess refuses them too).
+  # (app.breakandchill.online; their own .htaccess refuses them too).
   RewriteRule ^(config|Receipts)(/|$) - [F,L]
 
   # On Hostinger the subdomain's folder is public_html/app, inside the customer
-  # site's folder: the staff app opens only as app.breakandchill.com, never as
-  # breakandchill.com/app/. Checked by the address typed, so app.breakandchill.com
+  # site's folder: the staff app opens only as app.breakandchill.online, never as
+  # breakandchill.online/app/. Checked by the address typed, so app.breakandchill.online
   # itself is never refused, however the hosting maps it to the folder.
   RewriteCond %{HTTP_HOST} !^app\. [NC]
   RewriteCond %{REQUEST_URI} ^/app(/|$) [NC]
@@ -40,7 +40,15 @@ DirectoryIndex index.html
   RewriteRule ^ index.html [L]
 </IfModule>
 
+# The staff app (app.breakandchill.online) is kept out of Google: its login is
+# what keeps it private, this only keeps it out of the search results.
+# src/main.jsx says the same in the page, in case the hosting skips this.
+<IfModule mod_setenvif.c>
+  SetEnvIfNoCase Host ^app\. STAFF_APP
+</IfModule>
+
 <IfModule mod_headers.c>
+  Header always set X-Robots-Tag "noindex, nofollow" env=STAFF_APP
   # index.html is checked again on every visit, so a new upload shows at once;
   # the files in assets/ have their contents in their names, so they keep.
   <FilesMatch "^index\.html$">

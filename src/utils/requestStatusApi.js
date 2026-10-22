@@ -1,8 +1,9 @@
 import { apiFetch } from "./apiFetch";
+import { SITE_HOST, APP_API_BASE } from "./siteAddress";
 
 const REQUEST_STATUS_API_URL = import.meta.env.VITE_REQUEST_STATUS_API_URL || (
-  !import.meta.env.DEV && window.location.hostname === "breakandchill.com"
-    ? "https://app.breakandchill.com/api/request_status.php"
+  !import.meta.env.DEV && window.location.hostname === SITE_HOST
+    ? `${APP_API_BASE}request_status.php`
     : "/api/request_status.php"
 );
 

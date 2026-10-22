@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { NotificationContext } from './NotificationContext';
 import { apiFetch } from '../../utils/apiFetch';
+import { SITE_HOST, APP_API_BASE } from '../../utils/siteAddress';
 
 const NOTIFICATION_API_URL = import.meta.env.VITE_NOTIFICATION_API_URL || (
-  !import.meta.env.DEV && window.location.hostname === 'breakandchill.com'
-    ? 'https://app.breakandchill.com/api/notifications.php'
+  !import.meta.env.DEV && window.location.hostname === SITE_HOST
+    ? `${APP_API_BASE}notifications.php`
     : '/api/notifications.php'
 );
 

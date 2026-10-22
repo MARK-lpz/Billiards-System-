@@ -1,7 +1,8 @@
 import { apiFetch } from "./apiFetch";
+import { SITE_HOST, APP_API_BASE } from "./siteAddress";
 const ISSUE_API_URL = import.meta.env.VITE_ISSUE_API_URL || (
-  !import.meta.env.DEV && window.location.hostname.endsWith('breakandchill.com')
-    ? 'https://app.breakandchill.com/api/issues.php'
+  !import.meta.env.DEV && window.location.hostname.endsWith(SITE_HOST)
+    ? `${APP_API_BASE}issues.php`
     : '/api/issues.php'
 );
 

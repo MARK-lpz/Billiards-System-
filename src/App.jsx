@@ -45,6 +45,7 @@ import { SESSION_ENDED_EVENT, apiFetch } from './utils/apiFetch'
 import { fetchRemoteIssues } from './utils/issueApi'
 import { isExpiredReport } from './utils/issues'
 import { fetchRemoteEvents, saveRemoteEventChanges } from './utils/eventApi'
+import { isStaffHost } from './utils/siteAddress'
 
 const initialTables = [
   { id: 1, name: 'Table 1', rate: 15, status: 'available', startTime: null, customer: '', durationMinutes: 60, addedMinutes: 0 },
@@ -152,7 +153,7 @@ const issueSyncKey = (issue) => [
   issue?.timestamp || `${issue?.date || ""} ${issue?.time || ""}`,
 ].join("|")
 function App() {
-  const isStaffApp = typeof window !== "undefined" && window.location.hostname === "app.breakandchill.com"
+  const isStaffApp = typeof window !== "undefined" && isStaffHost(window.location.hostname)
   const [currentView, setCurrentView] = useState(() => (
     isStaffApp ? "login" : getPublicView(window.location.pathname)
   ))

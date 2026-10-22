@@ -12,6 +12,8 @@ import Toast from "../../Elements/Global/Toast";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import useClock from "../../Elements/Global/useClock";
 import useStaffShell from "../../Elements/Global/useStaffShell";
+import useMyProfile from "../../Elements/Global/useMyProfile";
+import { ProfileButton } from "../../Elements/Global/ProfileAvatar";
 import AdminTopbar from "../../Elements/Admin/AdminTopbar";
 import { formatHoursLabel, getExtensionBlock, getTodayDate } from "../../utils/reservations";
 
@@ -35,7 +37,7 @@ import Events from "./Events";
 import Equipment from "./Equipment";
 import AccountManagement from "./AccountManagement";
 import AuditTrail from "./AuditTrail";
-import AdminProfile from "./AdminProfile";
+import Profile from "../Profile";
 import Settings from "../Settings";
 import Website from "./Website";
 
@@ -108,6 +110,8 @@ export default function Dashboard({
   const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed, navOpen, setNavOpen, shellClassName } =
     useStaffShell("admin-sidebar-collapsed");
   const now = useClock(30000);
+  // The admin's own profile: the Profile page and the picture in the top bar.
+  const myProfile = useMyProfile();
 
   const currentPage = navItems.find((item) => item.id === activeNav) || extraPages[activeNav] || navItems[0];
 
@@ -265,7 +269,15 @@ export default function Dashboard({
         );
 
       case 'profile':
-        return <AdminProfile />;
+        return (
+          <Profile
+            myProfile={myProfile}
+            setLogs={setLogs}
+            staffLabel="Admin"
+            onOpenAccounts={() => handleNavChange('accounts')}
+            onOpenAuditTrail={() => handleNavChange('audit-trail')}
+          />
+        );
 
       case 'settings':
         return (
@@ -368,7 +380,8 @@ export default function Dashboard({
               onOpenWebsite={(tab) => handleNavChange("website", { nav: "website", tab, key: `website-${Date.now()}` })}
               events={events}
             />
-            <Menu 
+            <ProfileButton profile={myProfile.profile} onOpen={() => handleNavChange('profile')} />
+            <Menu
               onLogout={onLogout}
               onProfile={() => handleNavChange('profile')}
               onSettings={() => handleNavChange('settings')}

@@ -10,7 +10,7 @@
    writes on it in deep green; the light theme uses a deeper emerald under white. */
 
 .dark :is(.account-form .btn-success, .payment-method-btn.active, .process-payment-btn,
-  .profile-form-card .profile-save-btn, .equipment-add-btn, .equipment-actions .btn-success,
+  .equipment-add-btn, .equipment-actions .btn-success,
   .reported-issue-actions .btn-success, .events-add-btn, .events-tab-btn.active, .events-actions .btn-success,
   .inventory-add-btn, .inventory-filter-btn.active, .inventory-actions .btn-success, .pool-tables-add-btn,
   .reports-tab-btn.active, .sales-report-type.active, .reservations-add-btn, .reservations-filter-btn.active,
@@ -22,7 +22,7 @@
 }
 
 .dark :is(.account-form .btn-success, .payment-method-btn.active, .process-payment-btn,
-  .profile-form-card .profile-save-btn, .equipment-add-btn, .equipment-actions .btn-success,
+  .equipment-add-btn, .equipment-actions .btn-success,
   .reported-issue-actions .btn-success, .events-add-btn, .events-tab-btn.active, .events-actions .btn-success,
   .inventory-add-btn, .inventory-filter-btn.active, .inventory-actions .btn-success, .pool-tables-add-btn,
   .reports-tab-btn.active, .sales-report-type.active, .reservations-add-btn, .reservations-filter-btn.active,
@@ -34,7 +34,7 @@
 }
 
 .light :is(.account-form .btn-success, .payment-method-btn.active, .process-payment-btn,
-  .profile-form-card .profile-save-btn, .equipment-add-btn, .equipment-actions .btn-success,
+  .equipment-add-btn, .equipment-actions .btn-success,
   .reported-issue-actions .btn-success, .events-add-btn, .events-tab-btn.active, .events-actions .btn-success,
   .inventory-add-btn, .inventory-filter-btn.active, .inventory-actions .btn-success, .pool-tables-add-btn,
   .reports-tab-btn.active, .sales-report-type.active, .reservations-add-btn, .reservations-filter-btn.active,
@@ -48,7 +48,7 @@
 }
 
 .light :is(.account-form .btn-success, .payment-method-btn.active, .process-payment-btn,
-  .profile-form-card .profile-save-btn, .equipment-add-btn, .equipment-actions .btn-success,
+  .equipment-add-btn, .equipment-actions .btn-success,
   .reported-issue-actions .btn-success, .events-add-btn, .events-tab-btn.active, .events-actions .btn-success,
   .inventory-add-btn, .inventory-filter-btn.active, .inventory-actions .btn-success, .pool-tables-add-btn,
   .reports-tab-btn.active, .sales-report-type.active, .reservations-add-btn, .reservations-filter-btn.active,
@@ -268,7 +268,6 @@
 .light .pos-subtab-btn.active,
 .light .product-price,
 .light .profile-avatar,
-.light .profile-saved,
 .light .qa-badge--available,
 .light .qa-badge--returned,
 .light .qa-status-btn--ready.is-active,

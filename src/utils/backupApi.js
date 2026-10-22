@@ -1,7 +1,8 @@
 import { apiFetch } from "./apiFetch";
+import { SITE_HOST, APP_API_BASE } from "./siteAddress";
 const BACKUP_API_URL = import.meta.env.VITE_BACKUP_API_URL || (
-  !import.meta.env.DEV && window.location.hostname.endsWith("breakandchill.com")
-    ? "https://app.breakandchill.com/api/backup.php"
+  !import.meta.env.DEV && window.location.hostname.endsWith(SITE_HOST)
+    ? `${APP_API_BASE}backup.php`
     : "/api/backup.php"
 );
 

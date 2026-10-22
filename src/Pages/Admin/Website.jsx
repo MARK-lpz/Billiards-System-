@@ -35,7 +35,7 @@ const readTab = (staff, shown) => {
 };
 
 /**
- * Admin > Website: what customers see on breakandchill.com that is not a
+ * Admin > Website: what customers see on breakandchill.online that is not a
  * tournament (Events) or a table (Pool Tables), one section per tab. Every
  * card stays mounted, so changes not saved yet survive a change of tab; the
  * tab shows a dot while its card has them. Saved to the server

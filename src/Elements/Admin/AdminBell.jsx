@@ -18,10 +18,12 @@ import useRefundsSection from "../Global/useRefundsSection";
 
 // The other notices the admin gets, under the low stock, all added by the server:
 // new online reservations, an account's password reset by texted code (who,
-// never the password), and the GCash details changed by an employee. The front
+// never the password), an employee changing their own password or reset number
+// on their Profile, and the GCash details changed by an employee. The front
 // desk's approvals, rejections and cancellations are in the Audit Trail; the
 // admin's own actions are toasts (see NotifContext).
-const OTHER_TYPES = new Set(["general", "online-reservation", "password-reset", "login-locked", "website-gcash"]);
+const OTHER_TYPES = new Set(["general", "online-reservation", "password-reset", "login-locked", "account-change", "website-gcash"]);
+const ACCOUNT_TYPES = new Set(["password-reset", "login-locked", "account-change"]);
 const isOtherNotice = (notice) => !notice.type || OTHER_TYPES.has(notice.type);
 
 const describeExpiry = ({ product, days }) => {
@@ -73,9 +75,10 @@ export default function AdminBell({
   const isNewCheck = (entry) => !seenChecks.has(paymentCheckKey(entry));
 
   // Opening an other notice: a booking goes to Reservations (on Pending while
-  // its payment still needs checking); a password reset, or a sign-in locked
-  // after wrong passwords, to Accounts, where a new password can be set; the
-  // GCash details changed by an employee, to Website on its GCash tab.
+  // its payment still needs checking); a password reset, a sign-in locked
+  // after wrong passwords, or an employee's own password or reset number
+  // changed, to Accounts, where a new password can be set; the GCash details
+  // changed by an employee, to Website on its GCash tab.
   // Anything else is only marked read.
   const openerOf = (notice) => {
     if (notice.type === "online-reservation") {
@@ -83,7 +86,7 @@ export default function AdminBell({
       return () => onOpenReservations(booking?.status === "pending" ? "pending" : "all");
     }
     if (notice.type === "website-gcash") return onOpenWebsite ? () => onOpenWebsite("gcash") : null;
-    return notice.type === "password-reset" || notice.type === "login-locked" ? onOpenAccounts : null;
+    return ACCOUNT_TYPES.has(notice.type) ? onOpenAccounts : null;
   };
 
   const alerts = getLowStock(products);

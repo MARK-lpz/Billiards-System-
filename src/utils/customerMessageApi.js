@@ -1,7 +1,8 @@
 import { apiFetch } from "./apiFetch";
+import { SITE_HOST, APP_API_BASE } from "./siteAddress";
 const MESSAGE_API_URL = import.meta.env.VITE_CUSTOMER_MESSAGE_API_URL || (
-  !import.meta.env.DEV && window.location.hostname.endsWith("breakandchill.com")
-    ? "https://app.breakandchill.com/api/customer_messages.php"
+  !import.meta.env.DEV && window.location.hostname.endsWith(SITE_HOST)
+    ? `${APP_API_BASE}customer_messages.php`
     : "/api/customer_messages.php"
 );
 

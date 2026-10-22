@@ -16,6 +16,7 @@ import useSeenRegistrations from "../../Elements/Employee/useSeenRegistrations";
 import LoadingBar from "../../Elements/Global/Loading";
 import Menu from "../../Elements/Global/Menu";
 import Settings from "../Settings";
+import Profile from "../Profile";
 import TournamentSchedule from "./TournamentSchedule";
 import QuickActions from "./QuickAction";
 import SalesPOS from "./SalesPos";
@@ -29,6 +30,8 @@ import { ENDED_SESSION_FIELDS } from "../../utils/tableCharges";
 import { getCheckInBlock, hasTableReservation } from "../../utils/tableHolds";
 import useClock from "../../Elements/Global/useClock";
 import useStaffShell from "../../Elements/Global/useStaffShell";
+import useMyProfile from "../../Elements/Global/useMyProfile";
+import { ProfileButton } from "../../Elements/Global/ProfileAvatar";
 import EmployeeTopbar from "../../Elements/Employee/EmployeeTopbar";
 import { navItems } from "../../Elements/Employee/employeeNav";
 
@@ -39,6 +42,7 @@ const EMPLOYEE_WEBSITE_SECTIONS = ["gcash", "showcase"];
 
 // Pages the top bar can name that are not in the sidebar.
 const extraPages = {
+  profile: { icon: "bi-person", label: "Profile" },
   settings: { icon: "bi-gear", label: "Settings" },
 };
 
@@ -77,6 +81,8 @@ export default function EmployeeDashboard({
   const { refresh: refreshPayments } = useOnlinePayments();
   const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed, navOpen, setNavOpen, shellClassName } =
     useStaffShell("employee-sidebar-collapsed");
+  // The employee's own profile: the Profile page and the picture in the top bar.
+  const myProfile = useMyProfile();
   // Must match a sidebar nav id, otherwise nothing is highlighted on load and
   // the page header has no entry to read its title from.
   const [activeNav, setActiveNav] = useState("Pool Tables");
@@ -334,6 +340,9 @@ export default function EmployeeDashboard({
       case "settings":
         return <Settings theme={theme} setTheme={setTheme} showHeader={false} />;
 
+      case "profile":
+        return <Profile myProfile={myProfile} setLogs={setLogs} staffLabel="Employee" />;
+
       case "website":
         return (
           <Website
@@ -438,7 +447,6 @@ export default function EmployeeDashboard({
     }
   };
 
-  // Profile has no page of its own here, so it shows the tables like the default.
   const currentPage = navItems.find((item) => item.id === activeNav) || extraPages[activeNav] || navItems[0];
   const moduleSlug = String(currentPage.label).toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
@@ -503,6 +511,7 @@ export default function EmployeeDashboard({
                 handleNavChange("tournaments", { nav: "tournaments", ...player, key: `player-${Date.now()}` })
               }
             />
+            <ProfileButton profile={myProfile.profile} onOpen={() => handleNavChange("profile")} />
             <Menu
               onLogout={onLogout}
               onProfile={() => handleNavChange("profile")}

@@ -1,8 +1,9 @@
 import { apiFetch, refusalError } from "./apiFetch";
+import { SITE_HOST, APP_API_BASE } from "./siteAddress";
 
 const TABLE_API_URL = import.meta.env.VITE_TABLE_API_URL || (
-  !import.meta.env.DEV && window.location.hostname === "breakandchill.com"
-    ? "https://app.breakandchill.com/api/tables.php"
+  !import.meta.env.DEV && window.location.hostname === SITE_HOST
+    ? `${APP_API_BASE}tables.php`
     : "/api/tables.php"
 );
 

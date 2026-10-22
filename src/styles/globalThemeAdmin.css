@@ -950,33 +950,6 @@
 
 
 
-/* Admin Profile */
-.light .profile-card,
-.light .profile-form-card {
-  background: var(--bg-surface);
-  border-color: var(--border);
-}
-
-.light .profile-card h2 { color: var(--text-primary); }
-
-.light .profile-card p,
-.light .profile-card span,
-.light .profile-form-grid label {
-  color: var(--text-muted);
-}
-
-.light .profile-form-grid input {
-  background: var(--bg-subtle);
-  border-color: var(--border-strong);
-  color: var(--text-primary);
-}
-
-.light .profile-form-grid input:focus {
-  border-color: var(--accent);
-}
-
-.light .profile-saved { color: #047857; }
-
 /* Walk-in hours: the modal rule above turns all text black, so the meaning
    colors are set again here. */
 .light .pool-table-ends { color: #047857; border-color: rgba(4, 120, 87, 0.3); background: #ecfdf5; }

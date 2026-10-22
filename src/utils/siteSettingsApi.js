@@ -1,10 +1,11 @@
 import { apiFetch } from "./apiFetch";
+import { SITE_HOST, APP_API_BASE } from "./siteAddress";
 
 // The website's settings (Admin > Website): read by anyone, saved by the staff
 // (an employee only the GCash details and the slides).
 const SITE_SETTINGS_API_URL = import.meta.env.VITE_SITE_SETTINGS_API_URL || (
-  !import.meta.env.DEV && window.location.hostname === "breakandchill.com"
-    ? "https://app.breakandchill.com/api/site_settings.php"
+  !import.meta.env.DEV && window.location.hostname === SITE_HOST
+    ? `${APP_API_BASE}site_settings.php`
     : "/api/site_settings.php"
 );
 

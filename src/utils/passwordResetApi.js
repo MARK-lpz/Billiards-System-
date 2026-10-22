@@ -1,7 +1,8 @@
 import { apiFetch } from "./apiFetch";
+import { SITE_HOST, APP_API_BASE } from "./siteAddress";
 const RESET_API_URL = import.meta.env.VITE_PASSWORD_RESET_API_URL || (
-  !import.meta.env.DEV && window.location.hostname.endsWith("breakandchill.com")
-    ? "https://app.breakandchill.com/api/password_reset.php"
+  !import.meta.env.DEV && window.location.hostname.endsWith(SITE_HOST)
+    ? `${APP_API_BASE}password_reset.php`
     : "/api/password_reset.php"
 );
 

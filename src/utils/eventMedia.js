@@ -6,11 +6,12 @@
  */
 import { SESSION_ENDED_EVENT, apiFetch } from "./apiFetch";
 import { getAuthToken } from "./session";
+import { SITE_HOST, APP_API_BASE } from "./siteAddress";
 
 const EVENT_API_BASE = import.meta.env.VITE_EVENT_API_URL
   ? import.meta.env.VITE_EVENT_API_URL.replace(/[^/]*$/, "")
-  : !import.meta.env.DEV && window.location.hostname.endsWith("breakandchill.com")
-    ? "https://app.breakandchill.com/api/"
+  : !import.meta.env.DEV && window.location.hostname.endsWith(SITE_HOST)
+    ? APP_API_BASE
     : "/api/";
 
 const EVENT_MEDIA_API_URL = `${EVENT_API_BASE}event_media.php`;
