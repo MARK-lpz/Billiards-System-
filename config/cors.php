@@ -1,12 +1,13 @@
 <?php
 // The sites allowed to call this API from a browser. The customer site
-// (breakandchill.com) calls it on app.breakandchill.com; the staff app is on
-// the same address as the API, so it needs no entry. The Vite dev addresses
-// are allowed only when the API itself runs on this computer (Laragon), never
-// on the hosting.
+// (breakandchill.online) calls it on app.breakandchill.online; the staff app is
+// on the same address as the API, so it needs no entry. The frontend has the
+// same address in src/utils/siteAddress.js. The Vite dev addresses (the .com
+// names are for development only, from this computer's hosts file) are allowed
+// only when the API itself runs on this computer (Laragon), never on the hosting.
 $allowedOrigins = [
-    'https://breakandchill.com',
-    'https://app.breakandchill.com',
+    'https://breakandchill.online',
+    'https://app.breakandchill.online',
 ];
 $apiHost = strtolower(preg_replace('/:\d+$/', '', (string) ($_SERVER['HTTP_HOST'] ?? '')));
 if (in_array($apiHost, ['localhost', '127.0.0.1'], true)) {
