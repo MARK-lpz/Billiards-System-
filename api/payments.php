@@ -3,6 +3,7 @@ require_once '../config/cors.php';
 require_once '../config/database.php';
 require_once '../config/auth.php';
 require_once '../config/online_payments.php';
+require_once '../config/online_sales.php';
 require_once '../config/customer_texts.php';
 
 // The website's GCash payments, for signed-in staff only (see
@@ -11,12 +12,15 @@ require_once '../config/customer_texts.php';
 //   GET ?receipt=<id>        one payment's receipt screenshot
 //   GET ?reference=<digits>  whether a GCash reference was used already
 //   GET ?day=<Y-m-d>         that day's GCash in and out, for the GCash check
+//   GET ?missingSales=1      the admin's: money the hall kept that is not in the
+//                            sales yet (see config/online_sales.php)
 //   POST action "counter"    GCash paid at the counter (Sales / POS, or a
 //                            table's checkout), found in the hall's GCash app
 //   POST action "accept"     a tournament entry fee was found: keep it
 //   POST action "reject"     a tournament entry fee was not found: the player
 //                            is taken off the tournament and it is sent back
 //   POST action "refunded"   a payment was sent back (by GCash or in cash)
+//   POST action "addMissingSales"  the admin's: adds those sales
 // A reservation's payment follows its booking instead (api/reservations.php).
 
 function respond($status, $body) {
@@ -68,6 +72,11 @@ if ($method === 'GET' && isset($_GET['day'])) {
     respond(200, ['success' => true, 'day' => $day] + listGcashDay($pdo, $day));
 }
 
+if ($method === 'GET' && isset($_GET['missingSales'])) {
+    requireStaff($pdo, ['admin']);
+    respond(200, ['success' => true] + summarizeMissingSales(findMissingOnlineSales($pdo)));
+}
+
 if ($method === 'GET') {
     cleanupOldReceipts($pdo);
     respond(200, ['success' => true, 'payments' => listPaymentsForStaff($pdo)]);
@@ -95,8 +104,14 @@ try {
 
     if ($action === 'refunded') {
         $payment = markPaymentRefunded($pdo, $id, (string) ($data['method'] ?? ''), (string) ($data['refundReference'] ?? ''), $by);
+        saleSafely(fn() => recordOnlineRefundSale($pdo, $payment, $staff));
         textSafely(fn() => textRefundSent($pdo, $payment));
         respond(200, ['success' => true, 'payment' => $payment]);
+    }
+
+    if ($action === 'addMissingSales') {
+        $staff = requireStaff($pdo, ['admin']);
+        respond(200, ['success' => true, 'added' => addMissingOnlineSales($pdo, $staff)]);
     }
 
     if ($action !== 'accept' && $action !== 'reject') {
@@ -137,6 +152,7 @@ try {
     movePayment($pdo, $id, 'held', $action === 'accept' ? 'accepted' : 'refund_due', $by);
     $pdo->commit();
     $saved = readPayment($pdo, $id);
+    saleSafely(fn() => recordOnlineSale($pdo, $saved, $staff));
     textSafely(fn() => textTournamentDecision($pdo, $saved, $action === 'accept' ? 'accepted' : 'rejected'));
     respond(200, ['success' => true, 'payment' => $saved, 'event' => $event, 'version' => $version]);
 } catch (PaymentRefusal $refusal) {

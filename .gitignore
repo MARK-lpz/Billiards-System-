@@ -8,6 +8,10 @@ Media/
 # config/sms.local.example.php.
 config/sms.local.php
 
+# The real Gmail app password for the password reset email. Never commit it:
+# this repo is public. See config/mail.local.example.php.
+config/mail.local.php
+
 # The real database login (host, name, user, password), on each computer and on
 # the hosting. Never commit it: this repo is public. See
 # config/database.local.example.php.

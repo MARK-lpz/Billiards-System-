@@ -17,9 +17,11 @@
  *
  * While SMS is not set up, or a cap is reached, the text is kept as "queued"
  * and nothing is sent. A text never stops what it is about: callers wrap it
- * in textSafely().
+ * in textSafely(). A website booking with an email also gets each of its
+ * texts by email (config/customer_emails.php).
  */
 require_once __DIR__ . '/sms.php';
+require_once __DIR__ . '/customer_emails.php';
 
 // Caps on real texts, so a script hammering an endpoint cannot run up the SMS
 // bill or flood someone's phone. Texts over the cap are still kept.
@@ -169,7 +171,7 @@ function refundLine(?array $payment): string
 function textReservationDecision(PDO $pdo, string $reservationId, string $nextStatus, ?array $payment): void
 {
     $stmt = $pdo->prepare(
-        'SELECT id, customer_name, phone, reservation_date, TIME_FORMAT(reservation_time, "%H:%i") AS start_clock,
+        'SELECT id, customer_name, phone, email, reservation_date, TIME_FORMAT(reservation_time, "%H:%i") AS start_clock,
                 duration_minutes, table_id, table_name, source
          FROM reservations WHERE id = ? LIMIT 1'
     );
@@ -199,6 +201,7 @@ function textReservationDecision(PDO $pdo, string $reservationId, string $nextSt
     }
 
     queueCustomerText($pdo, (string) $row['phone'], $name, $context, (string) $row['id'], $text);
+    textSafely(fn() => queueCustomerEmail($pdo, (string) $row['email'], $name, $context, (string) $row['id'], $text));
 }
 
 /**
@@ -234,6 +237,7 @@ function textTournamentDecision(PDO $pdo, array $payment, string $what): void
     }
 
     queueCustomerText($pdo, (string) $payment['phone'], $name, "tournament-$what", (string) $payment['id'], $text);
+    textSafely(fn() => queueCustomerEmail($pdo, (string) ($payment['email'] ?? ''), $name, "tournament-$what", (string) $payment['id'], $text));
 }
 
 /** A payment was sent back by GCash: tells the customer, with the refund's reference. Cash is handed over at the hall. */
@@ -245,4 +249,7 @@ function textRefundSent(PDO $pdo, array $payment): void
     $text = "Hi $name, Break & Chill sent back your GCash " . textPeso((float) $payment['amount'])
         . ($to !== '' ? " to $to" : '') . ' (ref ' . $payment['refundReference'] . ').';
     queueCustomerText($pdo, (string) $payment['phone'], $name, 'refund-sent', (string) $payment['id'], $text);
+    // A booking keeps its email on the booking (staff may correct it there); a sign-up on its payment.
+    $email = $payment['kind'] === 'reservation' ? reservationEmail($pdo, (string) $payment['refId']) : (string) ($payment['email'] ?? '');
+    textSafely(fn() => queueCustomerEmail($pdo, $email, $name, 'refund-sent', (string) $payment['id'], $text));
 }

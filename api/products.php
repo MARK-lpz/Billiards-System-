@@ -5,9 +5,12 @@ require_once '../config/auth.php';
 require_once '../config/collection.php';
 
 // The inventory: each product, its price and its stock, shared by every staff
-// screen (see config/collection.php). Only the admin adds, edits or deletes a
-// product; a sale or a table's order at any counter changes only its stock.
-// The website never reads it.
+// screen (see config/collection.php). Only the admin adds, edits, archives or
+// deletes a product; a sale or a table's order at any counter changes only its
+// stock. The website never reads it.
+
+// The most pieces of one product the admin can stock (frontend: MAX_STOCK).
+const PRODUCT_MAX_STOCK = 1000;
 
 function cleanProduct($product) {
     if (!is_array($product)) return 'Each product must be an object.';
@@ -24,6 +27,22 @@ function cleanProduct($product) {
 function onlyStockChanged(array $stored, array $item): bool {
     unset($stored['stock'], $item['stock']);
     return $stored == $item;
+}
+
+// The first product the admin is adding or restocking past PRODUCT_MAX_STOCK,
+// or null. Stock already above it (from before the limit) may still go down.
+function productOverMaxStock(PDO $pdo, array $upserts): ?array {
+    $read = $pdo->prepare('SELECT item_json FROM inventory_items WHERE item_id = ? AND deleted_at IS NULL');
+    foreach ($upserts as $change) {
+        $item = is_array($change) ? ($change['item'] ?? null) : null;
+        if (!is_array($item) || !is_numeric($item['stock'] ?? null) || $item['stock'] <= PRODUCT_MAX_STOCK) continue;
+        if (!is_scalar($item['id'] ?? null)) continue;
+        $read->execute([trim((string) $item['id'])]);
+        $stored = json_decode((string) $read->fetchColumn(), true);
+        $before = is_array($stored) && is_numeric($stored['stock'] ?? null) ? (float) $stored['stock'] : 0;
+        if ((float) $item['stock'] > $before) return $item;
+    }
+    return null;
 }
 
 $pdo = getDBConnection();
@@ -70,6 +89,16 @@ if ($method === 'PUT') {
                 echo json_encode(['success' => false, 'code' => 'not-allowed', 'message' => "Only the admin can change a product's details."]);
                 exit();
             }
+        }
+    }
+
+    if ($staff['role'] === 'admin' && is_array($payload['upsert'] ?? null)) {
+        $over = productOverMaxStock($pdo, $payload['upsert']);
+        if ($over) {
+            http_response_code(400);
+            $name = is_scalar($over['name'] ?? null) ? trim((string) $over['name']) : 'A product';
+            echo json_encode(['success' => false, 'code' => 'invalid', 'message' => "$name can have at most " . PRODUCT_MAX_STOCK . ' pcs in stock.']);
+            exit();
         }
     }
 

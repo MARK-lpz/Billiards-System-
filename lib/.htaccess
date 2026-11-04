@@ -1,0 +1,9 @@
+# Code the API loads (PHPMailer, for the password reset email): only the PHP
+# files in api/ use it. The web never serves anything from here.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>

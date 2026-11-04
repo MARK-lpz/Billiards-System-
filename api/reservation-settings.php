@@ -2,32 +2,17 @@
 require_once '../config/cors.php';
 require_once '../config/database.php';
 require_once '../config/auth.php';
+require_once '../config/reservation_settings.php';
 
-function ensureReservationSettingsTable($pdo) {
-    $pdo->exec(
-        "CREATE TABLE IF NOT EXISTS reservation_settings (
-            id TINYINT UNSIGNED PRIMARY KEY,
-            online_reservations_open TINYINT(1) NOT NULL DEFAULT 1,
-            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-    );
+// The Online reservations switch (see config/reservation_settings.php).
+//   GET  -> { settings }: anyone; signed-in staff also get the note and who changed it.
+//   PUT  { onlineReservationsOpen: true }
+//   PUT  { onlineReservationsOpen: false, reason, note, until }  (staff)
 
-    $stmt = $pdo->prepare(
-        'INSERT IGNORE INTO reservation_settings (id, online_reservations_open) VALUES (1, 1)'
-    );
-    $stmt->execute();
-}
-
-function reservationSettingsResponse($pdo) {
-    $stmt = $pdo->query(
-        'SELECT online_reservations_open, updated_at FROM reservation_settings WHERE id = 1'
-    );
-    $settings = $stmt->fetch();
-
-    return [
-        'onlineReservationsOpen' => (bool) ($settings['online_reservations_open'] ?? true),
-        'updatedAt' => $settings['updated_at'] ?? null,
-    ];
+function refuseSwitch($status, $message) {
+    http_response_code($status);
+    echo json_encode(['success' => false, 'message' => $message]);
+    exit();
 }
 
 $pdo = getDBConnection();
@@ -35,44 +20,68 @@ ensureReservationSettingsTable($pdo);
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    echo json_encode(['success' => true, 'settings' => reservationSettingsResponse($pdo)]);
+    echo json_encode(['success' => true, 'settings' => reservationSettingsResponse($pdo, currentStaff($pdo) !== null)]);
     exit();
 }
 
-// Opened and closed from the Website page, the admin's or the employee's.
-requireStaff($pdo, ['admin', 'employee']);
+// Opened and closed from Content Management, the admin's or the employee's.
+$staff = requireStaff($pdo, ['admin', 'employee']);
 
-if ($method !== 'PUT') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-    exit();
-}
+if ($method !== 'PUT') refuseSwitch(405, 'Method not allowed');
 
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 if (!array_key_exists('onlineReservationsOpen', $data)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Online reservation availability is required']);
-    exit();
+    refuseSwitch(400, 'Online reservation availability is required');
 }
 
-$onlineReservationsOpen = filter_var(
-    $data['onlineReservationsOpen'],
-    FILTER_VALIDATE_BOOLEAN,
-    FILTER_NULL_ON_FAILURE
-);
+$open = filter_var($data['onlineReservationsOpen'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+if ($open === null) refuseSwitch(400, 'Online reservation availability must be true or false');
 
-if ($onlineReservationsOpen === null) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Online reservation availability must be true or false']);
-    exit();
+if ($open) {
+    if (hallIsClosedNow($pdo)) {
+        refuseSwitch(409, 'The hall is closed now. Online reservations can be opened from ' . hallOpeningLabel($pdo) . '.');
+    }
+    $pdo->prepare(
+        'UPDATE reservation_settings
+         SET online_reservations_open = 1, closed_reason = NULL, closed_note = NULL, closed_until = NULL,
+             changed_by = ?, changed_role = ?, changed_at = NOW()
+         WHERE id = 1'
+    )->execute([$staff['username'], $staff['role']]);
+    tellAdminOfBookingSwitch($pdo, $staff, "{$staff['username']} (employee) opened online reservations again.");
+} else {
+    $reason = (string) ($data['reason'] ?? '');
+    $note = trim(preg_replace('/\s+/', ' ', (string) ($data['note'] ?? '')));
+    $choice = (string) ($data['until'] ?? '');
+
+    if (!array_key_exists($reason, ONLINE_CLOSE_REASONS)) refuseSwitch(400, 'Choose why online reservations are closing.');
+    if (mb_strlen($note) > ONLINE_CLOSE_NOTE_MAX) {
+        refuseSwitch(400, 'Keep the note to ' . ONLINE_CLOSE_NOTE_MAX . ' characters or fewer.');
+    }
+    if ($reason === 'other' && $note === '') refuseSwitch(400, 'Say why in the note.');
+    if (!in_array($choice, ONLINE_CLOSE_UNTIL, true)) refuseSwitch(400, 'Choose how long online reservations stay closed.');
+    $until = onlineCloseUntil($pdo, $choice);
+    if ($until === false) refuseSwitch(400, 'Closing time today has passed. Choose another option.');
+
+    $pdo->prepare(
+        'UPDATE reservation_settings
+         SET online_reservations_open = 0, closed_reason = ?, closed_note = ?, closed_until = ?,
+             changed_by = ?, changed_role = ?, changed_at = NOW()
+         WHERE id = 1'
+    )->execute([
+        $reason,
+        $note === '' ? null : $note,
+        $until ? $until->format('Y-m-d H:i:s') : null,
+        $staff['username'],
+        $staff['role'],
+    ]);
+
+    tellAdminOfBookingSwitch(
+        $pdo,
+        $staff,
+        "{$staff['username']} (employee) closed online reservations: " . ONLINE_CLOSE_REASONS[$reason]
+            . ($note !== '' ? " (\"$note\")" : '')
+            . ($until ? '. They open again at ' . onlineCloseTimeLabel($until) . '.' : '. They stay closed until someone opens them again.')
+    );
 }
 
-$stmt = $pdo->prepare(
-    'UPDATE reservation_settings
-     SET online_reservations_open = ?
-     WHERE id = 1'
-);
-$stmt->execute([(int) $onlineReservationsOpen]);
-
-echo json_encode(['success' => true, 'settings' => reservationSettingsResponse($pdo)]);
-?>
+echo json_encode(['success' => true, 'settings' => reservationSettingsResponse($pdo, true)]);

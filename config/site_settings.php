@@ -1,18 +1,19 @@
 <?php
 /*
  * What the admin sets for the website (Admin > Website): the GCash account
- * customers pay into, the hall's address and contacts, an announcement, the
- * opening hours, and the home page's words and pictures (the showcase slides,
- * the booking steps and the footer line). Kept in site_settings, one row per
+ * customers pay into, the hall's About us words, address and contacts, an
+ * announcement, the opening hours, and the home page's words and pictures (the
+ * showcase slides, the booking steps and the footer line). Kept in site_settings, one row per
  * section. A section never saved reads as its default, which is how the site
- * was before. The employee's Website page changes two of them: the GCash
- * details and the slides.
+ * was before. The employee's Website page changes one of them, the slides; it
+ * shows the GCash details too, but only the admin changes them.
  */
 require_once __DIR__ . '/media.php';
 
-const SITE_SETTING_SECTIONS = ['gcash', 'business', 'announcement', 'hours', 'showcase', 'bookingSteps', 'footer'];
-// What an employee may save; the rest is the admin's.
-const SITE_EMPLOYEE_SECTIONS = ['gcash', 'showcase'];
+const SITE_SETTING_SECTIONS = ['gcash', 'about', 'business', 'announcement', 'hours', 'showcase', 'bookingSteps', 'footer'];
+// What an employee may save; the rest is the admin's (the GCash account
+// customers pay into included).
+const SITE_EMPLOYEE_SECTIONS = ['showcase'];
 const SITE_ANNOUNCEMENT_MAX = 200;
 
 // The showcase's own slides (open tournaments get theirs on their own, first).
@@ -30,11 +31,22 @@ const SITE_STEP_TEXT_MAX = 160;
 
 const SITE_FOOTER_MAX = 80;
 
+// About us on the home page: a heading and a few short paragraphs about the hall.
+const SITE_ABOUT_HEADING_MAX = 60;
+const SITE_ABOUT_TEXT_MAX = 700;
+const SITE_ABOUT_PARAGRAPHS_MAX = 4;
+
 function siteSettingDefaults() {
     return [
         'gcash' => ['accountName' => '', 'number' => '', 'qr' => null],
+        'about' => [
+            'heading' => 'More than a game.',
+            'text' => "Break & Chill Billiard Hall is a place for casual games, serious practice and friendly tournaments.\n\n"
+                . 'Come with friends, bring your team, or walk in for a quick game: the tables are kept ready, and the front desk is here to help.',
+        ],
         'business' => ['address' => '', 'mapsUrl' => '', 'phone' => '', 'facebookUrl' => ''],
-        'announcement' => ['enabled' => false, 'message' => '', 'startDate' => '', 'endDate' => ''],
+        // The picture (optional) shows beside the announcements on the home page.
+        'announcement' => ['enabled' => false, 'message' => '', 'startDate' => '', 'endDate' => '', 'image' => null],
         'hours' => ['open' => '10:00', 'close' => '22:00'],
         // No photo: the slide uses the site's own picture.
         'showcase' => ['slides' => [
@@ -101,16 +113,7 @@ function readSiteSettingSavers($pdo) {
     return $savers;
 }
 
-/** "QR picture, account name": the GCash details that differ between two saves. */
-function gcashChanges($before, $after) {
-    $changed = [];
-    if (($before['qr']['path'] ?? null) !== ($after['qr']['path'] ?? null)) $changed[] = 'QR picture';
-    if (trim((string) ($before['accountName'] ?? '')) !== trim((string) ($after['accountName'] ?? ''))) $changed[] = 'account name';
-    if ((string) ($before['number'] ?? '') !== (string) ($after['number'] ?? '')) $changed[] = 'GCash number';
-    return $changed;
-}
-
-/** The QR or slide picture is in the Media folder (uploaded through event_media.php). */
+/** The QR, slide or announcement picture is in the Media folder (uploaded through event_media.php). */
 function siteMediaFileExists($path) {
     return is_string($path)
         && preg_match('#^' . preg_quote(MEDIA_PATH_PREFIX, '#') . '(' . MEDIA_FILE_PATTERN . ')$#', $path, $match)
@@ -127,7 +130,7 @@ function gcashIsReady($settings) {
 /** The Media files the settings use, so the clean-up of unused uploads keeps them. */
 function siteSettingMediaFiles($pdo) {
     $settings = readSiteSettings($pdo);
-    $paths = [$settings['gcash']['qr']['path'] ?? ''];
+    $paths = [$settings['gcash']['qr']['path'] ?? '', $settings['announcement']['image']['path'] ?? ''];
     foreach ((is_array($settings['showcase']['slides'] ?? null) ? $settings['showcase']['slides'] : []) as $slide) {
         $paths[] = is_array($slide) ? ($slide['image']['path'] ?? '') : '';
     }
@@ -152,7 +155,7 @@ function siteClockLabel($time) {
 }
 
 /**
- * Why a website booking falls outside the opening hours, or '' when it fits:
+ * Why a booking falls outside the opening hours, or '' when it fits:
  * it starts at or after opening and ends by closing, on the same day.
  */
 function bookingHoursError($booking, $hours) {
@@ -169,6 +172,21 @@ function bookingHoursError($booking, $hours) {
 function cleanSiteText($value, $limit) {
     $text = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', (string) ($value ?? '')) ?? '');
     return function_exists('mb_substr') ? mb_substr($text, 0, $limit) : substr($text, 0, $limit);
+}
+
+// A few short paragraphs: each line cleaned like cleanSiteText, blank lines
+// between paragraphs kept (one each), at most $paragraphs of them, trimmed to $limit.
+function cleanSiteParagraphs($value, $limit, $paragraphs) {
+    $text = str_replace(["\r\n", "\r"], "\n", (string) ($value ?? ''));
+    $blocks = preg_split('/\n\s*\n/', $text) ?: [];
+    $clean = [];
+    foreach ($blocks as $block) {
+        $line = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $block) ?? '');
+        $line = preg_replace('/ {2,}/', ' ', $line) ?? $line;
+        if ($line !== '') $clean[] = $line;
+    }
+    $joined = implode("\n\n", array_slice($clean, 0, $paragraphs));
+    return function_exists('mb_substr') ? mb_substr($joined, 0, $limit) : substr($joined, 0, $limit);
 }
 
 // 09XXXXXXXXX from 09..., 639... or +639...; '' when it is not a PH mobile number.
@@ -219,6 +237,14 @@ function cleanSiteSection($section, $values) {
         ], ''];
     }
 
+    if ($section === 'about') {
+        $heading = cleanSiteText($values['heading'] ?? '', SITE_ABOUT_HEADING_MAX);
+        $text = cleanSiteParagraphs($values['text'] ?? '', SITE_ABOUT_TEXT_MAX, SITE_ABOUT_PARAGRAPHS_MAX);
+        if ($heading === '') return [null, 'Write the heading of About us.'];
+        if ($text === '') return [null, 'Write a few lines about the hall.'];
+        return [['heading' => $heading, 'text' => $text], ''];
+    }
+
     if ($section === 'business') {
         $address = cleanSiteText($values['address'] ?? '', 200);
         $mapsUrl = trim((string) ($values['mapsUrl'] ?? ''));
@@ -246,7 +272,17 @@ function cleanSiteSection($section, $values) {
             if ($date !== '' && !isSiteDate($date)) return [null, 'Pick the dates from the calendar.'];
         }
         if ($startDate !== '' && $endDate !== '' && $endDate < $startDate) return [null, 'The last day cannot be before the first day.'];
-        return [['enabled' => $enabled, 'message' => $message, 'startDate' => $startDate, 'endDate' => $endDate], ''];
+        $path = is_array($values['image'] ?? null) ? ($values['image']['path'] ?? null) : null;
+        if ($path !== null && $path !== '' && !siteMediaFileExists($path)) {
+            return [null, 'The picture was not found. Please upload it again (JPG, PNG or WebP).'];
+        }
+        return [[
+            'enabled' => $enabled,
+            'message' => $message,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'image' => $path ? ['path' => $path, 'type' => 'image'] : null,
+        ], ''];
     }
 
     if ($section === 'hours') {

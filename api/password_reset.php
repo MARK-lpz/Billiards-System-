@@ -3,6 +3,7 @@ require_once '../config/cors.php';
 require_once '../config/database.php';
 require_once '../config/auth.php';
 require_once '../config/sms.php';
+require_once '../config/mail.php';
 require_once '../config/notices.php';
 
 const RESET_CODE_MINUTES = 10;
@@ -31,7 +32,7 @@ function ensureResetTables(PDO $pdo): void
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
     );
 
-    // Only a hash of each texted code is kept, never the code itself.
+    // Only a hash of each code sent is kept, never the code itself.
     $pdo->exec(
         "CREATE TABLE IF NOT EXISTS password_reset_codes (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -47,30 +48,83 @@ function ensureResetTables(PDO $pdo): void
 }
 
 /**
- * Finds the account only when username, role and registered mobile number all
- * match. Every mismatch gets the same reply, so this cannot be used to find
- * out which usernames or numbers exist.
+ * The ways a code can be sent, in the order the login screen offers them:
+ * "email" (the hall's Gmail, config/mail.php) and "sms" (Semaphore).
  */
-function findVerifiedUser(PDO $pdo, string $username, string $role, string $mobile): ?array
+function resetChannels(): array
 {
-    $stmt = $pdo->prepare('SELECT id, username, role, phone FROM users WHERE username = ? LIMIT 1');
+    $channels = [];
+    if (mailIsConfigured()) {
+        $channels[] = 'email';
+    }
+    if (smsIsConfigured()) {
+        $channels[] = 'sms';
+    }
+    return $channels;
+}
+
+/**
+ * Finds the staff account (admin or employee: the form does not ask which)
+ * only when the username and the registered email or mobile number (`$contact`,
+ * by `$channel`) both match. Every mismatch gets the same reply, so this cannot
+ * be used to find out which usernames, addresses or numbers exist, or whose
+ * account is the admin's. An archived account never matches: it cannot sign in,
+ * so there is no password of its to reset.
+ */
+function findVerifiedUser(PDO $pdo, string $username, string $channel, string $contact): ?array
+{
+    ensureAccountStatusColumns($pdo);
+    $stmt = $pdo->prepare('SELECT id, username, role, phone, email, archived_at FROM users WHERE username = ? LIMIT 1');
     $stmt->execute([$username]);
     $user = $stmt->fetch();
+    if (!$user) {
+        return null;
+    }
 
-    $matches = $user
-        && strtolower((string) $user['role']) === $role
-        && $mobile !== ''
-        && normalizeMobileNumber((string) $user['phone']) === $mobile;
+    $registered = $channel === 'email'
+        ? normalizeEmail((string) ($user['email'] ?? ''))
+        : normalizeMobileNumber((string) $user['phone']);
+    $matches = in_array(strtolower((string) $user['role']), ['admin', 'employee'], true)
+        && $user['archived_at'] === null
+        && $contact !== ''
+        && $registered === $contact;
 
     return $matches ? $user : null;
 }
 
-function identityFailure(string $role): void
+function identityFailure(string $channel): void
 {
     respond(401, [
         'success' => false,
-        'message' => "That username and mobile number do not match an $role account.",
+        'message' => $channel === 'email'
+            ? 'That username and email do not match a staff account.'
+            : 'That username and mobile number do not match a staff account.',
     ]);
+}
+
+// "ju•••@gmail.com", for the reply once the code is on its way.
+function maskEmail(string $email): string
+{
+    [$name, $domain] = explode('@', $email, 2);
+    return mb_substr($name, 0, 2) . '•••@' . $domain;
+}
+
+// The email's HTML: the code large, then how long it lasts. Inline styles
+// only, as mail apps ignore style sheets.
+function resetCodeEmailHtml(string $username, string $code): string
+{
+    $name = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
+    $minutes = RESET_CODE_MINUTES;
+    return <<<HTML
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#1f2937">
+  <h2 style="margin:0 0 4px;font-size:20px;color:#001233">Break &amp; Chill Billiard Hall</h2>
+  <p style="margin:0 0 20px;color:#6b7280;font-size:14px">Password reset</p>
+  <p style="font-size:15px">Hi {$name}, here is your code to reset your password:</p>
+  <p style="margin:20px 0;padding:14px;border-radius:10px;background:#f3f4f6;text-align:center;font-size:32px;font-weight:bold;letter-spacing:8px;color:#001233">{$code}</p>
+  <p style="font-size:14px">It expires in {$minutes} minutes. Do not share this code with anyone, not even the staff.</p>
+  <p style="font-size:13px;color:#6b7280">If you did not ask to reset your password, ignore this email: your password stays the same.</p>
+</div>
+HTML;
 }
 
 $pdo = getDBConnection();
@@ -80,7 +134,8 @@ $method = $_SERVER['REQUEST_METHOD'];
 if ($method === 'GET') {
     // Tells the login screen whether reset is available at all.
     if (isset($_GET['mode'])) {
-        respond(200, ['success' => true, 'mode' => smsIsConfigured() ? 'sms-code' : 'disabled']);
+        $channels = resetChannels();
+        respond(200, ['success' => true, 'mode' => $channels ? 'code' : 'disabled', 'channels' => $channels]);
     }
 
     // Admin reads the history: who reset, and when. Never a password.
@@ -101,27 +156,40 @@ if ($method !== 'POST') {
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 $action = (string) ($data['action'] ?? 'reset');
 $username = trim((string) ($data['username'] ?? ''));
-$role = ($data['role'] ?? 'employee') === 'admin' ? 'admin' : 'employee';
-$mobile = normalizeMobileNumber((string) ($data['phone'] ?? ''));
+// By email (to the account's registered address) or by text (to its number);
+// a page from before email codes sends no channel, only a phone.
+$channel = ($data['channel'] ?? 'sms') === 'email' ? 'email' : 'sms';
+$byEmail = $channel === 'email';
+$contact = $byEmail
+    ? normalizeEmail((string) ($data['email'] ?? ''))
+    : normalizeMobileNumber((string) ($data['phone'] ?? ''));
 
-if ($username === '' || $mobile === '') {
+if ($username === '' || $contact === '') {
     respond(400, [
         'success' => false,
-        'message' => 'Enter your username and your registered mobile number in 09XXXXXXXXX format.',
+        'message' => $byEmail
+            ? 'Enter your username and the email address saved in your Profile.'
+            : 'Enter your username and your registered mobile number in 09XXXXXXXXX format.',
+    ]);
+}
+
+// Knowing a username and an address or number is not proof of identity: they
+// are easy for coworkers to learn. Reset only ever happens with the code sent
+// there, so a way that is not set up is switched off rather than left open.
+if (!in_array($channel, resetChannels(), true)) {
+    respond(409, [
+        'success' => false,
+        'message' => $byEmail ? 'Codes by email are not switched on yet.' : 'Text message codes are not switched on yet.',
     ]);
 }
 
 if ($action === 'send-code') {
-    if (!smsIsConfigured()) {
-        respond(409, ['success' => false, 'message' => 'Text message codes are not switched on yet.']);
-    }
-
-    $user = findVerifiedUser($pdo, $username, $role, $mobile);
+    $user = findVerifiedUser($pdo, $username, $channel, $contact);
     if (!$user) {
-        identityFailure($role);
+        identityFailure($channel);
     }
 
-    // Limits keep one person from flooding a phone or running up the SMS bill.
+    // Limits keep one person from flooding an inbox or phone, or running up the SMS bill.
     $recent = $pdo->prepare(
         'SELECT
             SUM(created_at > NOW() - INTERVAL ' . RESET_CODE_RESEND_SECONDS . ' SECOND) AS lastMinute,
@@ -152,15 +220,32 @@ if ($action === 'send-code') {
     $message = "Break & Chill: Your password reset code is $code. It expires in " . RESET_CODE_MINUTES
         . ' minutes. Do not share this code with anyone.';
 
-    if (!sendSms($mobile, $message)) {
+    $sent = $byEmail
+        ? sendMail(
+            $contact,
+            "Your Break & Chill password reset code: $code",
+            "Hi {$user['username']},\n\n$message\n\nIf you did not ask to reset your password, ignore this email:"
+                . " your password stays the same.\n\nBreak & Chill Billiard Hall",
+            resetCodeEmailHtml((string) $user['username'], $code)
+        )
+        : sendSms($contact, $message);
+
+    if (!$sent) {
         // A code that never arrived must not count against the limits.
         $pdo->prepare('DELETE FROM password_reset_codes WHERE id = ?')->execute([$codeId]);
-        respond(502, ['success' => false, 'message' => 'The text message could not be sent right now. Please try again.']);
+        respond(502, [
+            'success' => false,
+            'message' => $byEmail
+                ? 'The email could not be sent right now. Please try again.'
+                : 'The text message could not be sent right now. Please try again.',
+        ]);
     }
 
     respond(200, [
         'success' => true,
-        'message' => 'A 6-digit code was sent to your mobile number.',
+        'message' => $byEmail
+            ? 'A 6-digit code was sent to ' . maskEmail($contact) . '.'
+            : 'A 6-digit code was sent to your mobile number.',
         'expiresInMinutes' => RESET_CODE_MINUTES,
     ]);
 }
@@ -169,26 +254,22 @@ if ($action !== 'reset') {
     respond(400, ['success' => false, 'message' => 'Unknown password reset action.']);
 }
 
-// Knowing a username and mobile number is not proof of identity: both are easy
-// for coworkers to learn. Reset only ever happens with the texted code, so
-// without an SMS provider it is switched off rather than left open.
-if (!smsIsConfigured()) {
-    respond(403, ['success' => false, 'message' => 'Password reset by text message is not switched on yet.']);
-}
-
 $newPassword = (string) ($data['newPassword'] ?? '');
 if (mb_strlen($newPassword) < PASSWORD_MIN_LENGTH) {
     respond(400, ['success' => false, 'message' => 'Password must be at least ' . PASSWORD_MIN_LENGTH . ' characters.']);
 }
 
-$user = findVerifiedUser($pdo, $username, $role, $mobile);
+$user = findVerifiedUser($pdo, $username, $channel, $contact);
 if (!$user) {
-    identityFailure($role);
+    identityFailure($channel);
 }
 
 $code = preg_replace('/\D/', '', (string) ($data['code'] ?? ''));
 if (strlen($code) !== 6) {
-    respond(400, ['success' => false, 'message' => 'Enter the 6-digit code from the text message.']);
+    respond(400, [
+        'success' => false,
+        'message' => $byEmail ? 'Enter the 6-digit code from the email.' : 'Enter the 6-digit code from the text message.',
+    ]);
 }
 
 $stmt = $pdo->prepare(
@@ -239,8 +320,9 @@ try {
         $pdo,
         'password-reset-' . $logId,
         'password-reset',
-        "{$user['username']} ({$user['role']}) reset their own password with a code texted to their registered number.",
-        ['username' => $user['username'], 'role' => $user['role']],
+        "{$user['username']} ({$user['role']}) reset their own password with a code "
+            . ($byEmail ? 'emailed to their registered email.' : 'texted to their registered number.'),
+        ['username' => $user['username'], 'role' => $user['role'], 'channel' => $channel],
         ['admin']
     );
 } catch (Throwable $error) {

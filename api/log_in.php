@@ -3,6 +3,7 @@ require_once '../config/cors.php';
 require_once '../config/database.php';
 require_once '../config/auth.php';
 require_once '../config/notices.php';
+require_once '../config/preferences.php';
 
 $pdo = getDBConnection();
 
@@ -51,6 +52,7 @@ foreach ($profileColumns as $column => $sql) {
         $pdo->exec($sql);
     }
 }
+ensureAccountStatusColumns($pdo);
 
 // Locked after too many wrong passwords (config/auth.php): refused without
 // checking this one, so guessing gets nowhere until the lock is over.
@@ -61,7 +63,7 @@ if ($waitMinutes > 0) {
     exit();
 }
 
-$stmt = $pdo->prepare("SELECT id, username, role, email, full_name, phone, password FROM users WHERE username = ?");
+$stmt = $pdo->prepare("SELECT id, username, role, email, full_name, phone, password, archived_at FROM users WHERE username = ?");
 $stmt->execute([$username]);
 $user = $stmt->fetch();
 if ($user) {
@@ -110,7 +112,26 @@ if (!$passwordOk) {
     exit();
 }
 
+// An archived account (Accounts) cannot sign in. Said only after the right
+// password, so no one else learns that the name exists.
+if ($user['archived_at'] !== null) {
+    http_response_code(403);
+    echo json_encode(["success" => false, "code" => "archived", "message" => "This account is archived. Ask the admin to restore it."]);
+    exit();
+}
+
 clearSignInFailures($pdo, $username);
+// For the admin's Accounts list: when each account last signed in.
+$pdo->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([$user['id']]);
+
+// The account's own theme and first page, applied as the panel opens. Signing in
+// never fails over them: without them the panel simply uses its defaults.
+try {
+    $preferences = readStaffPreferences($pdo, (int) $user['id']);
+} catch (Throwable $error) {
+    error_log('Reading preferences failed: ' . $error->getMessage());
+    $preferences = [];
+}
 
 echo json_encode([
     "success" => true,
@@ -123,7 +144,8 @@ echo json_encode([
         "role"     => $user['role'],
         "email"    => $user['email'],
         "full_name" => $user['full_name'],
-        "phone"    => $user['phone']
+        "phone"    => $user['phone'],
+        "preferences" => (object) $preferences
     ]
 ]);
 ?>

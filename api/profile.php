@@ -4,6 +4,7 @@ require_once '../config/database.php';
 require_once '../config/auth.php';
 require_once '../config/ledger.php';
 require_once '../config/notices.php';
+require_once '../config/preferences.php';
 
 // The signed-in staff member's own Profile page, admin and employee alike: their
 // details, their picture and what they did lately, never anyone else's. The
@@ -11,12 +12,15 @@ require_once '../config/notices.php';
 //
 //   GET                                                   -> { profile }
 //   POST { action: "details", fullName, email, phone, currentPassword }
-//   POST { action: "password", currentPassword, newPassword }
+//   POST { action: "password", currentPassword, newPassword }   (the admin only)
 //   POST { action: "photo", photo: "data:image/webp;base64,..." | null }
+//   POST { action: "preferences", preferences: { theme?, density? } }
 //
-// A new mobile number (where password reset codes are texted) or a new password
-// needs the current password first, so a screen left signed in cannot be used to
-// take the account over. Wrong passwords count toward the same lock as signing in.
+// An employee's password is the admin's to change, in Accounts (or their own,
+// with a code, by Forgot password on the sign-in page). A new mobile number
+// (where password reset codes are texted) or the admin's new password needs the
+// current password first, so a screen left signed in cannot be used to take the
+// account over. Wrong passwords count toward the same lock as signing in.
 // Pictures are kept in staff_photos, beside the accounts; like the accounts, they
 // are not in backups (see api/backup.php).
 
@@ -96,6 +100,8 @@ function profileOf(PDO $pdo, int $userId): array
         'phone' => (string) ($user['phone'] ?? ''),
         'memberSince' => $user['created_at'] ?? null,
         'photo' => $photo->fetchColumn() ?: null,
+        // An object even when empty, so the panel can read it the same way.
+        'preferences' => (object) readStaffPreferences($pdo, $userId),
         'activity' => recentActivity($pdo, (string) $user['username'], strtolower((string) $user['role'])),
     ];
 }
@@ -207,6 +213,9 @@ if ($action === 'details') {
 }
 
 if ($action === 'password') {
+    if ($staff['role'] !== 'admin') {
+        refuse(403, 'Only the admin can change your password. Ask the admin, or use Forgot password on the sign-in page.');
+    }
     $current = (string) ($data['currentPassword'] ?? '');
     $new = (string) ($data['newPassword'] ?? '');
     if (mb_strlen($new) < PASSWORD_MIN_LENGTH) {
@@ -236,6 +245,17 @@ if ($action === 'photo') {
              ON DUPLICATE KEY UPDATE photo = VALUES(photo)'
         )->execute([$staff['id'], readPhotoDataUrl($photo)]);
     }
+    sendProfile($pdo, $staff['id']);
+}
+
+// Changed from Settings; only what was sent changes.
+if ($action === 'preferences') {
+    $sent = $data['preferences'] ?? null;
+    $clean = cleanStaffPreferences($sent);
+    if (!is_array($sent) || !$clean || count($clean) !== count($sent)) {
+        refuse(400, 'These preferences could not be saved.');
+    }
+    saveStaffPreferences($pdo, $staff['id'], $clean);
     sendProfile($pdo, $staff['id']);
 }
 

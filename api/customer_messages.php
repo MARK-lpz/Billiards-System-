@@ -59,7 +59,7 @@ if ($method === 'POST') {
 
     if ($context === 'reservation') {
         $stmt = $pdo->prepare(
-            'SELECT id, customer_name, phone, reservation_date, reservation_time, duration_minutes, table_id,
+            'SELECT id, customer_name, phone, email, source, reservation_date, reservation_time, duration_minutes, table_id,
                     payment_reference, payment_amount
              FROM reservations WHERE id = ? LIMIT 1'
         );
@@ -122,6 +122,21 @@ if ($method === 'POST') {
     // One confirmation per booking or per player per tournament: sending
     // again returns the first one instead of texting twice.
     $confirmation = queueCustomerText($pdo, $phone, $customerName, $context, $referenceId, $text);
+
+    // The same confirmation by email, when one was given: a website booking's
+    // is on the booking, a player's comes with this request (like the number).
+    if ($confirmation) {
+        $emailTo = $context === 'reservation'
+            ? ($record['source'] === 'online' ? (string) $record['email'] : '')
+            : (string) ($data['email'] ?? '');
+        $emailed = null;
+        if ($emailTo !== '') {
+            textSafely(function () use ($pdo, $emailTo, $customerName, $context, $referenceId, $text, &$emailed) {
+                $emailed = queueCustomerEmail($pdo, $emailTo, $customerName, $context, $referenceId, $text);
+            });
+        }
+        $confirmation['emailStatus'] = $emailed['status'] ?? null;
+    }
 
     echo json_encode(['success' => true, 'confirmation' => $confirmation]);
     exit();

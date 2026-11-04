@@ -121,6 +121,38 @@ function endAuthSession(PDO $pdo): void
     $pdo->prepare('DELETE FROM auth_sessions WHERE token_hash = ?')->execute([hash('sha256', $token)]);
 }
 
+// Signs an account out everywhere: archived, deleted, or given a new password by
+// the admin. $keepThisTab keeps the tab that asked (the admin changing their own
+// password stays signed in where they did it).
+function endUserSessions(PDO $pdo, int $userId, bool $keepThisTab = false): void
+{
+    ensureAuthSessions($pdo);
+    $pdo->prepare('DELETE FROM auth_sessions WHERE user_id = ? AND token_hash <> ?')
+        ->execute([$userId, $keepThisTab ? hash('sha256', readAuthToken()) : '']);
+}
+
+// ---------------------------------------------------------------- account status
+
+// An archived account (Accounts, api/users.php) keeps its name and its history,
+// but cannot sign in or reset its password. last_login_at is when it last signed
+// in, for the admin's list.
+function ensureAccountStatusColumns(PDO $pdo): void
+{
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+
+    $columns = [
+        'archived_at' => 'ALTER TABLE users ADD COLUMN archived_at DATETIME NULL',
+        'last_login_at' => 'ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL',
+    ];
+    foreach ($columns as $column => $sql) {
+        $stmt = $pdo->prepare('SHOW COLUMNS FROM users LIKE ?');
+        $stmt->execute([$column]);
+        if (!$stmt->fetch()) $pdo->exec($sql);
+    }
+}
+
 // ---------------------------------------------------------------- passwords
 
 // Passwords are kept with password_hash (bcrypt). Accounts made before were

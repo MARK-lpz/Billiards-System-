@@ -6,8 +6,10 @@ require_once '../config/collection.php';
 require_once '../config/notices.php';
 require_once '../config/site_settings.php';
 require_once '../config/online_payments.php';
+require_once '../config/online_sales.php';
 require_once '../config/customer_texts.php';
 require_once '../config/website_requests.php';
+require_once '../config/reservation_settings.php';
 
 function readJsonBody() {
     return json_decode(file_get_contents('php://input'), true) ?: [];
@@ -47,11 +49,13 @@ function ensureReservationsTable($pdo) {
         $pdo->exec('ALTER TABLE reservations MODIFY table_id BIGINT NOT NULL');
     }
 
-    // Payment details for online GCash reservations.
+    // Payment details: a website booking's GCash, or what was taken at the desk.
+    // payment_refund says how a desk booking's payment was given back (cash or gcash).
     foreach ([
         'payment_method' => "ALTER TABLE reservations ADD COLUMN payment_method VARCHAR(20) NULL",
         'payment_reference' => "ALTER TABLE reservations ADD COLUMN payment_reference VARCHAR(40) NULL",
         'payment_amount' => "ALTER TABLE reservations ADD COLUMN payment_amount DECIMAL(10,2) NOT NULL DEFAULT 0",
+        'payment_refund' => "ALTER TABLE reservations ADD COLUMN payment_refund VARCHAR(10) NULL",
     ] as $column => $sql) {
         $paymentColumnStmt = $pdo->prepare(
             "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
@@ -73,21 +77,6 @@ function ensureReservationsTable($pdo) {
     }
 }
 
-function ensureReservationSettingsTable($pdo) {
-    $pdo->exec(
-        "CREATE TABLE IF NOT EXISTS reservation_settings (
-            id TINYINT UNSIGNED PRIMARY KEY,
-            online_reservations_open TINYINT(1) NOT NULL DEFAULT 1,
-            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-    );
-
-    $stmt = $pdo->prepare(
-        'INSERT IGNORE INTO reservation_settings (id, online_reservations_open) VALUES (1, 1)'
-    );
-    $stmt->execute();
-}
-
 function ensureTournamentEventsTable($pdo) {
     $pdo->exec(
         "CREATE TABLE IF NOT EXISTS tournament_events (
@@ -97,15 +86,6 @@ function ensureTournamentEventsTable($pdo) {
             INDEX tournament_events_updated_at (updated_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
     );
-}
-
-function onlineReservationsAreOpen($pdo) {
-    $stmt = $pdo->query(
-        'SELECT online_reservations_open FROM reservation_settings WHERE id = 1'
-    );
-    $setting = $stmt->fetchColumn();
-
-    return $setting === false || (bool) $setting;
 }
 
 function normalizeDateValue($value) {
@@ -297,6 +277,84 @@ function getTournamentReservationConflict($pdo, $reservation) {
     return null;
 }
 
+// What a booking costs at its table's own rate, never the request's; 0 when the
+// table has no rate, null when it is no longer in the list.
+function bookingAmount($pdo, $tableId, $minutes) {
+    foreach (readCollection($pdo, openCollection($pdo, 'tables'))['items'] as $table) {
+        if ((int) ($table['id'] ?? 0) === (int) $tableId) {
+            return round((float) ($table['rate'] ?? 0) * $minutes / 60, 2);
+        }
+    }
+    return null;
+}
+
+// A booking made at the hall is paid first, in full: whole hours inside the
+// opening hours, cash or GCash, for what the table costs. The amount staff
+// collected is checked against the server's, so a rate changed meanwhile is
+// noticed before the booking stands. Leaves the method and reference clean.
+function checkDeskBooking($pdo, array &$data, $hours) {
+    if (!in_array($data['paymentMethod'], ['cash', 'gcash'], true)) {
+        throw new PaymentRefusal(400, 'Take the payment first: choose cash or GCash.');
+    }
+    if ($data['durationMinutes'] < 60 || $data['durationMinutes'] % 60 !== 0) {
+        throw new PaymentRefusal(400, 'A booking is for whole hours, at least 1.');
+    }
+    $hoursError = bookingHoursError($data, $hours);
+    if ($hoursError !== '') throw new PaymentRefusal(400, $hoursError);
+
+    $amount = bookingAmount($pdo, $data['tableId'], $data['durationMinutes']);
+    if ($amount === null) throw new PaymentRefusal(409, 'That table is no longer in the list. Please choose another table.');
+    if ($amount <= 0) throw new PaymentRefusal(409, "{$data['tableName']} has no rate yet. Set its rate in Pool Tables first.");
+    if (abs($amount - $data['paymentAmount']) >= 0.01) {
+        throw new PaymentRefusal(409, "{$data['tableName']} now costs ₱" . number_format($amount, 2) . ' for this booking. Check the total, then take the payment again.');
+    }
+
+    if ($data['paymentMethod'] === 'cash') {
+        $data['paymentReference'] = '';
+        return;
+    }
+    $data['paymentReference'] = cleanPaymentReference($data['paymentReference']);
+    if ($data['paymentReference'] === '') {
+        throw new PaymentRefusal(400, 'The GCash reference must be ' . PAYMENT_REFERENCE_MIN . ' to ' . PAYMENT_REFERENCE_MAX . ' digits.');
+    }
+}
+
+// How a cancelled desk booking's payment goes back: { method, reference, paidBy },
+// or null when there is nothing to give back here (a website booking's payment
+// follows its booking in config/online_payments.php).
+function readDeskRefund($pdo, $reservationId, array $body) {
+    $stmt = $pdo->prepare('SELECT source, payment_method, payment_amount, payment_refund FROM reservations WHERE id = ?');
+    $stmt->execute([$reservationId]);
+    $stored = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$stored || $stored['source'] === 'online' || (float) $stored['payment_amount'] <= 0) return null;
+    if ($stored['payment_refund'] !== null) throw new PaymentRefusal(409, 'This payment was already given back.');
+
+    $method = (string) ($body['refundMethod'] ?? '');
+    if ($method === 'cash') return ['method' => 'cash', 'reference' => '', 'paidBy' => $stored['payment_method']];
+    if ($method !== 'gcash' || $stored['payment_method'] !== 'gcash') {
+        throw new PaymentRefusal(400, 'Say how the payment was given back.');
+    }
+    $reference = cleanPaymentReference($body['refundReference'] ?? '');
+    if ($reference === '') {
+        throw new PaymentRefusal(400, 'Type the reference number of the GCash refund (' . PAYMENT_REFERENCE_MIN . ' to ' . PAYMENT_REFERENCE_MAX . ' digits).');
+    }
+    return ['method' => 'gcash', 'reference' => $reference, 'paidBy' => 'gcash'];
+}
+
+// Runs inside the caller's transaction. GCash taken at the desk is marked sent
+// back too, so the day's GCash check shows what left the hall's account.
+function applyDeskRefund($pdo, $reservationId, array $refund, $by) {
+    $pdo->prepare('UPDATE reservations SET payment_refund = ? WHERE id = ?')->execute([$refund['method'], $reservationId]);
+    if ($refund['paidBy'] !== 'gcash') return;
+
+    $stmt = $pdo->prepare("SELECT id FROM online_payments WHERE kind = 'pos' AND ref_id = ? LIMIT 1");
+    $stmt->execute(['reservation-' . $reservationId]);
+    $paymentId = $stmt->fetchColumn();
+    if ($paymentId === false) return;
+    movePayment($pdo, $paymentId, 'accepted', 'refund_due', $by);
+    markPaymentRefunded($pdo, $paymentId, $refund['method'], $refund['reference'], $by);
+}
+
 $pdo = getDBConnection();
 ensureReservationsTable($pdo);
 ensureReservationSettingsTable($pdo);
@@ -339,7 +397,7 @@ if ($method === 'GET') {
                 duration_minutes AS durationMinutes,
                 table_id AS tableId, table_name AS tableName, notes, status, source,
                 payment_method AS paymentMethod, payment_reference AS paymentReference,
-                payment_amount AS paymentAmount,
+                payment_amount AS paymentAmount, payment_refund AS paymentRefund,
                 requested_at AS requestedAt,
                 UNIX_TIMESTAMP(requested_at) * 1000 AS requestedAtMs
          FROM reservations ORDER BY requested_at DESC'
@@ -382,6 +440,16 @@ if ($method === 'POST' && $data['source'] === 'online' && !onlineReservationsAre
     exit();
 }
 
+if ($method === 'POST' && $data['source'] === 'online' && hallIsClosedNow($pdo)) {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Break & Chill is closed now. Online reservations open again at ' . hallOpeningLabel($pdo) . '.'
+            . ' If you already sent a GCash payment, please contact the hall with its reference number.',
+    ]);
+    exit();
+}
+
 // The website's own booking rules, kept here too since the form can be skipped:
 // it is paid by GCash, so only once the admin has set the GCash account
 // (Admin > Website), and it must fit the opening hours.
@@ -397,6 +465,17 @@ if ($method === 'POST' && !$staff) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => $hoursError]);
         exit();
+    }
+
+    // Optional: when given, the booking's updates are emailed too (config/customer_emails.php).
+    if ($data['email'] !== '') {
+        $email = normalizeEmail($data['email']);
+        if ($email === '' || strlen($email) > 120) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Check your email address, or leave it blank.']);
+            exit();
+        }
+        $data['email'] = $email;
     }
 
     // The payment: its reference, the GCash number it came from (where it goes
@@ -420,13 +499,21 @@ if ($method === 'POST' && !$staff) {
     }
 
     // What the booking costs, from the table's own rate rather than the request.
-    foreach (readCollection($pdo, openCollection($pdo, 'tables'))['items'] as $table) {
-        if ((int) ($table['id'] ?? 0) === (int) $data['tableId'] && (float) ($table['rate'] ?? 0) > 0) {
-            $data['paymentAmount'] = round((float) $table['rate'] * $data['durationMinutes'] / 60, 2);
-        }
-    }
+    $amount = bookingAmount($pdo, $data['tableId'], $data['durationMinutes']);
+    if ($amount > 0) $data['paymentAmount'] = $amount;
     $data['paymentMethod'] = 'gcash';
     $data['paymentReference'] = $payment['reference'];
+}
+
+$deskBooking = $method === 'POST' && $staff && $data['source'] !== 'online';
+if ($deskBooking) {
+    try {
+        checkDeskBooking($pdo, $data, readSiteSettings($pdo)['hours']);
+    } catch (PaymentRefusal $refusal) {
+        http_response_code($refusal->status);
+        echo json_encode(['success' => false, 'message' => $refusal->getMessage()]);
+        exit();
+    }
 }
 
 if ($method === 'POST') {
@@ -447,16 +534,48 @@ if ($method === 'POST') {
 $movesSlot = $method === 'POST';
 if ($method === 'PUT') {
     $stmt = $pdo->prepare(
-        'SELECT reservation_date AS date, TIME_FORMAT(reservation_time, "%H:%i") AS time, table_id AS tableId, status
+        'SELECT reservation_date AS date, TIME_FORMAT(reservation_time, "%H:%i") AS time,
+                duration_minutes AS durationMinutes, table_id AS tableId, status, payment_amount AS paymentAmount
          FROM reservations WHERE id = ?'
     );
     $stmt->execute([$data['id']]);
     $stored = $stmt->fetch();
     $storedStatus = $stored ? (string) $stored['status'] : '';
-    $movesSlot = !$stored
+    $movesTime = !$stored
         || $stored['date'] !== $data['date']
         || $stored['time'] !== $data['time']
-        || (int) $stored['tableId'] !== (int) $data['tableId'];
+        || (int) $stored['durationMinutes'] !== (int) $data['durationMinutes'];
+    $movesTable = $stored && (int) $stored['tableId'] !== (int) $data['tableId'];
+    $movesSlot = $movesTime || $movesTable;
+
+    // What was paid stays what it paid for: the same hours, at the same price.
+    if ($stored && (float) $stored['paymentAmount'] > 0) {
+        $paidRefusal = '';
+        if ((int) $stored['durationMinutes'] !== (int) $data['durationMinutes']) {
+            $paidRefusal = 'The hours of a paid booking stay as paid. To change them, cancel it and book again.';
+        } elseif ($movesTable) {
+            $amount = bookingAmount($pdo, $data['tableId'], $data['durationMinutes']);
+            if ($amount === null || abs($amount - (float) $stored['paymentAmount']) >= 0.01) {
+                $paidRefusal = "{$data['tableName']} costs a different amount for this booking. To move to it, cancel the booking and book again.";
+            }
+        }
+        if ($paidRefusal !== '') {
+            http_response_code(409);
+            echo json_encode(['success' => false, 'message' => $paidRefusal]);
+            exit();
+        }
+    }
+
+    // A booking given a new time must fit the opening hours; one that stays on
+    // its own time keeps it, even if the hours changed since.
+    if ($movesTime) {
+        $hoursError = bookingHoursError($data, readSiteSettings($pdo)['hours']);
+        if ($hoursError !== '') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => $hoursError]);
+            exit();
+        }
+    }
 }
 if ($movesSlot && in_array($data['status'], ['pending', 'approved', 'reserved'], true)) {
     $occupiedUntil = getOccupiedTableEnd($pdo, $data);
@@ -493,7 +612,8 @@ if ($method === 'POST') {
            payment_method = VALUES(payment_method), payment_reference = VALUES(payment_reference),
            payment_amount = VALUES(payment_amount)'
     );
-    // A website booking and its held payment are saved together, or neither is.
+    // A booking and its payment are saved together, or neither is: a website
+    // booking's held payment, or GCash taken at the desk.
     $receiptFile = null;
     try {
         if (!$staff) $receiptFile = storeReceipt($payment['image']);
@@ -516,6 +636,14 @@ if ($method === 'POST') {
                 'receiptFile' => $receiptFile,
                 'playDate' => $data['date'],
             ]);
+        }
+        if ($deskBooking && $data['paymentMethod'] === 'gcash') {
+            recordCounterPayment($pdo, [
+                'reference' => $data['paymentReference'],
+                'amount' => $data['paymentAmount'],
+                'label' => "{$data['tableName']} · {$data['customerName']}",
+                'saleKey' => 'reservation-' . $data['id'],
+            ], (string) $staff['username']);
         }
         $pdo->commit();
     } catch (PaymentRefusal $refusal) {
@@ -579,24 +707,43 @@ if ($method === 'PUT' && $data['status'] === 'arrived') {
 }
 
 if ($method === 'PUT') {
-    $stmt = $pdo->prepare(
-        'UPDATE reservations
-         SET customer_name = ?, phone = ?, email = ?, reservation_date = ?, reservation_time = ?,
-             party_size = ?, duration_minutes = ?, table_id = ?, table_name = ?, notes = ?, status = ?, source = ?
-         WHERE id = ?'
-    );
-    $stmt->execute([
-        $data['customerName'], $data['phone'], $data['email'], $data['date'], $data['time'],
-        $data['partySize'], $data['durationMinutes'], $data['tableId'], $data['tableName'], $data['notes'],
-        $data['status'], $data['source'], $data['id'],
-    ]);
+    $refund = array_key_exists('refundPayment', $body) ? filter_var($body['refundPayment'], FILTER_VALIDATE_BOOLEAN) : null;
+    // A desk booking's payment goes back as the booking is cancelled, or neither happens.
+    $deskRefund = null;
+    try {
+        if ($refund === true && $storedStatus !== $data['status'] && in_array($data['status'], ['rejected', 'cancelled'], true)) {
+            $deskRefund = readDeskRefund($pdo, $data['id'], $body);
+        }
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare(
+            'UPDATE reservations
+             SET customer_name = ?, phone = ?, email = ?, reservation_date = ?, reservation_time = ?,
+                 party_size = ?, duration_minutes = ?, table_id = ?, table_name = ?, notes = ?, status = ?, source = ?
+             WHERE id = ?'
+        );
+        $stmt->execute([
+            $data['customerName'], $data['phone'], $data['email'], $data['date'], $data['time'],
+            $data['partySize'], $data['durationMinutes'], $data['tableId'], $data['tableName'], $data['notes'],
+            $data['status'], $data['source'], $data['id'],
+        ]);
+        if ($deskRefund) {
+            applyDeskRefund($pdo, $data['id'], $deskRefund, (string) $staff['username']);
+            $data['paymentRefund'] = $deskRefund['method'];
+        }
+        $pdo->commit();
+    } catch (PaymentRefusal $refusal) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        http_response_code($refusal->status);
+        echo json_encode(['success' => false, 'message' => $refusal->getMessage()]);
+        exit();
+    }
 
     // A website booking's payment follows it: kept once approved, sent back if
     // it is turned down, or if staff cancel it and say to (`refundPayment`).
     $settledPayment = null;
     if ($storedStatus !== $data['status']) {
-        $refund = array_key_exists('refundPayment', $body) ? filter_var($body['refundPayment'], FILTER_VALIDATE_BOOLEAN) : null;
         $settledPayment = settleReservationPayment($pdo, $data['id'], $data['status'], $refund, (string) $staff['username']);
+        saleSafely(fn() => recordOnlineSale($pdo, $settledPayment, $staff));
         // A website customer is texted once it is decided.
         textSafely(fn() => textReservationDecision($pdo, (string) $data['id'], $data['status'], $settledPayment));
     }

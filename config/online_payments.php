@@ -19,11 +19,12 @@
  * RECEIPT_KEEP_DAYS after the booking's or tournament's day, once its payment
  * is settled.
  *
- * GCash paid at the counter (Sales / POS, or a table's checkout) is kept here
- * too, as kind "pos": accepted at once, with no receipt, since staff found it
- * in the hall's GCash app before approving. It is not in the staff's list of
- * payments; it is here so a reference is used only once, at the counter or on
- * the website, and for the day's GCash check (listGcashDay).
+ * GCash paid at the counter (Sales / POS, a table's checkout, or a booking made
+ * at the desk) is kept here too, as kind "pos": accepted at once, with no
+ * receipt, since staff found it in the hall's GCash app before approving. It is
+ * not in the staff's list of payments; it is here so a reference is used only
+ * once, at the counter or on the website, and for the day's GCash check
+ * (listGcashDay).
  */
 
 const RECEIPT_DIR = __DIR__ . '/../Receipts';
@@ -70,6 +71,7 @@ function ensureOnlinePaymentsTable(PDO $pdo): void
             customer_name VARCHAR(160) NOT NULL,
             phone VARCHAR(20) NOT NULL,
             payer_number VARCHAR(20) NOT NULL,
+            email VARCHAR(160) NULL,
             reference VARCHAR(20) NOT NULL,
             amount DECIMAL(10,2) NOT NULL DEFAULT 0,
             receipt_file VARCHAR(60) NULL,
@@ -87,6 +89,12 @@ function ensureOnlinePaymentsTable(PDO $pdo): void
             INDEX online_payments_status (status)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
     );
+    // Added later: the email a player gave on the website, for their updates
+    // (config/customer_emails.php). Every caller runs this before a transaction.
+    $columns = $pdo->query('SHOW COLUMNS FROM online_payments')->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('email', $columns, true)) {
+        $pdo->exec('ALTER TABLE online_payments ADD COLUMN email VARCHAR(160) NULL AFTER payer_number');
+    }
     $ready = true;
 }
 
@@ -211,8 +219,8 @@ function createHeldPayment(PDO $pdo, array $payment): array
     try {
         $pdo->prepare(
             'INSERT INTO online_payments
-               (id, kind, ref_id, participant, customer_name, phone, payer_number, reference, amount, receipt_file, status, keep_until)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+               (id, kind, ref_id, participant, customer_name, phone, payer_number, email, reference, amount, receipt_file, status, keep_until)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )->execute([
             $id,
             $payment['kind'],
@@ -221,6 +229,7 @@ function createHeldPayment(PDO $pdo, array $payment): array
             (string) $payment['customerName'],
             (string) $payment['phone'],
             (string) $payment['payerNumber'],
+            ($payment['email'] ?? '') !== '' ? (string) $payment['email'] : null,
             (string) $payment['reference'],
             max(0, (float) $payment['amount']),
             $payment['receiptFile'],
@@ -256,6 +265,7 @@ function paymentForStaff(array $row): array
         'customerName' => (string) $row['customer_name'],
         'phone' => (string) $row['phone'],
         'payerNumber' => (string) $row['payer_number'],
+        'email' => (string) ($row['email'] ?? ''),
         'reference' => (string) $row['reference'],
         'amount' => (float) $row['amount'],
         'hasReceipt' => receiptPath($row['receipt_file']) !== null,
