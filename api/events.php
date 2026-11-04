@@ -250,6 +250,58 @@ if ($method === 'PUT') {
     exit();
 }
 
+// Deletes a completed or cancelled tournament for good (the admin only): it
+// leaves the staff screens and the website. Its sales stay in the Sales Report.
+// Not while an entry fee paid on the website still waits to be checked or sent
+// back, since that is done from the tournament's own card.
+if ($method === 'POST' && ($data['action'] ?? '') === 'delete') {
+    requireStaff($pdo, ['admin']);
+    $eventId = trim((string) ($data['eventId'] ?? ''));
+    // Read before the transaction: it may create its table, which would end it.
+    ensureOnlinePaymentsTable($pdo);
+
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare('SELECT event_data FROM tournament_events WHERE id = ? FOR UPDATE');
+        $stmt->execute([$eventId]);
+        $stored = $stmt->fetchColumn();
+        if ($stored === false) {
+            // Already deleted, from another screen: nothing left to do.
+            $pdo->rollBack();
+            echo json_encode(['success' => true, 'deleted' => false]);
+            exit();
+        }
+        $event = normalizeEvent(array_merge(json_decode($stored, true) ?: [], ['id' => $eventId]));
+        if (!$event || !in_array($event['status'], ['completed', 'cancelled'], true)) {
+            throw new PaymentRefusal(409, 'Only a completed or cancelled tournament can be deleted. Cancel it first.');
+        }
+        $open = $pdo->prepare(
+            "SELECT COUNT(*) FROM online_payments WHERE kind = 'tournament' AND ref_id = ? AND status IN ('held', 'refund_due')"
+        );
+        $open->execute([$eventId]);
+        $waiting = (int) $open->fetchColumn();
+        if ($waiting > 0) {
+            throw new PaymentRefusal(409, $waiting === 1
+                ? '1 entry fee paid on the website still needs to be checked or refunded. Settle it on this tournament first, then delete it.'
+                : "$waiting entry fees paid on the website still need to be checked or refunded. Settle them on this tournament first, then delete it.");
+        }
+
+        $pdo->prepare('DELETE FROM tournament_events WHERE id = ?')->execute([$eventId]);
+        $pdo->commit();
+        echo json_encode(['success' => true, 'deleted' => true]);
+    } catch (PaymentRefusal $refusal) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        http_response_code($refusal->status);
+        echo json_encode(['success' => false, 'message' => $refusal->getMessage()]);
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        error_log('Tournament not deleted: ' . $error->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Unable to delete the tournament.']);
+    }
+    exit();
+}
+
 // Hides a cancelled tournament from the website, or shows it again. The admin
 // and the front desk may, each from their own screen (the front desk cannot
 // change tournaments otherwise); nothing else about the tournament changes.
