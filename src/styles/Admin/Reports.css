@@ -748,38 +748,120 @@
   .srp-stage { padding: 10px; }
 }
 
-/* The report itself is a white sheet, the same on screen and on paper */
+/* The report itself is a white sheet, the same on screen and on paper. Every
+   report shares it (Sales, Audit Trail), and its Excel copy looks the same
+   (reportExcel.js): navy letterhead with the logo, the sign's four colours,
+   navy table headers, striped rows, a green total row. */
 .srp-paper {
   padding: 22px 24px;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   background: #fff;
   color: #111827;
+  font-family: "Barlow", "Segoe UI", system-ui, sans-serif;
   font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
-.srp-head {
+/* The letterhead (ReportLetterhead) */
+.doc-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 18px 8px 10px;
+  border-radius: 8px 8px 0 0;
+  background: #001233;
+}
+
+/* The logo file has wide empty edges: the frame shows the sign itself. */
+.doc-logo-frame {
+  position: relative;
+  flex: 0 0 auto;
+  width: 74px;
+  height: 64px;
+  overflow: hidden;
+}
+
+.doc-logo {
+  position: absolute;
+  left: -5px;
+  top: -12px;
+  width: 84px;
+  height: 84px;
+}
+
+.doc-hall-name { line-height: 1.05; }
+.doc-hall { font-family: "Righteous", "Barlow", sans-serif; font-size: 19px; letter-spacing: 0.05em; color: #ffd23f; }
+.doc-hall-sub { margin-top: 3px; font-family: "Barlow Condensed", "Barlow", sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.32em; color: #cbd5e1; }
+
+.doc-banner-title { margin-left: auto; text-align: right; }
+.doc-title { margin: 0; font-family: "Righteous", "Barlow", sans-serif; font-size: 20px; font-weight: 400; color: #fff; }
+.doc-subtitle { margin-top: 2px; font-size: 12.5px; font-weight: 600; color: #cbd5e1; }
+
+.doc-tubes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  height: 5px;
+}
+
+.doc-tubes span:nth-child(1) { background: #ff3d9a; }
+.doc-tubes span:nth-child(2) { background: #ffd23f; }
+.doc-tubes span:nth-child(3) { background: #4fe06a; }
+.doc-tubes span:nth-child(4) { background: #35c6f4; }
+
+.doc-details {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 8px 16px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #111827;
+  gap: 4px 22px;
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
 }
 
-.srp-brand { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; color: #047857; }
-.srp-title { margin: 2px 0; font-size: 20px; font-weight: 800; color: #111827; }
-.srp-muted { color: #4b5563; }
-.srp-generated { font-size: 11.5px; }
+.doc-details > div { display: flex; align-items: baseline; gap: 6px; }
+.doc-details dt { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #475569; }
+.doc-details dd { margin: 0; font-weight: 600; color: #111827; }
 
+.doc-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: 18px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 10px;
+  color: #64748b;
+}
+
+.srp-muted { color: #4b5563; }
+
+/* Each part of a report: navy, with the four colours before its name */
 .srp-section {
-  margin: 20px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid #001233;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #111827;
+  color: #001233;
+}
+
+.srp-section::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 20px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #ff3d9a 0 25%, #ffd23f 25% 50%, #4fe06a 50% 75%, #35c6f4 75% 100%);
 }
 
 .srp-scroll { overflow-x: auto; }
@@ -793,32 +875,36 @@
 .srp-table th,
 .srp-table td {
   padding: 7px 9px;
-  border: 1px solid #d1d5db;
+  border: 1px solid #e2e8f0;
   text-align: left;
   vertical-align: top;
 }
 
+/* Header rows: navy, white, the same as the letterhead */
 .srp-table thead th,
 .srp-summary tr:first-child th {
-  background: #f3f4f6;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  border-color: #001233;
+  background: #001233;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #374151;
+  color: #fff;
 }
 
-.srp-summary { margin-top: 16px; }
+/* Every other row striped, so a long list reads across (not the summary's figures) */
+.srp-table tbody tr:nth-child(even) td { background: #f8fafc; }
+.srp-summary .srp-table tbody tr:nth-child(even) td { background: #fff; }
+
 .srp-summary td { font-size: 14px; font-weight: 800; white-space: nowrap; }
 .srp-summary tr:first-child th { white-space: nowrap; }
 
 @media (max-width: 600px) {
   .srp-paper { padding: 14px; }
-  .srp-title { font-size: 17px; }
 }
 
 .srp-table tfoot th,
-.srp-table tfoot td { background: #ecfdf5; font-weight: 800; }
+.srp-table tfoot td { border-top: 2px solid #047857; background: #ecfdf5; font-weight: 800; }
 .srp-table tfoot th { text-align: right; }
 
 .srp-table .srp-num { text-align: right; white-space: nowrap; }
@@ -836,16 +922,26 @@
 .srp-paper--portrait .srp-summary tr:first-child th { white-space: normal; }
 
 /* The theme colours pop-up text; the sheet keeps its own. */
-.modal-body .srp-paper :is(div, span, p, h2, h3, small, th, td),
-.light .modal-body .srp-paper :is(div, span, p, h2, h3, small, th, td) { color: inherit !important; }
+.modal-body .srp-paper :is(div, span, p, h2, h3, small, th, td, dt, dd),
+.light .modal-body .srp-paper :is(div, span, p, h2, h3, small, th, td, dt, dd) { color: inherit !important; }
 .modal-body .srp-paper .srp-muted,
 .light .modal-body .srp-paper .srp-muted { color: #4b5563 !important; }
-.modal-body .srp-paper .srp-brand,
-.light .modal-body .srp-paper .srp-brand { color: #047857 !important; }
 .modal-body .srp-paper .srp-empty-row td,
 .light .modal-body .srp-paper .srp-empty-row td { color: #6b7280 !important; }
 .modal-body .srp-paper :is(.srp-table thead th, .srp-summary tr:first-child th),
-.light .modal-body .srp-paper :is(.srp-table thead th, .srp-summary tr:first-child th) { color: #374151 !important; }
+.light .modal-body .srp-paper :is(.srp-table thead th, .srp-summary tr:first-child th) { color: #fff !important; }
+.modal-body .srp-paper .doc-banner .doc-hall,
+.light .modal-body .srp-paper .doc-banner .doc-hall { color: #ffd23f !important; }
+.modal-body .srp-paper .doc-banner .doc-title,
+.light .modal-body .srp-paper .doc-banner .doc-title { color: #fff !important; }
+.modal-body .srp-paper .doc-banner :is(.doc-hall-sub, .doc-subtitle),
+.light .modal-body .srp-paper .doc-banner :is(.doc-hall-sub, .doc-subtitle) { color: #cbd5e1 !important; }
+.modal-body .srp-paper .srp-section,
+.light .modal-body .srp-paper .srp-section { color: #001233 !important; }
+.modal-body .srp-paper .doc-details dt,
+.light .modal-body .srp-paper .doc-details dt { color: #475569 !important; }
+.modal-body .srp-paper .doc-foot span,
+.light .modal-body .srp-paper .doc-foot span { color: #64748b !important; }
 
 /* The copy sent to the printer (see printElement). */
 .srp-print-body { margin: 0; background: #fff; }
@@ -853,6 +949,8 @@
 .srp-print-body .srp-scroll { overflow: visible; }
 .srp-print-body .srp-table thead { display: table-header-group; }
 .srp-print-body .srp-table tr { break-inside: avoid; }
+/* On paper every page has the footer and its number (pagePrintCss) */
+.srp-print-body .doc-foot { display: none; }
 
 /* GCash Check: one day's GCash in and out, to tick off against the GCash app.
    Laid out like the Sales Report: the day (with arrows) and Refresh, the note
@@ -881,6 +979,31 @@
 .gcash-check-step:focus-visible {
   outline: 2px solid #10b981;
   outline-offset: 2px;
+}
+
+/* Past website payments that are not in the sales yet (MissingOnlineSales.jsx) */
+.missing-sales {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 12px;
+  background: rgba(96, 165, 250, 0.1);
+  color: #dbeafe;
+  font-size: 13px;
+}
+
+.missing-sales span {
+  flex: 1 1 240px;
+}
+
+.light .missing-sales {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1e3a8a;
 }
 
 .gcash-check-note {

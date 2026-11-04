@@ -11,6 +11,22 @@
   margin-bottom: 6px;
 }
 
+/* Color Preference and Compact View, one above the other, so they get the
+   width they need beside Backup & Restore. */
+.settings-look {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+  min-width: 0;
+}
+
+/* Alone (the employee's Settings has no Backup & Restore): side by side. */
+.settings-look:only-child {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+  align-items: start;
+}
+
 .settings-card {
   background: rgba(15, 23, 42, 0.72);
   border: 1px solid rgba(148, 163, 184, 0.14);
@@ -51,11 +67,12 @@
   font-size: 13px;
 }
 
-/* Color preference */
+/* Color preference (and Compact View, which uses the same options) */
 .settings-theme-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  container: settings-options / inline-size;
 }
 
 .settings-theme-option {
@@ -63,8 +80,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  /* Right padding keeps the label clear of the selected check badge. */
-  padding: 14px 40px 14px 14px;
+  padding: 14px;
   text-align: left;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(148, 163, 184, 0.18);
@@ -136,7 +152,9 @@
   min-width: 0;
 }
 
+/* Right padding keeps the name clear of the selected check badge. */
 .settings-theme-text strong {
+  padding-right: 22px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -150,6 +168,26 @@
   line-height: 1.45;
 }
 
+/* Two options side by side in a narrow card (a laptop beside Backup & Restore):
+   the picture goes above the words, so the words keep the whole width. Phones
+   show the options one under the other, so they keep the side-by-side look. */
+@media (min-width: 761px) {
+  @container settings-options (max-width: 540px) {
+    .settings-theme-option {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .settings-theme-preview {
+      flex: 0 0 auto;
+      width: calc(100% - 26px);
+      height: 46px;
+    }
+  }
+}
+
 .settings-theme-check {
   position: absolute;
   top: 10px;
@@ -157,6 +195,24 @@
   color: #10b981;
   font-size: 16px;
 }
+
+/* Compact view: rows drawn far apart or close together */
+.settings-theme-preview.settings-density-preview {
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.settings-density-preview .preview-row {
+  height: 5px;
+  border-radius: 3px;
+  background: #475569;
+}
+
+.settings-density-preview .preview-row:first-child { background: #10b981; }
+.settings-density-preview.density-comfortable { gap: 10px; }
+.settings-density-preview.density-compact { gap: 4px; }
 
 /* Backup and restore */
 .settings-backup-note {
@@ -405,6 +461,10 @@
   background: var(--bg-subtle);
   border-color: var(--border);
 }
+
+.light .settings-theme-preview.settings-density-preview { background: var(--bg-surface); }
+.light .settings-density-preview .preview-row { background: #cbd5e1; }
+.light .settings-density-preview .preview-row:first-child { background: #10b981; }
 
 .light .settings-theme-option.selected {
   background: var(--accent-subtle);

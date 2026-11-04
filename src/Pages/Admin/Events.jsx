@@ -15,10 +15,27 @@ import {
   getScheduleChange,
 } from "../../utils/eventUpdates";
 import { getEventErrors } from "../../utils/formValidation";
+import { getMaxPlayers, getPaymentMethods } from "../../utils/tournamentFees";
+import { readTextField } from "../../utils/textField";
 
 // When staff cancelled or moved an event, as shown to players on the website.
 const getCurrentIsoTime = () => new Date().toISOString();
 const cleanReason = (reason) => String(reason || "").trim().slice(0, MAX_EVENT_REASON_LENGTH);
+
+// A new tournament's form: every way to pay is on, and there is no player limit.
+const emptyEventForm = () => ({
+  name: "",
+  date: "",
+  time: "",
+  prize: 0,
+  entryFee: 0,
+  maxPlayers: "",
+  paymentMethods: getPaymentMethods(null),
+  status: "upcoming",
+  gameType: "8-ball",
+  tables: [],
+  media: [],
+});
 
 // Kept outside the component: the React lint rules flag Date.now() inside it.
 const getCurrentTimestamp = () => Date.now();
@@ -67,17 +84,7 @@ export default function Events({ events, setEvents, setLogs, tables, reservation
   const [completeTarget, setCompleteTarget] = useState(null);
   // Which list is shown: events still to come, or completed and cancelled ones.
   const [view, setView] = useState("active");
-  const [form, setForm] = useState({ 
-    name: "", 
-    date: "", 
-    time: "", 
-    prize: 0, 
-    entryFee: 0,
-    status: "upcoming",
-    gameType: "8-ball",
-    tables: [],
-    media: [],
-  });
+  const [form, setForm] = useState(emptyEventForm);
 
   const resolveAssignedTables = (assignedTables = []) =>
     (assignedTables || [])
@@ -114,7 +121,14 @@ export default function Events({ events, setEvents, setLogs, tables, reservation
       : null;
 
     // Stored clean: a trimmed name and numbers, whatever the inputs held.
-    const cleaned = { ...form, name: form.name.trim(), prize: Number(form.prize) || 0, entryFee: Number(form.entryFee) || 0 };
+    const cleaned = {
+      ...form,
+      name: form.name.trim(),
+      prize: Number(form.prize) || 0,
+      entryFee: Number(form.entryFee) || 0,
+      maxPlayers: Math.max(0, Math.floor(Number(form.maxPlayers) || 0)),
+      paymentMethods: getPaymentMethods(form),
+    };
     setEvents((prev) => {
       if (form.id) {
         return prev.map((event) =>
@@ -223,6 +237,8 @@ export default function Events({ events, setEvents, setLogs, tables, reservation
       time: event.time || "",
       prize: event.prize || 0,
       entryFee: event.entryFee || 0,
+      maxPlayers: getMaxPlayers(event) || "",
+      paymentMethods: getPaymentMethods(event),
       status: event.status || "upcoming",
       gameType: event.gameType || "8-ball",
       tables: event.tables || [],
@@ -281,7 +297,7 @@ export default function Events({ events, setEvents, setLogs, tables, reservation
         <button 
           className="btn btn-success events-add-btn" 
           onClick={() => { 
-            setForm({ name: "", date: "", time: "", prize: 0, entryFee: 0, status: "upcoming", gameType: "8-ball", tables: [], media: [] }); 
+            setForm(emptyEventForm());
             setModal("form"); 
           }}
         >
@@ -347,7 +363,7 @@ export default function Events({ events, setEvents, setLogs, tables, reservation
                       className="form-control"
                       maxLength={MAX_EVENT_REASON_LENGTH}
                       value={cancelReason}
-                      onChange={(event) => setCancelReason(event.target.value)}
+                      onChange={(event) => setCancelReason(readTextField(event))}
                       placeholder="e.g. Not enough players signed up"
                     />
                   </div>

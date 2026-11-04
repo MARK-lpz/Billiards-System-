@@ -162,7 +162,7 @@ html {
 }
 
 /* .section-title is a small label (Fields.css), so it keeps the label font. */
-:is(.modal-title, .card-title, .srp-title) {
+:is(.modal-title, .card-title) {
   font-family: var(--bc-font-display);
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -190,7 +190,7 @@ html {
 /* The sign font has one weight: never let the browser fake a bold one. */
 :is(.page-title, .pool-tables-title, .inventory-title, .events-title, .equipment-title, .reports-title,
   .sales-pos-title, .reservations-title, .audit-trail-title, .rd-title, .qa-title, .modal-title,
-  .card-title, .srp-title, .sidebar-brand, .stat-number, .stat-value, .reports-stat-value, .inventory-stat-value,
+  .card-title, .doc-hall, .doc-title, .sidebar-brand, .stat-number, .stat-value, .reports-stat-value, .inventory-stat-value,
   .events-stat-value, .equipment-stat-value, .audit-stat-value, .pool-stat-value, .sales-summary-value,
   .qa-summary-value, .order-queue-stat-value, .cust-stat-val, .rd-stat-value, .pool-table-name, .table-number) {
   font-synthesis: none;
@@ -244,12 +244,6 @@ html {
   font-weight: 400;
   font-synthesis: none;
   letter-spacing: 0.01em;
-}
-
-.forgot-role-tab.active {
-  background: var(--bc-yellow) !important;
-  color: var(--bc-sign-ink) !important;
-  box-shadow: 0 8px 20px -10px rgba(255, 210, 63, 0.9) !important;
 }
 
 /* ---------- Tables are drawn as tables ---------- */

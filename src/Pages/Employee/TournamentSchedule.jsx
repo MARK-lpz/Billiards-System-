@@ -1,14 +1,35 @@
 import { useMemo, useState } from "react";
 import "../../styles/Employee/TournamentSchedule.css";
-import { registerRemoteTournamentParticipant, setRemoteEventNoticeHidden } from "../../utils/eventApi";
+import {
+  recordTournamentEntryFee,
+  registerRemoteTournamentParticipant,
+  setRemoteEventNoticeHidden,
+} from "../../utils/eventApi";
 import CancelledNoticeControl from "../../Elements/Global/CancelledNoticeControl";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import useClock from "../../Elements/Global/useClock";
 import ParticipantModal from "../../Elements/Employee/ParticipantModal";
 import { findRegistration, getRegistrations, registrationKey } from "../../utils/tournamentRegistrations";
+import { readNameField, readTitleField } from "../../utils/textField";
 import TournamentPayments from "../../Elements/Global/TournamentPayments";
 import { useOnlinePayments } from "../../Elements/Global/useOnlinePayments";
 import { findPlayerPayment } from "../../utils/onlinePayments";
+import EntryFeeFields from "../../Elements/Employee/EntryFeeFields";
+import EntryFeeSummary from "../../Elements/Global/EntryFeeSummary";
+import { appendAuditLog } from "../../utils/audit";
+import {
+  checkEntryFee,
+  createEntryFeeSale,
+  describePaymentMethods,
+  describePlayers,
+  describeSlots,
+  firstCounterMethod,
+  getPlayerFee,
+  hasEntryFee,
+  isEventFull,
+  playerNameOf,
+  takesCounterSignUp,
+} from "../../utils/tournamentFees";
 import {
   describeDaysAway,
   formatEventWhen,
@@ -28,6 +49,9 @@ const acceptsRegistration = (event, now) =>
   Boolean(event) && ["upcoming", "active"].includes(statusOf(event)) && !hasEventDayPassed(event, now);
 
 const emptyWalkIn = { name: "", team: "" };
+
+// A fee taken at the counter is also a sale; its id is the time it was taken.
+const newSaleId = () => Date.now();
 
 const TABS = [
   { key: "upcoming", label: "Upcoming", empty: "No upcoming tournaments. New ones from the admin show up here." },
@@ -113,8 +137,20 @@ const resolveAssignedTables = (assignedTables = [], tables = []) => {
 // bell, shown as soon as the page opens. `seen` / `markSeen`: the registrations
 // already opened, shared with that bell (the dashboard keeps them), so a player
 // opened here is no longer new there. `setLogs`: the Audit Trail, for the
-// entry fees checked or sent back here.
-export default function TournamentSchedule({ events = [], setEvents, setLogs, tables = [], focusPlayer = null, seen, markSeen }) {
+// entry fees checked or sent back here. `transactions` / `setTransactions`: the
+// sales, where a fee taken at the counter is recorded (and whose GCash
+// references can't be used again).
+export default function TournamentSchedule({
+  events = [],
+  setEvents,
+  setLogs,
+  transactions = [],
+  setTransactions,
+  tables = [],
+  focusPlayer = null,
+  seen,
+  markSeen,
+}) {
   const { addNotification } = useNotifications();
   // The entry fees paid on the website (a held one is marked on its player).
   const { payments } = useOnlinePayments();
@@ -131,6 +167,8 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
   const [walkInOpen, setWalkInOpen] = useState(false);
   const [walkInForm, setWalkInForm] = useState(emptyWalkIn);
   const [walkInError, setWalkInError] = useState("");
+  // How the walk-in pays a paid tournament's fee: { method, reference }.
+  const [walkInFee, setWalkInFee] = useState({ method: "unpaid", reference: "" });
   const [submitting, setSubmitting] = useState(false);
   // Hiding a cancelled tournament from the website (or showing it again): { eventId, error }.
   const [noticeChange, setNoticeChange] = useState(null);
@@ -185,12 +223,53 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
   const alreadyRegistered = (selectedEvent?.participants || []).some(
     (entry) => `${entry}`.toLowerCase() === participantLabel.toLowerCase()
   );
-  const canSubmitWalkIn = Boolean(trimmedName) && !alreadyRegistered && !submitting;
+  const usedReferences = transactions.map((tx) => tx.paymentDetails?.referenceNumber).filter(Boolean);
+  const paidEvent = hasEntryFee(selectedEvent);
+  const eventFull = isEventFull(selectedEvent);
+  // The admin may have set a paid tournament to sign up on the website only.
+  const counterTakesPlayers = takesCounterSignUp(selectedEvent);
+  const feeCheck = paidEvent ? checkEntryFee(selectedEvent, walkInFee, usedReferences) : { ready: true, entryFee: null };
+  const canSubmitWalkIn =
+    Boolean(trimmedName) && !alreadyRegistered && !submitting && !eventFull && counterTakesPlayers && feeCheck.ready;
+
+  const openWalkIn = () => {
+    setWalkInForm(emptyWalkIn);
+    setWalkInFee({ method: firstCounterMethod(selectedEvent), reference: "" });
+    setWalkInError("");
+    setWalkInOpen(true);
+  };
 
   const closeWalkIn = () => {
     setWalkInOpen(false);
     setWalkInForm(emptyWalkIn);
     setWalkInError("");
+  };
+
+  // A fee taken at the counter goes in the sales and the Audit Trail.
+  const recordFeeSale = (event, participant, entryFee, saleId) => {
+    setTransactions?.((previous) => [
+      createEntryFeeSale({ event, participant, method: entryFee.method, reference: entryFee.reference, saleId, cashier: "Employee" }),
+      ...previous,
+    ]);
+    appendAuditLog(setLogs, {
+      type: "sale",
+      staff: "Employee",
+      entity: "tournament",
+      entityId: String(event.id),
+      action: "Took tournament entry fee",
+      detail: `${playerNameOf(participant)} paid the ${formatPeso(event.entryFee)} entry fee for ${event.name} ${
+        entryFee.method === "gcash" ? `by GCash (ref ${entryFee.reference})` : "in cash"
+      }.`,
+    });
+  };
+
+  // A registered player pays later, from their pop-up. Errors go back to it.
+  const takeEntryFee = async (event, participant, entryFee) => {
+    const saleId = newSaleId();
+    const updated = await recordTournamentEntryFee({ eventId: event.id, participant, entryFee: { ...entryFee, saleId } });
+    setEvents?.((previous) => previous.map((item) => (item.id === event.id ? updated : item)));
+    recordFeeSale(event, participant, entryFee, saleId);
+    addNotification({ message: `${playerNameOf(participant)} paid the entry fee for ${event.name}.` });
   };
 
   const submitWalkIn = async (formEvent) => {
@@ -201,9 +280,12 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
     setWalkInError("");
 
     try {
+      const saleId = newSaleId();
+      const entryFee = paidEvent ? { ...feeCheck.entryFee, saleId } : null;
       const updatedEvent = await registerRemoteTournamentParticipant({
         eventId: selectedEvent.id,
         participant: participantLabel,
+        entryFee,
       });
 
       if (setEvents) {
@@ -211,9 +293,12 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
           previous.map((event) => (event.id === selectedEvent.id ? updatedEvent : event))
         );
       }
+      if (entryFee && entryFee.method !== "unpaid") recordFeeSale(selectedEvent, participantLabel, entryFee, saleId);
 
       addNotification({
-        message: `${trimmedName} registered as a walk-in for ${selectedEvent.name}.`,
+        message: `${trimmedName} registered as a walk-in for ${selectedEvent.name}${
+          !entryFee ? "" : entryFee.method === "unpaid" ? ". The entry fee is not paid yet" : ` and paid the entry fee`
+        }.`,
       });
       closeWalkIn();
     } catch (error) {
@@ -351,7 +436,7 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
                 const badge = getStatusBadge(event, now);
                 const moved = badge.tone === "upcoming" || badge.tone === "active" ? wasRescheduled(event) : false;
                 const countdown = tab === "upcoming" ? describeDaysAway(event.date, now) : "";
-                const players = event.participants?.length || 0;
+                const full = isEventFull(event);
 
                 return (
                   <button
@@ -383,7 +468,8 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
                       <span className="tourna-card-meta">
                         <span>{formatGameType(event.gameType)}</span>
                         <span>
-                          {players} {players === 1 ? "player" : "players"} registered
+                          {describePlayers(event)}
+                          {full && <span className="tourna-full-tag">Full</span>}
                         </span>
                       </span>
                     </span>
@@ -408,20 +494,32 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
                     <button
                       type="button"
                       className="tourna-walkin-btn"
-                      onClick={() => {
-                        setWalkInForm(emptyWalkIn);
-                        setWalkInError("");
-                        setWalkInOpen(true);
-                      }}
+                      onClick={openWalkIn}
+                      disabled={eventFull || !counterTakesPlayers}
+                      title={
+                        eventFull
+                          ? "This tournament is full."
+                          : !counterTakesPlayers
+                            ? "Players sign up for this tournament on the website."
+                            : undefined
+                      }
                     >
-                      <i className="bi bi-person-walking me-2"></i>
-                      Register Walk-in
+                      <i className={`bi ${eventFull ? "bi-slash-circle" : "bi-person-walking"} me-2`}></i>
+                      {eventFull ? "Full" : "Register Walk-in"}
                     </button>
                   )}
                 </div>
               </div>
 
               {renderNotice(selectedEvent)}
+              {registrationOpen && (eventFull || !counterTakesPlayers) && (
+                <p className="tourna-closed-note">
+                  <i className={`bi ${eventFull ? "bi-people-fill" : "bi-globe2"} me-2`}></i>
+                  {eventFull
+                    ? "This tournament is full. No more players can sign up, here or on the website."
+                    : "The admin set this tournament to take sign-ups on the website only, paid by GCash there."}
+                </p>
+              )}
               {statusOf(selectedEvent) === "cancelled" && (
                 <CancelledNoticeControl
                   event={selectedEvent}
@@ -453,11 +551,13 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
                 </div>
                 <div className="tourna-detail-item">
                   <span>Entry Fee</span>
-                  <strong>{Number(selectedEvent.entryFee) > 0 ? formatPeso(selectedEvent.entryFee) : "Free"}</strong>
+                  <strong>{paidEvent ? formatPeso(selectedEvent.entryFee) : "Free"}</strong>
+                  {paidEvent && <small>{describePaymentMethods(selectedEvent)}</small>}
                 </div>
                 <div className="tourna-detail-item">
                   <span>Registered Players</span>
-                  <strong>{selectedEvent.participants?.length || 0}</strong>
+                  <strong>{describePlayers(selectedEvent)}</strong>
+                  {describeSlots(selectedEvent) && <small>{describeSlots(selectedEvent)}</small>}
                 </div>
               </div>
 
@@ -478,13 +578,16 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
 
               <div className="tourna-detail-section">
                 <span className="tourna-section-label">Participants</span>
+                {paidEvent && selectedEvent.participants?.length > 0 && (
+                  <EntryFeeSummary event={selectedEvent} payments={payments} />
+                )}
                 {selectedEvent.participants?.length ? (
                   <div className="tourna-player-list">
                     {selectedEvent.participants.map((participant, index) => {
                       const isNew =
                         registrations.some((entry) => entry.key === registrationKey(selectedEvent.id, participant)) &&
                         !seen.has(registrationKey(selectedEvent.id, participant));
-                      const feeHeld = findPlayerPayment(payments, selectedEvent.id, participant)?.status === "held";
+                      const fee = paidEvent ? getPlayerFee(selectedEvent, participant, payments) : null;
                       return (
                         <button
                           key={`${selectedEvent.id}-${index}`}
@@ -495,7 +598,7 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
                         >
                           {participant}
                           {isNew && <span className="tourna-player-new">New</span>}
-                          {feeHeld && <span className="tourna-player-pay">Check payment</span>}
+                          {fee && <span className={`fee-chip tone-${fee.tone}`}>{fee.label}</span>}
                         </button>
                       );
                     })}
@@ -541,7 +644,10 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
                           placeholder="Full name"
                           autoComplete="off"
                           value={walkInForm.name}
-                          onChange={(event) => setWalkInForm((prev) => ({ ...prev, name: event.target.value }))}
+                          onChange={(event) => {
+                            const name = readNameField(event);
+                            setWalkInForm((prev) => ({ ...prev, name }));
+                          }}
                           autoFocus
                         />
                       </div>
@@ -554,7 +660,10 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
                           placeholder="Leave blank for solo players"
                           autoComplete="off"
                           value={walkInForm.team}
-                          onChange={(event) => setWalkInForm((prev) => ({ ...prev, team: event.target.value }))}
+                          onChange={(event) => {
+                            const team = readTitleField(event);
+                            setWalkInForm((prev) => ({ ...prev, team }));
+                          }}
                         />
                       </div>
 
@@ -562,6 +671,16 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
                         <p className="tourna-walkin-preview">
                           Saved as <strong>{participantLabel}</strong>
                         </p>
+                      )}
+                      {paidEvent && (
+                        <EntryFeeFields
+                          event={selectedEvent}
+                          value={walkInFee}
+                          onChange={setWalkInFee}
+                          allowUnpaid
+                          usedReferences={usedReferences}
+                          idPrefix="walkin-fee"
+                        />
                       )}
                       {alreadyRegistered && (
                         <p className="tourna-walkin-error" role="alert">
@@ -593,6 +712,9 @@ export default function TournamentSchedule({ events = [], setEvents, setLogs, ta
             key={playerShown.key}
             registration={playerShown}
             payment={findPlayerPayment(payments, playerShown.event.id, playerShown.label)}
+            fee={getPlayerFee(playerShown.event, playerShown.label, payments)}
+            usedReferences={usedReferences}
+            onTakeFee={(entryFee) => takeEntryFee(playerShown.event, playerShown.label, entryFee)}
             onClose={() => setOpenPlayer(null)}
             onOpenTournament={openPlayer.fromBell ? openPlayersTournament : null}
           />

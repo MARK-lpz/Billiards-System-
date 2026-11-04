@@ -32,10 +32,16 @@ export const paperDimensions = ({ size, orientation }) => {
     : { width: paper.width, height: paper.height };
 };
 
-/** The printer's page rule for this paper. */
-export const pagePrintCss = (paper) => {
+/**
+ * The printer's page rule for this paper. With `footer` (the hall and the report),
+ * every page carries it at the bottom left and "Page 1 of 3" at the bottom right.
+ */
+export const pagePrintCss = (paper, footer = "") => {
   const { width, height } = paperDimensions(paper);
-  return `@page { size: ${width}mm ${height}mm; margin: ${PAPER_MARGIN_MM}mm; }`;
+  if (!footer) return `@page { size: ${width}mm ${height}mm; margin: ${PAPER_MARGIN_MM}mm; }`;
+  const label = String(footer).replace(/[\\"]/g, "\\$&").replace(/[<\n]/g, " ");
+  const font = `font-family: "Barlow", "Segoe UI", sans-serif; font-size: 8pt; color: #64748b;`;
+  return `@page { size: ${width}mm ${height}mm; margin: ${PAPER_MARGIN_MM}mm ${PAPER_MARGIN_MM}mm 14mm; @bottom-left { content: "${label}"; ${font} } @bottom-right { content: "Page " counter(page) " of " counter(pages); ${font} } }`;
 };
 
 /** The .xlsx page setup for this paper (see downloadExcel). */

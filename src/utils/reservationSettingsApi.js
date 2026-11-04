@@ -21,11 +21,15 @@ export const fetchReservationSettings = async () => {
   return parseResponse(response, "Unable to load online reservation settings.");
 };
 
-export const updateReservationSettings = async ({ onlineReservationsOpen }) => {
+/**
+ * Opens online reservations, or closes them with `closing`: { reason, note,
+ * until } (see utils/onlineBookingSwitch.js).
+ */
+export const updateReservationSettings = async ({ onlineReservationsOpen, closing = null }) => {
   const response = await apiFetch(RESERVATION_SETTINGS_API_URL, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ onlineReservationsOpen }),
+    body: JSON.stringify(onlineReservationsOpen ? { onlineReservationsOpen } : { onlineReservationsOpen, ...closing }),
   });
 
   return parseResponse(response, "Unable to update online reservation settings.");

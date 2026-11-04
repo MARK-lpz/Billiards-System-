@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import "../../styles/Admin/PoolTables.css";
 import { formatPeso } from "../../utils/tableSession";
 import { MAX_ORDER_QTY, countOrderItems, getTableOrders, sumOrders, unpaidQty } from "../../utils/tableOrders";
+import { isExpired } from "../../utils/productShelf";
+import { formatExpiryDate } from "../../utils/inventoryValidation";
+import { getTodayDate } from "../../utils/reservations";
 
 /**
  * Takes a food and drink order for a table that is playing, without leaving
@@ -9,6 +12,7 @@ import { MAX_ORDER_QTY, countOrderItems, getTableOrders, sumOrders, unpaidQty } 
  * table time when the session ends; it also shows in the Sales / POS Order Queue.
  */
 export default function TableOrderModal({ table, products = [], onPlace, onTakeOff, onClose }) {
+  const today = getTodayDate();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   // The new order: { productId: qty }.
@@ -31,7 +35,8 @@ export default function TableOrderModal({ table, products = [], onPlace, onTakeO
       (category === "All" || product.category === category) && String(product.name).toLowerCase().includes(query)
   );
 
-  const stockOf = (product) => Math.max(0, Number(product.stock) || 0);
+  // An expired product is listed but cannot be ordered: none of it is for sale.
+  const stockOf = (product) => (isExpired(product, today) ? 0 : Math.max(0, Number(product.stock) || 0));
   const draftLines = products
     .filter((product) => draft[product.id] > 0)
     .map((product) => ({ ...product, qty: draft[product.id] }));
@@ -40,6 +45,9 @@ export default function TableOrderModal({ table, products = [], onPlace, onTakeO
 
   const setQty = (product, qty) =>
     setDraft((prev) => ({ ...prev, [product.id]: Math.max(0, Math.min(qty, stockOf(product), MAX_ORDER_QTY)) }));
+
+  // A typed amount: digits only, kept within what is in stock (and the order limit).
+  const typeQty = (product, text) => setQty(product, Number(text.replace(/\D/g, "")) || 0);
 
   const place = () => {
     if (onPlace(draft)) setDraft({});
@@ -95,24 +103,39 @@ export default function TableOrderModal({ table, products = [], onPlace, onTakeO
                 ) : (
                   shown.map((product) => {
                     const stock = stockOf(product);
+                    const expired = isExpired(product, today);
                     const qty = draft[product.id] || 0;
+                    const most = Math.min(stock, MAX_ORDER_QTY);
+                    const unavailable = expired ? `Expired ${formatExpiryDate(product.expiryDate)}` : "Out of stock";
                     return (
                       <div key={product.id} className={`table-order-product ${stock === 0 ? "is-out" : ""} ${qty ? "is-picked" : ""}`}>
                         <div className="table-order-product-info">
                           <span className="table-order-product-name">{product.name}</span>
                           <span className="table-order-product-meta">
-                            {formatPeso(product.price)} · {stock === 0 ? "Out of stock" : `${stock} left`}
+                            {formatPeso(product.price)} · {stock === 0 ? unavailable : `${stock} left`}
                           </span>
                         </div>
                         <div className="table-order-stepper">
                           <button type="button" onClick={() => setQty(product, qty - 1)} disabled={!qty} aria-label={`One less ${product.name}`}>
                             <i className="bi bi-dash"></i>
                           </button>
-                          <span aria-live="polite">{qty}</span>
+                          {/* Typed or stepped; empty shows 0. Clicking selects it, so typing replaces it. */}
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={String(MAX_ORDER_QTY).length}
+                            value={qty || ""}
+                            placeholder="0"
+                            onChange={(event) => typeQty(product, event.target.value)}
+                            onFocus={(event) => event.target.select()}
+                            disabled={stock === 0}
+                            aria-label={`How many ${product.name}`}
+                            title={stock === 0 ? unavailable : `Up to ${most}`}
+                          />
                           <button
                             type="button"
                             onClick={() => setQty(product, qty + 1)}
-                            disabled={qty >= Math.min(stock, MAX_ORDER_QTY)}
+                            disabled={qty >= most}
                             aria-label={`One more ${product.name}`}
                           >
                             <i className="bi bi-plus"></i>
@@ -173,7 +196,7 @@ export default function TableOrderModal({ table, products = [], onPlace, onTakeO
                     New order: <strong>{draftCount} {draftCount === 1 ? "item" : "items"}</strong> · {formatPeso(draftTotal)}
                   </>
                 ) : (
-                  "Pick items with + to start an order."
+                  "Pick items with + or type how many to start an order."
                 )}
               </span>
               <button type="button" className="btn btn-secondary" onClick={onClose}>

@@ -229,6 +229,166 @@
 
 .light .website-booking-error { color: #b91c1c; }
 
+/* Who changed the switch last, and when (and the staff note while closed). */
+.website-booking-change {
+  max-width: 320px;
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.light .website-booking-change { color: var(--text-muted); }
+
+/* Closing online reservations: why, a note, until when (OnlineReservationsSwitch).
+   The pop-up never grows past the screen: on a short phone the middle scrolls
+   and the title and buttons stay in view. */
+.modal-content:has(.close-bookings-form) {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+}
+
+.modal-content:has(.close-bookings-form) > :is(.modal-header, .modal-footer) {
+  flex-shrink: 0;
+}
+
+.modal-content:has(.close-bookings-form) > .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.close-bookings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.close-bookings-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.close-bookings-field legend,
+.close-bookings-label {
+  display: block;
+  margin-bottom: 7px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.close-bookings-label em {
+  color: #94a3b8;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.close-bookings-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.close-bookings-chip,
+.close-bookings-until {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #e2e8f0;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.close-bookings-chip {
+  padding: 7px 11px;
+}
+
+/* The radio itself is hidden; the whole chip is what is picked. */
+.close-bookings-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.close-bookings-chip:focus-within {
+  outline: 2px solid #f87171;
+  outline-offset: 2px;
+}
+
+.close-bookings-chip.is-chosen,
+.close-bookings-until.is-chosen {
+  border-color: #f87171;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.close-bookings-untils {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.close-bookings-until {
+  padding: 8px 11px;
+}
+
+.close-bookings-until input {
+  flex-shrink: 0;
+  margin: 0;
+  accent-color: #ef4444;
+}
+
+.close-bookings-until small {
+  margin-left: auto;
+  color: #94a3b8;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.close-bookings-preview {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.08);
+  color: #bae6fd;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.close-bookings-preview i {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.light .close-bookings-field legend,
+.light .close-bookings-label { color: var(--text-primary); }
+/* Beat the theme's ".light .modal-body span/small", which would make these black. */
+.light .modal-body .close-bookings-label em,
+.light .modal-body .close-bookings-until small { color: var(--text-muted) !important; }
+.light .close-bookings-chip,
+.light .close-bookings-until {
+  border-color: var(--border-strong);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+.light .close-bookings-chip.is-chosen,
+.light .close-bookings-until.is-chosen {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+.light .close-bookings-preview { background: #f0f9ff; }
+.light .modal-body .close-bookings-preview,
+.light .modal-body .close-bookings-preview span { color: #075985 !important; }
+
 .online-reservations-status {
   display: flex;
   align-items: center;
@@ -490,6 +650,53 @@
   font-size: 12px;
   font-weight: 700;
 }
+
+/* A tab with more than one card (About us): one under the other. */
+.website-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.website-panel[hidden] { display: none; }
+
+/* The announcement's picture under it, whole, as the home page shows it beside the announcements */
+.website-announcement-picture {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  margin-top: 12px;
+  border-radius: 10px;
+  background: #0b0d0c;
+  object-fit: contain;
+}
+
+/* About us preview: the words as the home page shows them */
+.website-about-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.website-about-preview-eyebrow {
+  color: #ff6fb0;
+  font-family: var(--bc-font-label);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.website-about-preview-heading {
+  color: #ffd23f;
+  font-family: var(--bc-font-display);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.website-about-preview p { color: #e2e6e0; }
 
 /* Booking steps preview: the felt section of the home page */
 .website-card-preview.is-dark .website-steps-preview {

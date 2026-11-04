@@ -41,3 +41,7 @@ export const changeMyPassword = ({ currentPassword, newPassword }) =>
 /** `photo` is a data URL from preparePhoto (utils/profilePhoto.js), or null to remove it. */
 export const saveMyPhoto = (photo) =>
   post({ action: "photo", photo }, "Your picture could not be saved.");
+
+/** Only the preferences sent change: { theme?, density? } (see utils/preferences.js). */
+export const saveMyPreferences = (preferences) =>
+  post({ action: "preferences", preferences }, "Your preferences could not be saved.");

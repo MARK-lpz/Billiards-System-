@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "../../styles/Admin/PoolTables.css";
 import { WALK_IN_DURATIONS, formatHoursLabel, getWalkInLimit } from "../../utils/reservations";
 import { formatPeso } from "../../utils/tableSession";
+import { readNameField } from "../../utils/textField";
 
 const MINUTE_MS = 60 * 1000;
 const SHORTEST_WALK_IN = WALK_IN_DURATIONS[0];
@@ -74,7 +75,7 @@ export default function WalkInModal({ table, reservations = [], onClose, onStart
                   type="text"
                   className="form-control"
                   value={customer}
-                  onChange={(event) => setCustomer(event.target.value)}
+                  onChange={(event) => setCustomer(readNameField(event))}
                   placeholder="Walk-in Customer"
                   autoFocus
                 />

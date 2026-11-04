@@ -44,6 +44,20 @@
   text-align: center;
 }
 
+/* The cards are buttons: each shows its events in the Activity Log */
+.audit-stat-clickable {
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.audit-stat-clickable:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
 .audit-stat-icon {
   font-size: 28px;
   margin-bottom: 12px;
@@ -120,9 +134,11 @@
   padding: 20px;
 }
 
+/* Accounts, full width, then the password resets under it */
 .account-management-sections {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
   gap: 20px;
 }
 
@@ -130,13 +146,31 @@
   margin-bottom: 0;
 }
 
-.account-form--credentials {
-  grid-template-columns: 1fr 1fr;
+/* Username, mobile, password, role and the button on one row while they fit
+   (two classes: .account-form's own columns come later in this file) */
+.account-form.account-form--all {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(150px, 0.8fr) auto;
 }
 
-/* Only the account picker is wide, so mobile, password and the button share a row. */
-.account-form--credentials select {
-  grid-column: span 2;
+.account-form.account-form--all .btn-success {
+  width: auto;
+  padding: 10px 18px;
+  white-space: nowrap;
+}
+
+.account-form select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1100px) {
+  .account-form.account-form--all { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .account-form.account-form--all .btn-success { grid-column: span 2; width: 100%; }
+}
+
+@media (max-width: 900px) {
+  .account-form.account-form--all { grid-template-columns: minmax(0, 1fr); }
+  .account-form.account-form--all .btn-success { grid-column: auto; }
 }
 
 .account-management-header {
@@ -233,11 +267,16 @@
   background: #059669;
 }
 
+/* Two accounts to a row on a wide screen, one on a narrow one; each keeps its own height */
 .account-list {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  align-items: start;
   gap: 8px;
   margin-top: 10px;
 }
+
+.account-list-empty { grid-column: 1 / -1; }
 
 .account-row {
   display: flex;
@@ -281,6 +320,65 @@
   border-color: rgba(16, 185, 129, 0.36);
   color: #6ee7b7;
   background: rgba(16, 185, 129, 0.1);
+}
+
+/* Archive and Delete: red on hover, so they never read as Edit */
+.account-row .btn-outline-secondary.is-danger:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.account-row .btn-outline-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.account-row-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.account-row-main { min-width: 0; }
+
+/* The name, then what the account is: Admin or Employee, and You */
+.account-row-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.account-role-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.account-role-badge.is-admin { background: rgba(251, 191, 36, 0.16); color: #fcd34d; }
+.account-role-badge.is-self { background: rgba(96, 165, 250, 0.18); color: #93c5fd; }
+
+/* The account the form is changing */
+.account-row.is-editing { border-color: rgba(16, 185, 129, 0.45); }
+
+/* An archived account is still listed, only quieter */
+.account-row.is-archived strong { color: #cbd5e1; }
+
+.account-tabs { margin-top: 4px; }
+
+.account-list-empty { padding: 6px 2px; }
+
+/* The username typed before a delete (ConfirmDialog) */
+.account-confirm-label {
+  display: block;
+  margin: 14px 0 6px;
 }
 
 .audit-log-card .card-body {
@@ -611,10 +709,6 @@
 }
 
 @media (max-width: 900px) {
-  .account-management-sections { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 900px) {
   .audit-log-item,
   .audit-detail-fields,
   .audit-detail-fields--summary {
@@ -623,11 +717,6 @@
 
   .account-form {
     grid-template-columns: 1fr;
-  }
-
-  .account-form--credentials select,
-  .account-form--credentials .btn-success {
-    grid-column: auto;
   }
 }
 
@@ -755,3 +844,226 @@
 .arp-level-high,
 .arp-level-reject { color: #b91c1c; }
 .arp-level-medium { color: #b45309; }
+
+/* ================================================================
+   Activity Log / Table History, and the smart search (AuditSearchBox)
+   ================================================================ */
+
+.audit-views {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 1.25rem;
+  padding: 0.3rem;
+  border: 1px solid var(--ax-border, rgba(148, 163, 184, 0.2));
+  border-radius: 12px;
+  background: var(--ax-panel, rgba(30, 41, 59, 0.5));
+}
+
+.audit-view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: none;
+  color: var(--ax-muted, #94a3b8);
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.audit-view-btn:hover {
+  color: var(--ax-text, #f8fafc);
+}
+
+.audit-view-btn.is-active {
+  border-color: var(--ax-active, #2898bd);
+  background: var(--ax-active-soft, rgba(40, 152, 189, 0.14));
+  color: var(--ax-text, #f8fafc);
+}
+
+.audit-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.audit-search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.audit-search-field > i {
+  position: absolute;
+  left: 0.95rem;
+  color: var(--ax-muted, #94a3b8);
+  pointer-events: none;
+}
+
+.audit-search-field input {
+  width: 100%;
+  padding: 0.7rem 2.6rem 0.7rem 2.5rem;
+  border: 1px solid var(--ax-border, rgba(148, 163, 184, 0.2));
+  border-radius: 12px;
+  background: var(--ax-panel-solid, #0b2552);
+  color: var(--ax-text, #f8fafc);
+  font-size: 0.95rem;
+}
+
+.audit-search-field input::placeholder {
+  color: var(--ax-faint, #64748b);
+}
+
+.audit-search-field input:focus {
+  outline: none;
+  border-color: var(--ax-active, #2898bd);
+  box-shadow: 0 0 0 1px var(--ax-active, #2898bd);
+}
+
+/* The browser's own clear button; ours sits in its place. */
+.audit-search-field input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.audit-search-clear {
+  position: absolute;
+  right: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ax-muted, #94a3b8);
+  cursor: pointer;
+}
+
+.audit-search-clear:hover {
+  background: var(--ax-active-soft, rgba(40, 152, 189, 0.14));
+  color: var(--ax-text, #f8fafc);
+}
+
+.audit-search-read,
+.audit-search-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.audit-search-count {
+  margin-right: 0.25rem;
+  color: #6ee7b7;
+  font-weight: 700;
+}
+
+.audit-search-count.is-none {
+  color: #fca5a5;
+}
+
+.audit-search-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--ax-border, rgba(148, 163, 184, 0.2));
+  border-radius: 999px;
+  color: var(--ax-text, #f8fafc);
+}
+
+.audit-search-chip i {
+  color: var(--ax-active, #2898bd);
+}
+
+.audit-search-chip.is-exclude i {
+  color: #f87171;
+}
+
+.audit-search-examples > span {
+  color: var(--ax-muted, #94a3b8);
+}
+
+.audit-search-examples button {
+  padding: 0.2rem 0.6rem;
+  border: 1px dashed var(--ax-border, rgba(148, 163, 184, 0.3));
+  border-radius: 999px;
+  background: none;
+  color: var(--ax-muted, #94a3b8);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.audit-search-examples button:hover {
+  border-style: solid;
+  border-color: var(--ax-active, #2898bd);
+  color: var(--ax-text, #f8fafc);
+}
+
+.audit-search-help {
+  color: var(--ax-muted, #94a3b8);
+  font-size: 0.8rem;
+}
+
+.audit-search-help summary {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.audit-search-help dl {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.6rem 0 0.4rem;
+}
+
+.audit-search-help dl > div {
+  display: grid;
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.audit-search-help dt {
+  font-weight: 400;
+}
+
+.audit-search-help code {
+  color: var(--ax-text, #f8fafc);
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+}
+
+.audit-search-help dd {
+  margin: 0;
+}
+
+.audit-search-help p {
+  margin: 0;
+}
+
+/* A searched word in an event. */
+.search-mark {
+  padding: 0 0.1em;
+  border-radius: 3px;
+  background: rgba(250, 204, 21, 0.28);
+  color: inherit;
+}
+
+.light .search-mark {
+  background: #fef08a;
+}
+
+.light .audit-search-count { color: #047857; }
+.light .audit-search-count.is-none { color: #b91c1c; }
+
+@media (max-width: 640px) {
+  .audit-search-help dl > div {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+}

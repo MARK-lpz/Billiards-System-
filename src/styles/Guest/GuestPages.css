@@ -1,0 +1,283 @@
+/* The public pages besides home: Tournaments, Announcements and About us.
+   They share the home page's header, buttons and footer (GuestLanding.css,
+   GuestHeader.jsx); this is their top part, their lists and About us. Dark in
+   both themes, like the rest of the website. */
+
+/* A short page keeps the footer at the bottom of the window instead of
+   leaving the page's background showing under it. */
+.guest-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.guest-page > .guest-template-footer {
+  margin-top: auto;
+}
+
+/* ---------- The page's name and what it is for ---------- */
+
+.guest-page-hero,
+.guest-news {
+  width: min(100% - 2.5rem, var(--guest-width));
+  margin: 0 auto;
+}
+
+.guest-page-hero {
+  padding: clamp(2.5rem, 6vw, 4rem) 0 1.75rem;
+}
+
+.guest-page-hero h1,
+.guest-about-story h1 {
+  margin: 0;
+  color: #fff;
+  font-family: var(--bc-font-display);
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1.05;
+}
+
+.guest-page-hero > p:not(.guest-template-eyebrow) {
+  max-width: 640px;
+  margin: 1rem 0 0;
+  color: #c9d0ca;
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+/* Nothing to list: one calm box, not an empty list */
+.guest-page-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 3rem 1rem;
+  border: 2px dashed rgba(226, 236, 230, 0.14);
+  border-radius: 14px;
+  text-align: center;
+}
+
+.guest-page-empty i { color: var(--bc-yellow); font-size: 2.2rem; }
+
+.guest-page-empty h2 {
+  margin: 0;
+  color: #fff;
+  font-family: var(--bc-font-display);
+  font-size: 1.4rem;
+  font-weight: 400;
+}
+
+.guest-page-empty p { margin: 0; color: #9ba59e; font-size: 0.98rem; }
+
+/* ---------- Announcements ---------- */
+
+.guest-news {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: clamp(2.5rem, 5vw, 4rem);
+}
+
+.guest-news-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each in its own color: bookings paused and a cancelled tournament red (the
+   pause lit, as the one to know first), the hall's yellow, a moved tournament pink */
+.guest-news-item {
+  --news: var(--bc-pink);
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid rgba(226, 236, 230, 0.09);
+  border-left: 4px solid var(--news);
+  border-radius: 12px;
+  background: #151a17;
+}
+
+.guest-news-item.is-announcement { --news: var(--bc-yellow); background: #1a1a12; }
+.guest-news-item.is-cancelled { --news: #ff5b5d; background: #171515; }
+
+.guest-news-item.is-paused {
+  --news: #ff5b5d;
+  border-color: rgba(255, 91, 93, 0.3);
+  background: #1f1416;
+  box-shadow: 0 0 22px -8px rgba(255, 91, 93, 0.45);
+}
+
+.guest-news-item > i {
+  flex: 0 0 auto;
+  margin-top: 0.15rem;
+  color: var(--news);
+  font-size: 1.3rem;
+}
+
+.guest-news-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.guest-news-copy :is(h2, h3) {
+  margin: 0 0 0.3rem;
+  color: var(--news);
+  font-family: var(--bc-font-label);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.guest-news-copy p {
+  margin: 0;
+  color: #f1f5f2;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.guest-news-copy .guest-news-note {
+  margin-top: 0.35rem;
+  color: #9ba59e;
+  font-size: 0.92rem;
+}
+
+.guest-news-item .guest-template-secondary {
+  flex: 0 0 auto;
+  align-self: center;
+  min-height: 42px;
+  margin-top: 0;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+/* Short rows: the home page, beside a picture */
+.guest-news-list.is-compact { gap: 0.6rem; }
+
+.guest-news-list.is-compact .guest-news-item {
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+}
+
+.guest-news-list.is-compact .guest-news-item > i { font-size: 1.1rem; }
+.guest-news-list.is-compact .guest-news-copy :is(h2, h3) { margin-bottom: 0.15rem; font-size: 0.8rem; }
+.guest-news-list.is-compact .guest-news-copy p { font-size: 0.98rem; line-height: 1.5; }
+.guest-news-list.is-compact .guest-news-copy .guest-news-note { margin-top: 0.2rem; font-size: 0.86rem; }
+
+/* ---------- About us: the hall's words beside where and when to find it ---------- */
+
+.guest-about {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  width: min(100% - 2.5rem, var(--guest-width));
+  margin: 0 auto;
+  padding: clamp(2.5rem, 6vw, 4rem) 0 clamp(3rem, 6vw, 4.5rem);
+}
+
+.guest-about-story h1 { margin-bottom: 1.4rem; }
+
+.guest-about-story > p:not(.guest-template-eyebrow) {
+  margin: 0 0 1rem;
+  color: #c9d0ca;
+  font-size: 1.05rem;
+  line-height: 1.75;
+}
+
+.guest-about-story > p:last-child { margin-bottom: 0; }
+
+.guest-visit-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  overflow: hidden;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  border: 1px solid rgba(226, 236, 230, 0.09);
+  border-radius: 14px;
+  background: #151a17;
+}
+
+/* The sign's four tubes along its top */
+.guest-visit-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  background: var(--bc-tubes);
+}
+
+.guest-visit-details {
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.guest-visit-details dt {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #9ba59e;
+  font-family: var(--bc-font-label);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.guest-visit-details dt i { color: var(--bc-yellow); }
+
+.guest-visit-details dd {
+  margin: 0.2rem 0 0;
+  color: #f1f5f2;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* Big buttons to find and reach the hall, side by side while they fit */
+.guest-visit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.guest-visit-actions .guest-template-secondary {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  min-height: 50px;
+  margin-top: 0;
+  text-decoration: none;
+}
+
+/* Before the website's settings arrive, the words' places are kept blank */
+.guest-about.is-loading :is(#guest-about-title, .guest-about-story > p:not(.guest-template-eyebrow)) { visibility: hidden; }
+
+/* ---------- Phones and narrow windows ---------- */
+
+@media (max-width: 860px) {
+  /* About us: the words, then where and when */
+  .guest-about { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 680px) {
+  .guest-page-hero,
+  .guest-news,
+  .guest-about { width: calc(100% - 2rem); }
+
+  /* The way to the tournaments under the words, full width */
+  .guest-news-item { flex-wrap: wrap; gap: 0.75rem; padding: 1rem; }
+  .guest-news-copy { flex-basis: calc(100% - 2.5rem); }
+  .guest-news-item .guest-template-secondary { flex-basis: 100%; }
+
+  /* Big buttons, full width, easy to tap */
+  .guest-visit-actions .guest-template-secondary { flex-basis: 100%; }
+}

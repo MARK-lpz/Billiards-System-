@@ -5,8 +5,9 @@ import { printElement } from "../../utils/printElement";
 
 const printReceipt = (paper, title) => printElement(paper, { title, bodyClass: "rcpt-print-body" });
 
+// Money given back is a sale below zero: -₱200.00.
 const fmtPeso = (value) =>
-  `₱${Number(value || 0).toLocaleString("en-PH", {
+  `${Number(value) < 0 ? "-" : ""}₱${Math.abs(Number(value || 0)).toLocaleString("en-PH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -33,7 +34,7 @@ const receiptNumber = (id) => String(id).slice(-5);
  * History it opens as a copy that can be printed again.
  *
  * A table's block shows its whole session once it has ended: the time, every
- * order, and what was paid before (online, or while playing). A table paid while
+ * order, and what was paid before (with the booking, or while playing). A table paid while
  * still playing shows only what this payment covered. `sessionOnly` is the
  * summary of a session ended with nothing left to pay. It is not a sale, so it
  * says it is not a receipt; the receipts are the payments it lists.
@@ -41,8 +42,9 @@ const receiptNumber = (id) => String(id).slice(-5);
 export default function ReceiptModal({ receipt, onClose, justPaid = true }) {
   const paperRef = useRef(null);
   const tableCharges = receipt.tableCharges || [];
-  // What was ordered at a table is listed in that table's block.
-  const items = (receipt.items || []).filter((item) => !item.isTableCharge && !item.fromTableCharge);
+  // What was ordered at a table is listed in that table's block. A booking's
+  // payment has no session behind it yet, so it is a line of its own.
+  const items = (receipt.items || []).filter((item) => !item.chargeId || (!item.isTableCharge && !item.fromTableCharge));
   const tableLines = (charge) => (receipt.items || []).filter((item) => item.chargeId === charge.id);
   const details = receipt.paymentDetails || {};
   const isCash = receipt.method === "cash";
@@ -75,15 +77,25 @@ export default function ReceiptModal({ receipt, onClose, justPaid = true }) {
 
             <div className="modal-body">
               <div className="rcpt-paper" ref={paperRef}>
+                {/* The same letterhead as the reports, made for a slip: the logo, the name, the four colours */}
+                <span className="rcpt-logo-frame">
+                  <img className="rcpt-logo" src="/Logo.png" alt="" />
+                </span>
                 <div className="rcpt-brand">BREAK &amp; CHILL</div>
-                <div className="rcpt-muted rcpt-center">Billiard Hall</div>
+                <div className="rcpt-muted rcpt-center rcpt-hall">BILLIARD HALL</div>
+                <div className="rcpt-tubes" aria-hidden="true">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
                 {sessionOnly ? (
                   <>
-                    <div className="rcpt-muted rcpt-center">Session Summary</div>
-                    <div className="rcpt-muted rcpt-center">Not an official receipt</div>
+                    <div className="rcpt-doc">Session Summary</div>
+                    <div className="rcpt-muted rcpt-center">Not a sales receipt</div>
                   </>
                 ) : (
-                  <div className="rcpt-muted rcpt-center">Official Receipt</div>
+                  <div className="rcpt-doc">Sales Receipt</div>
                 )}
 
                 <div className="rcpt-rule" />
@@ -142,7 +154,7 @@ export default function ReceiptModal({ receipt, onClose, justPaid = true }) {
                           ))}
                           {charge.prepaid && (
                             <ReceiptRow
-                              label={`Less: paid online${charge.prepaid.reference ? ` (GCash ${charge.prepaid.reference})` : ""}`}
+                              label={`Less: paid with the booking${charge.prepaid.reference ? ` (GCash ${charge.prepaid.reference})` : ""}`}
                               value={`-${fmtPeso(charge.prepaid.amount)}`}
                               className="rcpt-muted"
                             />
@@ -174,6 +186,7 @@ export default function ReceiptModal({ receipt, onClose, justPaid = true }) {
                         <div className="rcpt-muted">
                           {item.qty} × {fmtPeso(item.price)}
                         </div>
+                        {item.detail && <div className="rcpt-muted">{item.detail}</div>}
                       </div>
                     ))}
                   </>
@@ -213,6 +226,7 @@ export default function ReceiptModal({ receipt, onClose, justPaid = true }) {
 
                 <div className="rcpt-rule" />
                 <div className="rcpt-muted rcpt-center">Thank you for playing at Break &amp; Chill!</div>
+                <div className="rcpt-muted rcpt-center rcpt-fine">Break &amp; Chill Billiard Hall · Keep this receipt</div>
               </div>
             </div>
 

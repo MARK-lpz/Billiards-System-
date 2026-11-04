@@ -12,6 +12,8 @@ import {
 } from "../../utils/tableCharges";
 import { unpaidQty } from "../../utils/tableOrders";
 import { buildBillLabel, createBill, findChargeBill } from "../../utils/posBills";
+import { getNotForSaleReason } from "../../utils/productShelf";
+import { getTodayDate } from "../../utils/reservations";
 
 // One shared empty list, so "no bill picked" does not hand out a new array every render.
 const NO_ITEMS = [];
@@ -550,6 +552,11 @@ export default function useSalesPOS({
 
   const addToCart = (product) => {
     const existing = cart.find((item) => item.id === product.id);
+    const notForSale = getNotForSaleReason(product, getTodayDate());
+    if (notForSale) {
+      setStockAlert({ productId: product.id, message: notForSale });
+      return;
+    }
     const syncedQty = existing?.syncedQty || 0;
     const maxAllowed = getMaxAllowedQty(product.id, syncedQty);
 
@@ -611,6 +618,15 @@ export default function useSalesPOS({
       });
       setStockAlert(null);
       return nextQty;
+    }
+
+    // Fewer of an expired product can come off the bill, never more on. Read
+    // from the Inventory, not the bill: a restock may have brought new stock.
+    const liveProduct = products.find((entry) => entry.id === item.id) || item;
+    const notForSale = requestedQty > item.qty ? getNotForSaleReason(liveProduct, getTodayDate()) : "";
+    if (notForSale) {
+      setStockAlert({ productId: item.id, message: notForSale });
+      return item.qty;
     }
 
     const maxAllowedQty = getMaxAllowedQty(item.id, item.syncedQty || 0);

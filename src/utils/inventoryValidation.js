@@ -1,13 +1,20 @@
 // Checks for the inventory forms, so a typo never reaches the stock list or the
 // Sales / POS: a blank or repeated name, a negative or fractional count, a price
-// of zero, an expiry date already past or in the wrong century.
+// of zero, an expiry date already past, too close to sell or in the wrong
+// century, more stock than the hall keeps of one product.
+
+import { EXPIRY_ALERT_DAYS, daysUntil } from "./expiryAlerts";
 
 export const MAX_PRICE = 100000;
-export const MAX_STOCK = 99999;
-export const MAX_RESTOCK = 10000;
+// The most pieces of one product in stock (products.php refuses more too).
+export const MAX_STOCK = 1000;
+export const MAX_RESTOCK = MAX_STOCK;
 const MAX_NAME_LENGTH = 60;
 // A date typed as 20266 instead of 2026 is far past any real shelf life.
 const MAX_EXPIRY_YEARS_AHEAD = 10;
+// New stock needs this many days left at least: stock that expires today or
+// tomorrow would be off the shelf before it sells.
+export const MIN_EXPIRY_DAYS = 2;
 
 const peso = (amount) => `₱${amount.toLocaleString("en-PH")}`;
 const pieces = (count) => `${count.toLocaleString("en-PH")} pcs`;
@@ -28,7 +35,17 @@ const getCountError = (value, label) => {
 export const formatExpiryDate = (value) =>
   new Date(`${value}T00:00:00`).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
 
-/** What is wrong with the expiry date of stock being added, or "" (a blank date is fine). */
+/** The earliest expiry date new stock may have (YYYY-MM-DD), for the date pickers' `min`. */
+export const getEarliestExpiry = (today) => {
+  const [year, month, day] = String(today).split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + MIN_EXPIRY_DAYS)).toISOString().slice(0, 10);
+};
+
+/**
+ * What is wrong with the expiry date of stock being added, or "" (a blank date
+ * is fine): not a date, years off, already past, or too close to sell (today or
+ * tomorrow, under MIN_EXPIRY_DAYS).
+ */
 export const getExpiryError = (value, today) => {
   const expiry = String(value || "");
   if (!expiry) return "";
@@ -37,8 +54,29 @@ export const getExpiryError = (value, today) => {
   if (date.getFullYear() > new Date(`${today}T00:00:00`).getFullYear() + MAX_EXPIRY_YEARS_AHEAD) {
     return "Check the year: that is more than 10 years from now.";
   }
-  if (expiry < today) return "This date has already passed. An expired product cannot be stocked.";
+  const days = daysUntil(expiry, today);
+  const when = formatExpiryDate(expiry);
+  if (days < 0) {
+    const ago = days === -1 ? "yesterday" : `${-days} days ago`;
+    return `This expired ${ago} (${when}). Expired stock cannot be added.`;
+  }
+  if (days < MIN_EXPIRY_DAYS) {
+    return `This expires ${days === 0 ? "today" : "tomorrow"} (${when}), too soon to sell. Pick ${formatExpiryDate(getEarliestExpiry(today))} or later.`;
+  }
   return "";
+};
+
+/**
+ * A date that can be saved but is close: within EXPIRY_ALERT_DAYS, so the
+ * stock shows as expiring soon on the Stock Alarm right away. "" otherwise.
+ */
+export const getExpiryWarning = (value, today) => {
+  const expiry = String(value || "");
+  if (!expiry || getExpiryError(expiry, today)) return "";
+  const days = daysUntil(expiry, today);
+  return days <= EXPIRY_ALERT_DAYS
+    ? `Expires in ${days} days (${formatExpiryDate(expiry)}). It shows as expiring soon on the Stock Alarm right away: sell it first.`
+    : "";
 };
 
 /** Why a price cannot be saved, or "" when it can. `name`: "original price" or "retail price". */
@@ -75,7 +113,10 @@ export const getProductErrors = ({ form, products = [], editId = null, today }) 
       (product) => product.id !== editId && String(product.name || "").trim().toLowerCase() === name.toLowerCase()
     );
     if (duplicate) {
-      errors.name = `${duplicate.name}${duplicate.productNumber ? ` (#${duplicate.productNumber})` : ""} is already in the inventory. Restock it instead of adding it again.`;
+      const label = `${duplicate.name}${duplicate.productNumber ? ` (#${duplicate.productNumber})` : ""}`;
+      errors.name = duplicate.archivedAt
+        ? `${label} is in the Archive. Restore it from there instead of adding it again.`
+        : `${label} is already in the inventory. Restock it instead of adding it again.`;
     }
   }
 
@@ -103,6 +144,7 @@ export const getRestockError = (amount, currentStock = 0) => {
   if (!Number.isFinite(count)) return "Enter the amount as a number.";
   if (count <= 0) return "Enter at least 1 piece.";
   if (!Number.isInteger(count)) return "Restock in whole pieces.";
+  if ((Number(currentStock) || 0) >= MAX_STOCK) return `Stock is already at the ${pieces(MAX_STOCK)} maximum.`;
   if (count > MAX_RESTOCK) return `Add at most ${pieces(MAX_RESTOCK)} at a time.`;
   if ((Number(currentStock) || 0) + count > MAX_STOCK) {
     return `That brings the stock over ${pieces(MAX_STOCK)}. The most you can add is ${pieces(Math.max(0, MAX_STOCK - (Number(currentStock) || 0)))}.`;

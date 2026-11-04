@@ -1,0 +1,630 @@
+/* History (TableHistory.jsx): the days to show, the totals for every table,
+   then the tables down the left and the one picked on the right, its sales
+   and its reservations. Colors come from the staff shells (--ax-*). */
+
+.th-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── The days to show ─────────────────────────────────────────────── */
+.th-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.th-periods {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 12px;
+  background: var(--ax-panel);
+}
+
+.th-period {
+  padding: 0.45rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: none;
+  color: var(--ax-muted);
+  font-family: var(--bc-font-label);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.th-period:hover {
+  color: var(--ax-text);
+}
+
+.th-period.is-active {
+  border-color: var(--ax-active);
+  background: var(--ax-active-soft);
+  color: var(--ax-text);
+}
+
+.th-day {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--ax-muted);
+  font-size: 0.85rem;
+}
+
+.th-day input {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 10px;
+  background: var(--ax-panel);
+  color: var(--ax-text);
+  color-scheme: dark;
+}
+
+.light .th-day input {
+  color-scheme: light;
+}
+
+.th-day input.is-active {
+  border-color: var(--ax-active);
+  box-shadow: 0 0 0 1px var(--ax-active);
+}
+
+/* Search: the picked table's lists, by the words typed. */
+.th-search {
+  position: relative;
+  display: flex;
+  flex: 1 1 260px;
+  align-items: center;
+  max-width: 420px;
+  margin: 0 0 0 auto;
+}
+
+.th-search i {
+  position: absolute;
+  left: 0.8rem;
+  color: var(--ax-muted);
+  pointer-events: none;
+}
+
+.th-search input {
+  width: 100%;
+  padding: 0.5rem 0.8rem 0.5rem 2.2rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 10px;
+  background: var(--ax-panel);
+  color: var(--ax-text);
+}
+
+.th-search input:focus {
+  outline: none;
+  border-color: var(--ax-active);
+  box-shadow: 0 0 0 1px var(--ax-active);
+}
+
+.th-search-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0;
+  color: var(--ax-muted);
+  font-size: 0.8rem;
+}
+
+.th-search-note button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ax-active);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* The narrowing chips over each tab's list. */
+.th-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.85rem;
+}
+
+.th-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 999px;
+  background: none;
+  color: var(--ax-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.th-filter span {
+  color: var(--ax-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.th-filter:hover {
+  color: var(--ax-text);
+}
+
+.th-filter.is-active {
+  border-color: var(--ax-active);
+  background: var(--ax-active-soft);
+  color: var(--ax-text);
+}
+
+.th-filter.is-active span {
+  color: inherit;
+}
+
+/* An Audit Trail event about the table; it opens the event's details. */
+.th-activity {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.th-activity:disabled {
+  cursor: default;
+}
+
+.th-activity:not(:disabled):hover {
+  border-color: var(--ax-active);
+}
+
+.th-activity-by {
+  color: var(--ax-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+/* ── Totals for every table, joined into one bar ──────────────────── */
+.th-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  border: 1px solid var(--ax-border);
+  border-radius: 14px;
+  background: var(--ax-panel);
+  box-shadow: var(--ax-shadow);
+  overflow: hidden;
+}
+
+.th-summary-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.9rem 1.25rem;
+  box-shadow: inset 1px 0 0 var(--ax-divider);
+}
+
+.th-summary-label {
+  color: var(--ax-muted);
+  font-family: var(--bc-font-label);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.th-summary-value {
+  color: var(--ax-text);
+  font-size: 1.35rem;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.th-summary-cell.is-total .th-summary-value {
+  color: #34d399;
+}
+
+.th-summary-note {
+  color: #fbbf24;
+  font-size: 0.75rem;
+}
+
+.light .th-summary-cell.is-total .th-summary-value { color: #047857; }
+.light .th-summary-note { color: #92400e; }
+
+/* ── Loading, or bills from this device only ──────────────────────── */
+.th-note {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 10px;
+  color: var(--ax-muted);
+  font-size: 0.85rem;
+}
+
+.th-note.is-warning {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.08);
+  color: #fcd34d;
+}
+
+.light .th-note.is-warning {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+/* ── The tables, and the one picked ───────────────────────────────── */
+.th-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.th-tables {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 14px;
+  background: var(--ax-panel);
+  box-shadow: var(--ax-shadow);
+}
+
+.th-table {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  color: var(--ax-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.th-table:hover {
+  background: var(--ax-active-soft);
+}
+
+.th-table.is-active {
+  border-color: var(--ax-active);
+  background: var(--ax-active-soft);
+}
+
+.th-table:focus-visible {
+  outline: 2px solid var(--ax-active);
+  outline-offset: 2px;
+}
+
+/* A small pool table in the table's felt color, as on Pool Tables. */
+.th-table-felt {
+  width: 26px;
+  height: 17px;
+  border: 3px solid #4a2c17;
+  border-radius: 5px;
+  background: #13704a;
+}
+
+.th-table-felt.is-occupied { background: #82283a; }
+.th-table-felt.is-reserved { background: #8d6c0e; }
+.th-table-felt.is-cleaning { background: #1b6378; }
+.th-table-felt.is-maintenance { background: #3f4844; }
+.th-table-felt.is-removed { border-style: dashed; background: transparent; }
+
+.th-table-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.th-table-name {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.th-table-meta {
+  color: var(--ax-muted);
+  font-size: 0.74rem;
+}
+
+.th-table-total {
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.th-detail {
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 14px;
+  background: var(--ax-panel);
+  box-shadow: var(--ax-shadow);
+}
+
+.th-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.th-detail-title {
+  font-size: 1.3rem;
+}
+
+.th-detail-sub {
+  margin: 0.2rem 0 0;
+  color: var(--ax-muted);
+  font-size: 0.85rem;
+}
+
+.th-detail-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+}
+
+.th-detail-totals dt {
+  color: var(--ax-muted);
+  font-family: var(--bc-font-label);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.th-detail-totals dd {
+  margin: 0;
+  color: var(--ax-text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.th-detail-totals .is-total dd { color: #34d399; }
+.light .th-detail-totals .is-total dd { color: #047857; }
+
+.th-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--ax-divider);
+}
+
+.th-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: -1px;
+  padding: 0.6rem 0.9rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--ax-muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.th-tab:hover {
+  color: var(--ax-text);
+}
+
+.th-tab.is-active {
+  border-bottom-color: var(--ax-active);
+  color: var(--ax-text);
+}
+
+.th-tab-count {
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: var(--ax-active-soft);
+  font-size: 0.72rem;
+}
+
+/* ── One session, or one booking ──────────────────────────────────── */
+.th-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.th-item {
+  display: grid;
+  /* Wide enough for "10:00 AM - 11:00 AM (2 hours)" on one line. */
+  grid-template-columns: 11.5rem minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.4rem 1rem;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.light .th-item {
+  background: var(--bg-subtle);
+}
+
+.th-when,
+.th-who,
+.th-money {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.th-money {
+  align-items: flex-end;
+  text-align: right;
+}
+
+:is(.th-when, .th-who) strong {
+  color: var(--ax-text);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+:is(.th-when, .th-who) span {
+  color: var(--ax-muted);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.th-money strong {
+  color: var(--ax-text);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.th-meta {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: 0.45rem;
+  border-top: 1px dashed var(--ax-divider);
+  color: var(--ax-muted);
+  font-size: 0.75rem;
+}
+
+.th-chip {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.th-chip.tone-green { border-color: rgba(52, 211, 153, 0.4); background: rgba(16, 185, 129, 0.12); color: #6ee7b7; }
+.th-chip.tone-amber { border-color: rgba(251, 191, 36, 0.45); background: rgba(245, 158, 11, 0.12); color: #fcd34d; }
+.th-chip.tone-gold { border-color: rgba(234, 179, 8, 0.45); background: rgba(234, 179, 8, 0.12); color: #fde047; }
+.th-chip.tone-blue { border-color: rgba(96, 165, 250, 0.45); background: rgba(59, 130, 246, 0.12); color: #93c5fd; }
+.th-chip.tone-red { border-color: rgba(248, 113, 113, 0.45); background: rgba(239, 68, 68, 0.12); color: #fca5a5; }
+.th-chip.tone-grey { border-color: rgba(148, 163, 184, 0.4); background: rgba(148, 163, 184, 0.12); color: #cbd5e1; }
+
+.light .th-chip.tone-green { background: #ecfdf5; color: #047857; }
+.light .th-chip.tone-amber { background: #fffbeb; color: #92400e; }
+.light .th-chip.tone-gold { background: #fefce8; color: #854d0e; }
+.light .th-chip.tone-blue { background: #eff6ff; color: #1d4ed8; }
+.light .th-chip.tone-red { background: #fef2f2; color: #b91c1c; }
+.light .th-chip.tone-grey { background: #f1f5f9; color: #475569; }
+
+.th-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 1.25rem;
+  border: 1px dashed var(--ax-border);
+  border-radius: 10px;
+  color: var(--ax-muted);
+  font-size: 0.9rem;
+}
+
+/* Compact view (Settings): the same page, tighter. */
+.compact .th-page { gap: 0.85rem; }
+.compact .th-summary-cell { padding: 0.55rem 1rem; }
+.compact .th-summary-value { font-size: 1.15rem; }
+.compact .th-detail { padding: 0.9rem 1rem; }
+.compact .th-item { padding: 0.6rem 0.8rem; }
+.compact .th-table { padding: 0.45rem 0.65rem; }
+
+/* Tablets and phones: the tables become a row to scroll above the one picked. */
+@media (max-width: 900px) {
+  .th-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .th-tables {
+    flex-direction: row;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .th-table {
+    flex: 0 0 auto;
+    min-width: 190px;
+  }
+}
+
+@media (max-width: 640px) {
+  .th-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .th-summary-cell {
+    padding: 0.7rem 0.9rem;
+    box-shadow: inset 1px 0 0 var(--ax-divider), inset 0 1px 0 var(--ax-divider);
+  }
+
+  .th-detail {
+    padding: 1rem 0.9rem;
+  }
+
+  /* Both tabs on one row. */
+  .th-tabs {
+    flex-wrap: nowrap;
+  }
+
+  .th-tab {
+    flex: 1 1 0;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.6rem 0.3rem;
+    font-size: 0.82rem;
+  }
+
+  .th-item {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .th-who {
+    grid-column: 1 / -1;
+  }
+
+  .th-money {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .th-day {
+    width: 100%;
+  }
+
+  .th-day input {
+    flex: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .th-search {
+    flex-basis: 100%;
+    max-width: none;
+    margin: 0;
+  }
+}

@@ -67,7 +67,7 @@ export default function TimeUpAlert({ tables = [], reservations = [], onAddTime,
               </p>
               <div className="time-up-total">
                 <span>Amount to collect</span>
-                {/* Table time and orders, less what was paid online or while playing */}
+                {/* Table time and orders, less what was paid with the booking or while playing */}
                 <strong>
                   {formatPeso(
                     createTableCharge({ table, reservations, tableCharges: [], endedBy: "", now: endsAt }).amountDue

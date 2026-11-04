@@ -171,11 +171,43 @@
 }
 
 .request-status-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: #9ba59e;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+/* While it waits: asked every few seconds, so the answer shows as it is given */
+.request-status-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(79, 224, 106, 0.14);
+  color: #86f09b;
+  letter-spacing: 0.06em;
+}
+
+.request-status-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4fe06a;
+  animation: request-live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes request-live-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(79, 224, 106, 0.6); }
+  50% { box-shadow: 0 0 0 5px rgba(79, 224, 106, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .request-status-live-dot { animation: none; }
 }
 
 .request-status-title {

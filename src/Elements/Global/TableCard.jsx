@@ -114,7 +114,7 @@ export default function TableCard({
                 type="text"
                 inputMode="numeric"
                 value={extensionMinutes}
-                onChange={(event) => setExtensionMinutes(event.target.value)}
+                onChange={(event) => setExtensionMinutes(event.target.value.replace(/\D/g, "").slice(0, 3))}
               />
               <button
                 type="button"

@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { navGroups } from "./employeeNav";
 
-export default function Sidebar({ activeNav, setActiveNav, onNavChange, onReload, collapsed = false, onToggleCollapsed }) {
+// `badges`: { navId: { count, tone, label } }, a count beside a page that needs
+// looking at (the Stock Alarm's expired and low products).
+export default function Sidebar({ activeNav, setActiveNav, onNavChange, onReload, collapsed = false, onToggleCollapsed, badges = {} }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const logoRef = useRef(null);
 
@@ -61,11 +63,16 @@ export default function Sidebar({ activeNav, setActiveNav, onNavChange, onReload
                 key={item.id}
                 className={`nav-item ${activeNav === item.id ? "nav-active" : ""}`}
                 onClick={() => handleNavClick(item.id)}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? (badges[item.id] ? `${item.label}: ${badges[item.id].label}` : item.label) : undefined}
                 aria-current={activeNav === item.id ? "page" : undefined}
               >
                 <i className={`bi ${item.icon} nav-icon`}></i>
                 <span className="nav-label">{item.label}</span>
+                {badges[item.id] && (
+                  <span className={`nav-badge is-${badges[item.id].tone}`} aria-label={badges[item.id].label}>
+                    {badges[item.id].count}
+                  </span>
+                )}
               </button>
             ))}
           </div>

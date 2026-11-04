@@ -320,58 +320,6 @@
   background: #2563eb;
 }
 
-/* Modal */
-.reservations-modal .modal-header {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-.reservations-modal .modal-footer {
-  border-top-color: rgba(255, 255, 255, 0.1);
-}
-
-.reservations-modal .form-label {
-  color: #9ca3af;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.reservations-modal .form-control,
-.reservations-modal .form-select,
-.reservations-modal textarea {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #f0f0f0;
-}
-
-.reservations-modal .form-control:focus,
-.reservations-modal .form-select:focus,
-.reservations-modal textarea:focus {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: #10b981;
-  color: #f0f0f0;
-  box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.15);
-}
-
-.reservations-modal .form-select option {
-  background: #1a1d29;
-  color: #f0f0f0;
-}
-
-/* A date, time or table that cannot be booked. */
-.reservations-modal .form-control.reservations-input-error,
-.reservations-modal .form-control.reservations-input-error:focus,
-.reservations-modal .form-select.reservations-input-error,
-.reservations-modal .form-select.reservations-input-error:focus {
-  border-color: #f87171;
-  box-shadow: 0 0 0 0.25rem rgba(248, 113, 113, 0.15);
-}
-
-.reservations-modal textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
 .reservations-header-actions {
   display: flex;
   align-items: center;
@@ -389,25 +337,6 @@
   border-radius: 6px;
   display: inline-block;
 }
-
-.reservations-field-warning {
-  margin-top: 8px;
-  color: #fda4af;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* Two fields a row (date and time, table and pax): ".row.g-3" is a
-   3-column grid app-wide, which squeezed the table name out of its box. */
-.reservations-modal .row.g-3 {
-  grid-template-columns: 1fr 1fr !important;
-}
-
-/* Under the Table and Pax row, which keeps its own bottom margin */
-.reservations-table-warning {
-  margin: -8px 0 16px;
-}
-
 
 /* Responsive */
 @media (max-width: 1024px) {

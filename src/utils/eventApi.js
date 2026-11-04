@@ -50,22 +50,38 @@ export const setRemoteEventNoticeHidden = async ({ eventId, hidden }) => {
   return data.event;
 };
 
-// `payment`: for a paid tournament from the website, { phone, payerNumber,
-// paymentReference, receipt } (the receipt screenshot as a data URL).
-export const registerRemoteTournamentParticipant = async ({ eventId, participant, payment = null }) => {
+// A walk-in signed up at the counter. `entryFee`, for a paid tournament: {
+// method: "cash" | "gcash" | "unpaid", reference (GCash), saleId }.
+export const registerRemoteTournamentParticipant = async ({ eventId, participant, entryFee = null }) => {
   const response = await apiFetch(EVENT_API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ eventId, participant, ...(payment || {}) }),
+    body: JSON.stringify({ eventId, participant, ...(entryFee ? { entryFee } : {}) }),
   });
   const data = await parseResponse(response, "Unable to register for the tournament.");
   return data.event;
 };
 
 /**
+ * A registered player paid the entry fee at the counter: `entryFee` is {
+ * method: "cash" | "gcash", reference (GCash), saleId }. Resolves with the
+ * tournament; a GCash reference used before is refused (409).
+ */
+export const recordTournamentEntryFee = async ({ eventId, participant, entryFee }) => {
+  const response = await apiFetch(EVENT_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "entryFee", eventId, participant, entryFee }),
+  });
+  const data = await parseResponse(response, "Unable to save the entry fee.");
+  return data.event;
+};
+
+/**
  * A sign-up from the website: { event, statusKey }. The key is what the
  * player's browser follows the sign-up by (utils/myRequests.js); null if the
- * server gave none.
+ * server gave none. `payment`: for a paid tournament, { phone, payerNumber,
+ * paymentReference, receipt } (the receipt screenshot as a data URL).
  */
 export const registerWebsiteTournamentParticipant = async ({ eventId, participant, payment = null }) => {
   const response = await apiFetch(EVENT_API_URL, {

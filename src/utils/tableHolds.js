@@ -60,6 +60,21 @@ export const getUpcomingBookings = (table, reservations = [], now = new Date()) 
     .map(({ booking, span }) => ({ ...booking, holdsFrom: span ? new Date(span.from) : null }));
 
 /**
+ * Everything still to come on a table, earliest first, for the dashboard's
+ * pop-up: the confirmed bookings above, and the online ones whose GCash
+ * payment has not been checked yet (they do not hold the table until approved).
+ */
+export const getTableBookings = (table, reservations = [], now = new Date()) => {
+  const startOf = (booking) => getReservationRange(booking)?.start.getTime() ?? 0;
+  const toCheck = reservations.filter((booking) => {
+    if (booking?.status !== "pending" || !isTableOf(table, booking)) return false;
+    const range = getReservationRange(booking);
+    return !range || range.end.getTime() > now.getTime();
+  });
+  return [...getUpcomingBookings(table, reservations, now), ...toCheck].sort((first, second) => startOf(first) - startOf(second));
+};
+
+/**
  * Whether a table belongs under the Reserved filter: held right now, or booked
  * for later while it stays open for walk-ins until then.
  */

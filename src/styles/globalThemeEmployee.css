@@ -249,11 +249,6 @@
   color: var(--text-primary) !important;
 }
 
-/* Beats globalThemeAdmin's ".light .modal-body p", which would turn warnings black. */
-.light .modal-body .rd-field-warning {
-  color: #b91c1c !important;
-}
-
 .light .rd-subtitle,
 .light .rd-stat-label,
 .light .rd-table thead th,
@@ -275,34 +270,6 @@
 .light .rd-stat-card:hover {
   border-color: rgba(59, 130, 246, 0.25) !important;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
-}
-
-.light .rd-input,
-.light .rd-select {
-  background: var(--bg-surface) !important;
-  border-color: var(--border-strong) !important;
-  color: var(--text-secondary) !important;
-}
-
-.light .rd-input::placeholder {
-  color: var(--text-placeholder) !important;
-}
-
-.light .rd-input:focus,
-.light .rd-select:focus {
-  background: var(--bg-surface) !important;
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12) !important;
-}
-
-.light .rd-input[aria-invalid="true"],
-.light .rd-select[aria-invalid="true"] {
-  border-color: #dc2626 !important;
-}
-
-.light .rd-select option {
-  background: var(--bg-surface) !important;
-  color: var(--text-secondary) !important;
 }
 
 .light .rd-filter-btn {

@@ -282,7 +282,85 @@
   color: #9ca3af;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
 }
+
+/* "4 slots left" or "Full" beside the player count, and how the fee is paid. */
+.events-slots {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.events-slots.is-full {
+  background: rgba(239, 68, 68, 0.14);
+  color: #fca5a5;
+}
+
+.events-info-sub {
+  display: block;
+  margin-top: 2px;
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.light .events-slots { background: #ecfdf5; color: #047857; }
+.light .events-slots.is-full { background: #fef2f2; color: #b91c1c; }
+.light .events-info-sub { color: var(--text-muted); }
+
+/* Create / Edit: the player limit, and the ways to pay a paid tournament's fee. */
+.events-modal-max {
+  margin-top: 1rem;
+}
+
+.events-modal-methods {
+  margin: 0.9rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.events-modal-methods legend {
+  float: none;
+  width: auto;
+  margin-bottom: 0.4rem;
+}
+
+.events-method-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.events-method-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.events-method-option input {
+  margin: 0;
+  accent-color: #10b981;
+}
+
+.events-method-option.is-on {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.14);
+}
+
+.light .events-method-option.is-on { background: #ecfdf5; }
 
 /* Actions */
 .events-actions {

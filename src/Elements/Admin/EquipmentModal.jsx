@@ -1,6 +1,7 @@
 import FieldError from "../Global/FieldError";
 import useFormErrors from "../Global/useFormErrors";
 import { EQUIPMENT_STATUS_LABELS, EQUIPMENT_TYPES } from "../../utils/equipment";
+import { readTitleField } from "../../utils/textField";
 
 const FIELDS = ["name", "tableId", "previousMaintenance", "lastMaintenance"];
 
@@ -39,7 +40,7 @@ export default function EquipmentModal({ form, setForm, editId, errors = {}, tod
                 <input
                   type="text"
                   value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  onChange={e => setForm({ ...form, name: readTitleField(e) })}
                   placeholder="e.g. Table 1 Cue Stick"
                   maxLength={80}
                   {...fieldProps("name")}

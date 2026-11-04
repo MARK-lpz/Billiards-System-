@@ -16,12 +16,14 @@ import useMyProfile from "../../Elements/Global/useMyProfile";
 import { ProfileButton } from "../../Elements/Global/ProfileAvatar";
 import AdminTopbar from "../../Elements/Admin/AdminTopbar";
 import { formatHoursLabel, getExtensionBlock, getTodayDate } from "../../utils/reservations";
+import { getShelfProducts } from "../../utils/productShelf";
 
 // Admin Elements
 import Sidebar from "../../Elements/Admin/Sidebar";
 import { navItems } from "../../Elements/Admin/adminNav";
 import TaskList from "../../Elements/Admin/TaskList";
 import ActiveTables from "../../Elements/Admin/ActiveTables";
+import DashboardStats from "../../Elements/Admin/DashboardStats";
 import TableCheckout from "../../Elements/Admin/TableCheckout";
 
 // Employee Elements
@@ -93,7 +95,10 @@ export default function Dashboard({
   setEvents,
   theme,
   setTheme,
+  density,
+  setDensity,
   onlineReservationsOpen,
+  onlineReservationsStatus,
   isUpdatingOnlineReservations,
   onOnlineReservationsChange,
 }) {
@@ -103,6 +108,8 @@ export default function Dashboard({
   // What the bell opened, for the page it leads to (a product in Inventory).
   // Cleared by any other navigation.
   const [focus, setFocus] = useState(null);
+  // The products still in the Inventory: archived ones are only on its Archive.
+  const shelfProducts = getShelfProducts(products);
   // The session being ended and paid ({ tableId, startTime, at }), from a table
   // card or from the time's up pop-up on any page.
   const [checkout, setCheckout] = useState(null);
@@ -181,7 +188,7 @@ export default function Dashboard({
           tables={tables}
           setTables={setTables}
           reservations={reservations}
-          products={products}
+          products={shelfProducts}
           setProducts={setProducts}
           transactions={transactions}
           setTransactions={setTransactions}
@@ -200,14 +207,18 @@ export default function Dashboard({
           setTables={setTables}
           tableCharges={tableCharges}
           setTableCharges={setTableCharges}
+          events={events}
+          transactions={transactions}
+          setTransactions={setTransactions}
           setLogs={setLogs}
         />;
-      
+
       case 'reports':
         return <Reports 
           transactions={transactions}
           reservations={reservations}
-          products={products}
+          products={shelfProducts}
+          setLogs={setLogs}
         />;
       
       case 'pool-tables':
@@ -216,10 +227,12 @@ export default function Dashboard({
           setTables={setTables}
           reservations={reservations}
           setReservations={setReservations}
-          products={products}
+          products={shelfProducts}
           setProducts={setProducts}
+          setTransactions={setTransactions}
           setLogs={setLogs}
           onEndSession={requestEndSession}
+          onViewReservations={() => handleNavChange('reservations')}
         />;
       
       case 'inventory':
@@ -229,6 +242,7 @@ export default function Dashboard({
           focusAction={focus?.nav === "inventory" ? focus.action : null}
           products={products}
           setProducts={setProducts}
+          setLogs={setLogs}
         />;
       
       case 'events':
@@ -252,19 +266,32 @@ export default function Dashboard({
         />;
 
       case 'audit-trail':
-        return <AuditTrail logs={logs} setLogs={setLogs} />;
+        return (
+          <AuditTrail
+            logs={logs}
+            setLogs={setLogs}
+            tables={tables}
+            reservations={reservations}
+            tableCharges={tableCharges}
+          />
+        );
 
       case 'accounts':
         return <AccountManagement setLogs={setLogs} />;
 
-      case 'website':
+      case 'content-management':
         return (
           <Website
-            key={focus?.key || "website"}
+            key={focus?.key || "content-management"}
             reservations={reservations}
             setLogs={setLogs}
-            openTab={focus?.nav === "website" ? focus.tab : null}
-            bookings={{ open: onlineReservationsOpen, updating: isUpdatingOnlineReservations, onChange: onOnlineReservationsChange }}
+            openTab={focus?.nav === "content-management" ? focus.tab : null}
+            bookings={{
+              open: onlineReservationsOpen,
+              status: onlineReservationsStatus,
+              updating: isUpdatingOnlineReservations,
+              onChange: onOnlineReservationsChange,
+            }}
           />
         );
 
@@ -284,6 +311,8 @@ export default function Dashboard({
           <Settings
             theme={theme}
             setTheme={setTheme}
+            density={density}
+            setDensity={setDensity}
             canManageBackups
             onRestored={onReload}
           />
@@ -306,9 +335,25 @@ export default function Dashboard({
               />
             </section>
 
+            {/* Out of stock, players, today's sales and reservations; each opens its page */}
+            <DashboardStats
+              products={shelfProducts}
+              events={events}
+              transactions={transactions}
+              reservations={reservations}
+              now={now}
+              onOpen={(navId) => handleNavChange(navId)}
+            />
+
             {/* Main grid — tables get the wide column, issues sit beside them */}
             <div className="admin-dashboard-grid">
-              <ActiveTables tables={tables} onViewPoolTables={() => handleNavChange('pool-tables')} />
+              <ActiveTables
+                tables={tables}
+                reservations={reservations}
+                now={now}
+                onViewPoolTables={() => handleNavChange('pool-tables')}
+                onViewReservations={() => handleNavChange('reservations')}
+              />
               <TaskList logs={logs} setLogs={setLogs} onOpenEquipment={openEquipmentIssue} />
             </div>
           </>
@@ -362,7 +407,7 @@ export default function Dashboard({
             onToggleNav={() => setNavOpen((open) => !open)}
           >
             <AdminBell
-              products={products}
+              products={shelfProducts}
               tables={tables}
               reservations={reservations}
               now={now}
@@ -377,7 +422,9 @@ export default function Dashboard({
               }
               onOpenEvents={() => handleNavChange("events")}
               onOpenAccounts={() => handleNavChange("accounts")}
-              onOpenWebsite={(tab) => handleNavChange("website", { nav: "website", tab, key: `website-${Date.now()}` })}
+              onOpenWebsite={(tab) =>
+                handleNavChange("content-management", { nav: "content-management", tab, key: `content-management-${Date.now()}` })
+              }
               events={events}
             />
             <ProfileButton profile={myProfile.profile} onOpen={() => handleNavChange('profile')} />

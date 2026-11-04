@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import FieldError from "../Global/FieldError";
 import useFormErrors from "../Global/useFormErrors";
 import { getIssueSummary } from "../../utils/issues";
+import { readTextField } from "../../utils/textField";
 import {
   getDedicatedTable,
   getEquipmentTable,
@@ -238,7 +239,7 @@ export default function ReportIssueModal({ tables = [], equipment = [], openIssu
                     maxLength={MAX_ISSUE_DESCRIPTION}
                     placeholder="What is wrong? (e.g. cracked tip, missing 8-ball, torn cloth near the corner pocket)"
                     value={form.description}
-                    onChange={(event) => setForm({ ...form, description: event.target.value })}
+                    onChange={(event) => setForm({ ...form, description: readTextField(event) })}
                     {...fieldProps("description", "form-control")}
                   />
                   <FieldError id="issue-description-error" message={errorFor("description")} />

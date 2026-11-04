@@ -333,6 +333,47 @@
   font-style: italic;
 }
 
+/* No mobile number yet: a forgotten password cannot be reset by text. */
+.profile-warning {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.profile-warning > i {
+  flex-shrink: 0;
+  color: #fbbf24;
+  font-size: 18px;
+}
+
+.profile-warning > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profile-warning strong {
+  color: #fef3c7;
+  font-size: 14px;
+}
+
+.profile-warning span {
+  color: #fde68a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.profile-warning-btn {
+  flex-shrink: 0;
+}
+
 /* A button inside a row: Open Accounts, Change password. */
 .profile-row-action {
   padding: 6px 12px;
@@ -382,6 +423,13 @@
 .profile-field em {
   font-style: normal;
   font-weight: 400;
+}
+
+/* What a field is used for, under it (the email: where a reset code goes). */
+.profile-field-hint {
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
 }
 
 .profile-field input {
@@ -528,6 +576,17 @@
   font-size: 15px;
 }
 
+.topbar-profile-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #0d1117;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
 @media (max-width: 600px) {
   .profile-page { padding: 16px; }
   .profile-form { grid-template-columns: 1fr; }
@@ -541,6 +600,15 @@
   .profile-row-action {
     grid-column: 2;
     grid-row: 1 / span 2;
+  }
+  /* The button goes under the words, which keep the width. */
+  .profile-warning {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+  .profile-warning-btn {
+    grid-column: 2;
+    justify-self: start;
   }
   .profile-activity li { grid-template-columns: 10px minmax(0, 1fr); }
   .profile-activity time { grid-column: 2; }
@@ -637,6 +705,16 @@
 }
 
 .light .profile-field input:focus { border-color: var(--accent); }
+
+.light .profile-warning {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.light .profile-warning > i { color: #d97706; }
+.light .profile-warning strong { color: #78350f; }
+.light .profile-warning span { color: #92400e; }
+.light .topbar-profile-dot { border-color: #ffffff; }
 
 .light .profile-message.success { color: #047857; }
 .light .profile-message.error { color: #b91c1c; }

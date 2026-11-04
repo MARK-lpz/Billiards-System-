@@ -13,7 +13,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 40px 16px;
+  padding: 28px 16px;
   font-family: var(--bc-font-body);
 }
 
@@ -56,9 +56,10 @@
   }
 }
 
+/* Wide enough for two fields side by side without a cramped look */
 .tournament-wrapper {
   width: 100%;
-  max-width: 580px;
+  max-width: 640px;
 }
 
 .fade-in {
@@ -80,7 +81,7 @@
   background: #121614;
   border: 1px solid rgba(226, 236, 230, 0.08);
   border-radius: 18px;
-  padding: clamp(24px, 5vw, 40px);
+  padding: clamp(18px, 4vw, 30px);
   box-shadow: 0 30px 60px -24px rgba(0, 0, 0, 0.8);
   position: relative;
   overflow: hidden;

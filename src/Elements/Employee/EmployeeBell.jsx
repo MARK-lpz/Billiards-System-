@@ -8,10 +8,37 @@ import { formatEventWhen } from "../../utils/eventUpdates";
 import useRefundsSection from "../Global/useRefundsSection";
 import { useOnlinePayments } from "../Global/useOnlinePayments";
 import { findPlayerPayment } from "../../utils/onlinePayments";
+import { stockAlarmKey } from "../../utils/productShelf";
+import { formatExpiryDate } from "../../utils/inventoryValidation";
 
 // The notices the website sends the staff when a guest books online.
 const ONLINE_RESERVATION = "online-reservation";
 const SHOWN_PER_KIND = 20;
+// The stock alarms the bell lists, most pressing first (useStockAlarm).
+const STOCK_KINDS = ["expired", "low", "fresh"];
+
+// One stock alarm in the bell: what happened to the product, and its state.
+const describeStockAlarm = (kind, entry) => {
+  const { product } = entry;
+  const unit = product.unit || "pcs";
+  const name = <strong>{product.name}</strong>;
+  if (kind === "expired") {
+    return {
+      icon: "bi-calendar-x-fill staff-bell-icon--danger",
+      title: <>{name} expired on {formatExpiryDate(product.expiryDate)}</>,
+      state: { label: "Do not sell", tone: "danger" },
+    };
+  }
+  if (kind === "low") {
+    const out = entry.state === "out";
+    return {
+      icon: out ? "bi-x-octagon-fill staff-bell-icon--danger" : "bi-exclamation-triangle-fill staff-bell-icon--warning",
+      title: out ? <>{name} is out of stock</> : <>{name} is low: {Number(product.stock) || 0} {unit} left</>,
+      state: out ? { label: "Out of stock", tone: "danger" } : { label: "Low stock", tone: "action" },
+    };
+  }
+  return { icon: "bi-stars", title: <>{name} was added to the Sales / POS</>, state: null };
+};
 
 // Where each booking stands now, shown beside its notice.
 const BOOKING_STATES = {
@@ -30,12 +57,15 @@ const BOOKING_STATES = {
  * The employee's bell (see Global/Notification.jsx). It is about what the front
  * desk acts on: tables whose time is up and not yet ended (see
  * useTimeUpSection), online reservations (opening one goes to the Reservation
- * Desk, at that booking) and players registering for tournaments (opening one
- * goes to the Tournament Schedule, at that player). The players have no bell of
+ * Desk, at that booking), players registering for tournaments (opening one
+ * goes to the Tournament Schedule, at that player) and the stock alarm:
+ * products expired, running low or newly added (opening one goes to the
+ * Stock Alarm page, at its list). The players have no bell of
  * their own on that page: this is the one. `seen` / `markSeen` are the players
- * already opened, shared with that page (the dashboard keeps them). Other
- * notices are not listed for employees for now; pass `others` to Notification
- * to add some.
+ * already opened, shared with that page (the dashboard keeps them), and
+ * `stockAlarm` (useStockAlarm) is shared with the dashboard the same way.
+ * Other notices are not listed for employees for now; pass `others` to
+ * Notification to add some.
  */
 export default function EmployeeBell({
   events = [],
@@ -47,6 +77,8 @@ export default function EmployeeBell({
   onEndSession,
   onOpenReservation,
   onOpenRegistration,
+  stockAlarm,
+  onOpenStockAlarm,
 }) {
   const { notifications, markAsRead, markAllAsRead } = useNotifications();
   const now = useClock(60000);
@@ -68,6 +100,11 @@ export default function EmployeeBell({
   // New players first, then the rest in the schedule's order.
   const registrations = [...allRegistrations.filter(isNewPlayer), ...allRegistrations.filter((entry) => !isNewPlayer(entry))];
   const unreadBookings = bookings.filter((notice) => notice.unread).length;
+
+  // Unseen stock alarms first, then the rest, each kind in its own order.
+  const stockEntries = STOCK_KINDS.flatMap((kind) => stockAlarm.alarm[kind].map((entry) => ({ kind, entry })));
+  const isNewStock = ({ kind, entry }) => stockAlarm.isNew(kind, entry);
+  const stockShown = [...stockEntries.filter(isNewStock), ...stockEntries.filter((item) => !isNewStock(item))];
 
   const stateOf = (notice) => {
     const booking = reservations.find((entry) => String(entry.id) === String(notice.data?.reservationId));
@@ -123,6 +160,30 @@ export default function EmployeeBell({
         },
       })),
     },
+    {
+      key: "stock",
+      title: "Stock alarm",
+      icon: "bi-box-seam",
+      newCount: stockEntries.filter(isNewStock).length,
+      empty: "Nothing expired, running low or newly added.",
+      items: stockShown.slice(0, SHOWN_PER_KIND).map((item) => {
+        const { kind, entry } = item;
+        const { product } = entry;
+        const key = stockAlarmKey(kind, entry);
+        return {
+          key,
+          unread: isNewStock(item),
+          ...describeStockAlarm(kind, entry),
+          meta: [product.productNumber && `#${product.productNumber}`, product.category, `${Number(product.stock) || 0} ${product.unit || "pcs"} in stock`]
+            .filter(Boolean)
+            .join(" · "),
+          onOpen: () => {
+            stockAlarm.markSeen([key]);
+            onOpenStockAlarm(kind);
+          },
+        };
+      }),
+    },
   ];
 
   return (
@@ -133,6 +194,7 @@ export default function EmployeeBell({
         refunds.markAllSeen();
         if (unreadBookings) markAllAsRead();
         markSeen(allRegistrations.map((registration) => registration.key));
+        stockAlarm.markAllSeen();
       }}
     />
   );

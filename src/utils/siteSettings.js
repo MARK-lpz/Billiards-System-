@@ -1,8 +1,8 @@
 /**
  * What the admin sets for the website (Admin > Website; api/site_settings.php):
- * the GCash account customers pay into, the hall's address and contacts, an
- * announcement, the opening hours, and the home page's showcase slides, booking
- * steps and footer line. Until the server answers, and for anything never
+ * the GCash account customers pay into, the hall's About us words, address and
+ * contacts, an announcement, the opening hours, and the home page's showcase
+ * slides, booking steps and footer line. Until the server answers, and for anything never
  * saved, these defaults hold, which is how the site was before.
  */
 import { eventMediaUrl } from "./eventMedia";
@@ -10,8 +10,16 @@ import { DEFAULT_RESERVATION_HOURS } from "./reservations";
 
 export const DEFAULT_SITE_SETTINGS = {
   gcash: { accountName: "", number: "", qr: null, ready: false },
+  // Paragraphs are separated by a blank line (see aboutParagraphs).
+  about: {
+    heading: "More than a game.",
+    text:
+      "Break & Chill Billiard Hall is a place for casual games, serious practice and friendly tournaments.\n\n" +
+      "Come with friends, bring your team, or walk in for a quick game: the tables are kept ready, and the front desk is here to help.",
+  },
   business: { address: "", mapsUrl: "", phone: "", facebookUrl: "" },
-  announcement: { enabled: false, message: "", startDate: "", endDate: "" },
+  // `image` (optional) shows beside the announcements on the home page.
+  announcement: { enabled: false, message: "", startDate: "", endDate: "", image: null },
   hours: DEFAULT_RESERVATION_HOURS,
   // A slide without its own photo shows the table's felt instead (see slidePictureUrl).
   showcase: {
@@ -56,6 +64,16 @@ export const STEPS_HEADING_MAX_LENGTH = 60;
 export const STEP_TITLE_MAX_LENGTH = 40;
 export const STEP_TEXT_MAX_LENGTH = 160;
 export const FOOTER_TAGLINE_MAX_LENGTH = 80;
+export const ABOUT_HEADING_MAX_LENGTH = 60;
+export const ABOUT_TEXT_MAX_LENGTH = 700;
+export const ABOUT_PARAGRAPHS_MAX = 4;
+
+/** About us's words as paragraphs: split at blank lines, empty ones left out. */
+export const aboutParagraphs = (text) =>
+  String(text || "")
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
 
 // Which part of a slide's photo stays in view where the slide crops it (CSS object-position).
 export const SLIDE_POSITIONS = [
@@ -113,7 +131,3 @@ export const isAnnouncementShowing = (announcement, today) =>
       (!announcement.startDate || announcement.startDate <= today) &&
       (!announcement.endDate || announcement.endDate >= today)
   );
-
-/** True when at least one way to reach or find the hall is set. */
-export const hasBusinessInfo = (business) =>
-  Boolean(business && (business.address || business.mapsUrl || business.phone || business.facebookUrl));

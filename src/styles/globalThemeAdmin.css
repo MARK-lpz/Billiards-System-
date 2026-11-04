@@ -388,6 +388,35 @@
   color: var(--text-primary) !important;
 }
 
+.light .account-row.is-archived strong {
+  color: var(--text-secondary) !important;
+}
+
+.light .account-role-badge {
+  background: rgba(100, 116, 139, 0.14);
+  color: #475569;
+}
+
+.light .account-role-badge.is-admin {
+  background: rgba(217, 119, 6, 0.14);
+  color: #b45309;
+}
+
+.light .account-role-badge.is-self {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+.light .account-row.is-editing {
+  border-color: rgba(16, 185, 129, 0.5) !important;
+}
+
+.light .account-row .btn-outline-secondary.is-danger:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #dc2626 !important;
+}
+
 .light .audit-severity-info {
   background: rgba(59, 130, 246, 0.12) !important;
   color: #3b82f6 !important;
@@ -455,28 +484,6 @@
 .light .reservations-time       { color: var(--text-muted) !important; }
 .light .reservations-pax        { color: var(--text-muted) !important; }
 .light .reservations-notes      { color: var(--text-muted) !important; }
-
-.light .reservations-modal .form-label { color: var(--text-muted) !important; }
-.light .reservations-modal .form-control,
-.light .reservations-modal .form-select,
-.light .reservations-modal textarea {
-  background: var(--bg-muted) !important;
-  border-color: var(--border-strong) !important;
-  color: var(--text-secondary) !important;
-}
-.light .reservations-modal .form-select option {
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-}
-.light .reservations-modal .form-control.reservations-input-error,
-.light .reservations-modal .form-control.reservations-input-error:focus,
-.light .reservations-modal .form-select.reservations-input-error,
-.light .reservations-modal .form-select.reservations-input-error:focus {
-  border-color: #dc2626 !important;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
-}
-/* Beats the ".light .modal-body div" rule below, which would turn warnings black. */
-.light .modal-body .reservations-field-warning { color: #b91c1c !important; }
 
 .light .sales-pos-title    { color: var(--text-primary) !important; }
 .light .sales-pos-subtitle { color: var(--text-muted) !important; }

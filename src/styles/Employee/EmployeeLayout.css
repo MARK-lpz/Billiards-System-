@@ -2,7 +2,7 @@
    The employee panel's arrangement, kept apart from the admin panel's
    (AdminLayout.css) so either can change alone: a grouped, collapsible
    sidebar, a sticky top bar with the page name, clock, bell and menu, a
-   title band on the Pool Tables dashboard only, and the other pages' stats
+   title band on the Dashboard only, and the other pages' stats
    as joined strips with their buttons beside them. Only placement changes
    here; every color is one the staff app already uses. App.jsx imports this
    after brand.css, and every rule is scoped to .employee-shell. */
@@ -310,8 +310,8 @@
 
 /* ================================================================
    Title band
-   Only the Pool Tables dashboard keeps a title band; the top bar already
-   names every other page.
+   Only the Dashboard keeps a title band; the top bar already names every
+   other page.
    ================================================================ */
 
 .employee-shell .employee-hero {
@@ -486,13 +486,8 @@
    Pages
    ================================================================ */
 
-/* Pool Tables: the status filter sits inside the dashboard band */
 .employee-shell .employee-hero {
   align-items: center;
-}
-
-.employee-shell .employee-hero .pool-table-stats {
-  margin: 0;
 }
 
 /* The pages bring their own outer padding; the workspace sets it now */
@@ -590,8 +585,9 @@
    ================================================================ */
 
 @media (max-width: 1024px) {
+  /* minmax(0, ...): a wide table scrolls in its own card, the page never grows past the screen. */
   .employee-shell :is(.rd-page, .qa-page) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .employee-shell :is(.rd-page > .rd-header, .qa-page > .qa-page-header) {
@@ -690,6 +686,11 @@
     padding: 1.1rem 1rem 1.1rem 1.35rem;
   }
 
+  /* Actions' four counts, two by two: "MAINTENANCE" needs the room. */
+  .employee-shell .qa-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
 }
 
 /* Settings: the cards side by side on wide screens (it was one 980px column
@@ -705,4 +706,46 @@
 
 .employee-shell .settings-page > .settings-header {
   grid-column: 1 / -1;
+}
+
+/* A count beside a page that needs looking at (the Stock Alarm), at the end of
+   its row; a dot on the icon when the menu is an icon rail. */
+.employee-shell .nav-badge {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.employee-shell .nav-badge.is-danger { background: #dc2626; }
+.employee-shell .nav-badge.is-warning { background: #b45309; }
+
+.employee-shell.is-collapsed .nav-badge {
+  position: absolute;
+  top: 6px;
+  right: 14px;
+  min-width: 0;
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  font-size: 0;
+  line-height: 0;
+}
+
+/* The drawer shows the full menu, so the count stays a count. */
+@media (max-width: 900px) {
+  .employee-shell.is-collapsed .nav-badge {
+    position: static;
+    min-width: 20px;
+    width: auto;
+    height: auto;
+    padding: 0 6px;
+    font-size: 0.7rem;
+    line-height: 18px;
+  }
 }

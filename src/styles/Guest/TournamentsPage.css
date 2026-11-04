@@ -1,68 +1,12 @@
-/* Public tournaments page (TournamentsPage.jsx). Uses the landing page's header,
-   badges, buttons and footer from GuestLanding.css; each tournament is a ticket
-   with a tear-off date stub, like the cards on the home page. */
+/* Public tournaments page (TournamentsPage.jsx). Uses the public pages' header,
+   badges, buttons and footer (GuestLanding.css, GuestPages.css); each
+   tournament is a ticket with a tear-off date stub, like the cards on the home
+   page. */
 
-/* A short list (one tournament, or none) keeps the footer at the bottom of the
-   window instead of leaving the page's background showing under it. */
-.tournaments-page {
-  display: flex;
-  flex-direction: column;
-}
-
-.tournaments-page > .guest-template-footer {
-  margin-top: auto;
-}
-
-.tournaments-brand {
-  border: 0;
-  background: transparent;
-  padding: 0;
-  color: inherit;
-  text-align: left;
-}
-
-/* "Home" is a way back, not the page's main action */
-.tournaments-page .guest-template-register {
-  border-color: rgba(226, 236, 230, 0.22);
-  background: transparent;
-  color: #eef1ec;
-  box-shadow: none;
-}
-
-.tournaments-page .guest-template-register:hover {
-  border-color: rgba(53, 198, 244, 0.7);
-  background: rgba(53, 198, 244, 0.08);
-  box-shadow: none;
-  transform: none;
-}
-
-.tournaments-hero,
 .tournaments-list,
 .tournaments-cancelled {
   width: min(100% - 2.5rem, var(--guest-width));
   margin: 0 auto;
-}
-
-.tournaments-hero {
-  padding: clamp(2.5rem, 6vw, 4rem) 0 1.75rem;
-}
-
-.tournaments-hero h1 {
-  margin: 0;
-  color: #fff;
-  font-family: var(--bc-font-display);
-  font-size: clamp(2rem, 5vw, 3.4rem);
-  font-weight: 400;
-  font-synthesis: none;
-  line-height: 1.05;
-}
-
-.tournaments-hero > p:not(.guest-template-eyebrow) {
-  max-width: 640px;
-  margin: 1rem 0 0;
-  color: #c9d0ca;
-  font-size: 1.05rem;
-  line-height: 1.7;
 }
 
 .tournaments-list {
@@ -71,28 +15,6 @@
   gap: 1rem;
   margin-bottom: clamp(2.5rem, 5vw, 4rem);
 }
-
-.tournaments-empty {
-  display: grid;
-  justify-items: center;
-  gap: 0.5rem;
-  padding: 3rem 1rem;
-  border: 2px dashed rgba(226, 236, 230, 0.14);
-  border-radius: 14px;
-  text-align: center;
-}
-
-.tournaments-empty i { color: var(--bc-yellow); font-size: 2.2rem; }
-
-.tournaments-empty h2 {
-  margin: 0;
-  color: #fff;
-  font-family: var(--bc-font-display);
-  font-size: 1.4rem;
-  font-weight: 400;
-}
-
-.tournaments-empty p { margin: 0; color: #9ba59e; font-size: 0.98rem; }
 
 .tournaments-cancelled {
   margin-bottom: clamp(2.5rem, 5vw, 4rem);
@@ -133,7 +55,6 @@
 .tournaments-cancelled-note { color: #c9d0ca; }
 
 @media (max-width: 680px) {
-  .tournaments-hero,
   .tournaments-list,
   .tournaments-cancelled { width: calc(100% - 2rem); }
 }

@@ -108,7 +108,7 @@ export default function TableBillsPanel({
                   </div>
                   {charge.prepaid && (
                     <div className="table-bill-prepaid">
-                      {fmtPeso(charge.prepaid.amount)} already paid online · only the added time
+                      {fmtPeso(charge.prepaid.amount)} paid with the booking · only the added time
                       {charge.ordersTotal > 0 ? " and orders are" : " is"} due
                     </div>
                   )}
@@ -139,7 +139,7 @@ export default function TableBillsPanel({
                     {formatClockTime(endsAt)} · pays now, keeps playing
                   </div>
                   {charge.prepaid && (
-                    <div className="table-bill-prepaid">{fmtPeso(charge.prepaid.amount)} already paid online</div>
+                    <div className="table-bill-prepaid">{fmtPeso(charge.prepaid.amount)} paid with the booking</div>
                   )}
                   {charge.paidEarlier > 0 && (
                     <div className="table-bill-prepaid">

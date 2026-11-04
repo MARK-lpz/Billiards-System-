@@ -1,6 +1,8 @@
+// Counted from the products still in the Inventory (not the Archive). Total
+// Value leaves out expired stock, which is not sold.
 export default function InventoryStats({ stats }) {
   return (
-    <div className="stats-grid mb-4">
+    <div className="stats-grid mb-4 inventory-stats">
       <div className="card inventory-stat-card inventory-stat-blue">
         <div className="card-body">
           <i className="bi bi-box-seam inventory-stat-icon"></i>
@@ -15,18 +17,32 @@ export default function InventoryStats({ stats }) {
           <div className="inventory-stat-label">Low Stock</div>
         </div>
       </div>
-      <div className="card inventory-stat-card inventory-stat-green">
-        <div className="card-body">
-          <i className="bi bi-currency-dollar inventory-stat-icon"></i>
-          <div className="inventory-stat-value">₱{stats.totalValue.toLocaleString()}</div>
-          <div className="inventory-stat-label">Total Value</div>
-        </div>
-      </div>
       <div className="card inventory-stat-card inventory-stat-red">
         <div className="card-body">
           <i className="bi bi-x-circle inventory-stat-icon"></i>
           <div className="inventory-stat-value">{stats.outOfStock}</div>
           <div className="inventory-stat-label">Out of Stock</div>
+        </div>
+      </div>
+      <div className="card inventory-stat-card inventory-stat-yellow">
+        <div className="card-body">
+          <i className="bi bi-hourglass-split inventory-stat-icon"></i>
+          <div className="inventory-stat-value">{stats.expiringSoon}</div>
+          <div className="inventory-stat-label">Expiring Soon</div>
+        </div>
+      </div>
+      <div className="card inventory-stat-card inventory-stat-red">
+        <div className="card-body">
+          <i className="bi bi-calendar-x inventory-stat-icon"></i>
+          <div className="inventory-stat-value">{stats.expired}</div>
+          <div className="inventory-stat-label">Expired</div>
+        </div>
+      </div>
+      <div className="card inventory-stat-card inventory-stat-green">
+        <div className="card-body">
+          <i className="bi bi-currency-dollar inventory-stat-icon"></i>
+          <div className="inventory-stat-value">₱{stats.totalValue.toLocaleString()}</div>
+          <div className="inventory-stat-label">Total Value</div>
         </div>
       </div>
     </div>

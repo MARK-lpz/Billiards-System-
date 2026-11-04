@@ -1,4 +1,5 @@
 import Pagination from "../Global/Pagination";
+import Highlight from "../Global/Highlight";
 import { auditDayLabel, auditLevel } from "../../utils/auditReport";
 
 const typeIcon = {
@@ -25,7 +26,8 @@ const getSeverityDisplay = (log) => {
 };
 
 // `logs` is the page shown; `pagination` (usePagination's shape) moves between pages;
-// `onPrint` opens the printable report.
+// `onPrint` opens the printable report. `search` is the search box, shown over
+// the filters; `highlight` the searched words, marked in each event.
 export default function AuditLogList({
   filter,
   filters,
@@ -34,6 +36,8 @@ export default function AuditLogList({
   onFilterChange,
   onSelectLog,
   onPrint,
+  search = null,
+  highlight = [],
 }) {
   return (
     <div className="card audit-log-card">
@@ -48,6 +52,7 @@ export default function AuditLogList({
               </button>
             )}
           </div>
+          {search}
           <div className="audit-filter-row">
             {filters.map((item) => (
               <button
@@ -67,7 +72,7 @@ export default function AuditLogList({
           {logs.length === 0 ? (
             <div className="audit-log-empty">
               <i className="bi bi-inbox"></i>
-              <p>No audit events found for this filter.</p>
+              <p>{highlight.length || search ? "No audit events match the search and filter." : "No audit events found for this filter."}</p>
             </div>
           ) : (
             logs.map((log, index) => {
@@ -92,13 +97,19 @@ export default function AuditLogList({
                   </span>
                   <div className="audit-log-content">
                     <div className="audit-log-staff-action">
-                      <span className="audit-log-staff">{log.staff}</span>
-                      <span className="audit-log-action">- {log.action}</span>
+                      <span className="audit-log-staff">
+                        <Highlight text={log.staff} words={highlight} />
+                      </span>
+                      <span className="audit-log-action">
+                        - <Highlight text={log.action} words={highlight} />
+                      </span>
                       <span className={`audit-severity-pill ${severity.className}`}>
                         {severity.label}
                       </span>
                     </div>
-                    <div className="audit-log-detail">{log.detail}</div>
+                    <div className="audit-log-detail">
+                      <Highlight text={log.detail} words={highlight} />
+                    </div>
                   </div>
                 </button>
               );

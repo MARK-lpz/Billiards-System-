@@ -31,10 +31,16 @@ import RequestStatusCard from "../../Elements/Guest/RequestStatusCard";
 import { describeJustSent } from "../../utils/myRequests";
 import FormSteps, { FormReview, FormStepHead, FormStepNav } from "../../Elements/Guest/FormSteps";
 import { useFormSteps } from "../../Elements/Guest/useFormSteps";
+import { describeClosingForGuests } from "../../utils/onlineBookingSwitch";
+import { getOptionalEmailError, getPersonNameError } from "../../utils/formValidation";
+import OptionalEmailField from "../../Elements/Guest/OptionalEmailField";
 
 // The form, one part at a time: who is booking, the table and time, then paying.
 const STEPS = ["Details", "Schedule", "Pay"];
 const LAST_STEP = STEPS.length - 1;
+// The longest name and note the form takes (the staff's own form takes the same name).
+const MAX_NAME = 40;
+const MAX_NOTES = 200;
 
 // What the customer is told about their payment before and after sending.
 const HELD_NOTE =
@@ -45,6 +51,7 @@ const getToday = () => new Date().toLocaleDateString("en-CA");
 const initialForm = {
   customerName: "",
   phone: "",
+  email: "",
   date: getToday(),
   time: "",
   // Whole hours, kept as the select's string value.
@@ -77,6 +84,8 @@ export default function OnlineReservationForm({
   setReservations,
   onGoBack,
   onlineReservationsOpen = true,
+  // Why online bookings are closed and until when (see utils/onlineBookingSwitch.js).
+  onlineReservationsStatus = {},
 }) {
   const [form, setForm] = useState(initialForm);
   const { step, goTo, title: stepTitle } = useFormSteps();
@@ -125,6 +134,9 @@ export default function OnlineReservationForm({
     [tables, reservations, events, form.date]
   );
   const phoneWarning = getSmsWarning(form.phone);
+  // Optional: when given, the booking's updates are emailed too.
+  const email = form.email.trim().toLowerCase();
+  const emailWarning = getOptionalEmailError(email);
 
   // What is already taken on the chosen date, so guests can see when a table frees up.
   const bookedSlots = useMemo(
@@ -170,12 +182,19 @@ export default function OnlineReservationForm({
   // under Next while it is missing. A warning already shown at its field is not
   // said again there.
   const nameGiven = Boolean(form.customerName.trim());
-  const detailsReady = nameGiven && isValidSmsNumber(form.phone);
+  // Letters only (spaces, periods, apostrophes and hyphens are fine), said at the
+  // field as soon as something is typed.
+  const nameError = nameGiven ? getPersonNameError(form.customerName, "full name") : "";
+  const detailsReady = nameGiven && !nameError && isValidSmsNumber(form.phone) && !emailWarning;
   const detailsHint = !nameGiven
     ? "Type your full name to continue."
-    : !isValidSmsNumber(form.phone)
-      ? phoneWarning ? "Check the contact number above." : "Type your contact number to continue."
-      : "";
+    : nameError
+      ? "Check your name above."
+      : !isValidSmsNumber(form.phone)
+        ? phoneWarning ? "Check the contact number above." : "Type your contact number to continue."
+        : emailWarning
+          ? "Check your email above, or leave it blank."
+          : "";
   const scheduleReady = Boolean(selectedTable) && Boolean(form.time) && !startCheck.reason && hoursFit;
   const scheduleHint = !selectedTable
     ? "Choose a table to continue."
@@ -200,7 +219,7 @@ export default function OnlineReservationForm({
     setSubmitError("");
     setForm((current) => ({
       ...current,
-      [field]: field === "phone" ? sanitizePhoneInput(value) : value,
+      [field]: field === "phone" ? sanitizePhoneInput(value) : field === "email" ? value.replace(/\s/g, "") : value,
       // A new date invalidates the table, and a new table invalidates the start
       // time and hours, because free time is worked out per table.
       ...(field === "date" ? { tableId: "", time: "", hours: String(MIN_RESERVATION_HOURS) } : {}),
@@ -236,7 +255,7 @@ export default function OnlineReservationForm({
     }
 
     if (!onlineReservationsOpen) {
-      setSubmitError("Online reservations are temporarily closed by the hall. Please check back later.");
+      setSubmitError(describeClosingForGuests(onlineReservationsStatus));
       return;
     }
 
@@ -250,8 +269,18 @@ export default function OnlineReservationForm({
       return;
     }
 
+    if (!nameGiven || nameError) {
+      setSubmitError(nameError || "Please type your full name.");
+      return;
+    }
+
     if (!isValidSmsNumber(form.phone)) {
       setSubmitError("Please enter a valid mobile number in 09XXXXXXXXX format.");
+      return;
+    }
+
+    if (emailWarning) {
+      setSubmitError(emailWarning);
       return;
     }
 
@@ -311,8 +340,9 @@ export default function OnlineReservationForm({
 
     const reservation = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      customerName: form.customerName.trim(),
+      customerName: form.customerName.trim().replace(/\s+/g, " "),
       phone: form.phone,
+      email,
       date: form.date,
       time: form.time,
       // The guest no longer states a head count, so the record keeps the minimum.
@@ -402,7 +432,7 @@ export default function OnlineReservationForm({
                 <i className="bi bi-calendar-x-fill"></i>
               </div>
               <h2 className="success-title">Online Reservations Closed</h2>
-              <p className="success-message">The owner has temporarily closed online reservations. Please check back later.</p>
+              <p className="success-message">{describeClosingForGuests(onlineReservationsStatus)}</p>
             </div>
           ) : submittedReservation ? (
             <div className="success-container success-bounce">
@@ -416,6 +446,7 @@ export default function OnlineReservationForm({
                   request={myRequests.requests.find((request) => request.key === followed.key)}
                   fallback={describeJustSent("reservation", followed.label)}
                   textedTo={customerMessage?.status === "sent" ? formatMobile(submittedReservation.phone) : ""}
+                  emailedTo={customerMessage?.emailStatus === "sent" ? submittedReservation.email : ""}
                 />
               )}
               <div className="success-details">
@@ -424,6 +455,7 @@ export default function OnlineReservationForm({
                   ["Date", formatDate(submittedReservation.date), "bi-calendar-event"],
                   ["Time", describeReservationTime(submittedReservation), "bi-clock"],
                   ["Contact", submittedReservation.phone, "bi-telephone"],
+                  ...(submittedReservation.email ? [["Email", submittedReservation.email, "bi-envelope"]] : []),
                   ["GCash reference", submittedReservation.paymentReference || form.paymentReference, "bi-receipt"],
                   ["Amount paid", `PHP ${Number(submittedReservation.paymentAmount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, "bi-cash-coin"],
                   ["Paid from", formatMobile(submittedReservation.payerNumber), "bi-phone"],
@@ -447,7 +479,10 @@ export default function OnlineReservationForm({
                     </strong>
                   </div>
                   <p className="customer-message-body">{customerMessage.text}</p>
-                  <p className="customer-message-note">Keep this for your records.</p>
+                  <p className="customer-message-note">
+                    {customerMessage.emailStatus === "sent" ? `Also emailed to ${submittedReservation.email}. ` : ""}
+                    Keep this for your records.
+                  </p>
                 </div>
               )}
 
@@ -487,17 +522,50 @@ export default function OnlineReservationForm({
                       count={STEPS.length}
                       titleRef={stepTitle}
                       title="Your details"
-                      note="We text updates about your booking to this number."
+                      note="We text updates about your booking to your number, and email them too if you add an email."
                     />
-                    <div className="form-field-full">
-                      <label className="label" htmlFor="reservation-name">Full Name</label>
-                      <input id="reservation-name" className="field-input" value={form.customerName} onChange={(event) => updateForm("customerName", event.target.value)} placeholder="Juan dela Cruz" autoComplete="name" required />
+                    {/* Side by side: the name and the number the updates are texted to (stacked on a phone, so a long name shows whole) */}
+                    <div className="form-grid-2 form-grid-stack-phone">
+                      <div>
+                        <label className="label" htmlFor="reservation-name">Full Name</label>
+                        <input
+                          id="reservation-name"
+                          className={`field-input ${nameError ? "is-invalid" : ""}`}
+                          value={form.customerName}
+                          onChange={(event) => updateForm("customerName", event.target.value)}
+                          placeholder="Juan dela Cruz"
+                          autoComplete="name"
+                          maxLength={MAX_NAME}
+                          aria-invalid={Boolean(nameError)}
+                          aria-describedby={nameError ? "reservation-name-error" : undefined}
+                          required
+                        />
+                        {nameError && <p className="field-warning" id="reservation-name-error" role="alert">{nameError}</p>}
+                      </div>
+                      <div>
+                        <label className="label" htmlFor="reservation-phone">Contact No.</label>
+                        <input
+                          id="reservation-phone"
+                          className={`field-input ${phoneWarning ? "is-invalid" : ""}`}
+                          value={form.phone}
+                          onChange={(event) => updateForm("phone", event.target.value)}
+                          placeholder="09XX XXX XXXX"
+                          inputMode="numeric"
+                          autoComplete="tel"
+                          maxLength="11"
+                          aria-invalid={Boolean(phoneWarning)}
+                          aria-describedby={phoneWarning ? "reservation-phone-error" : undefined}
+                          required
+                        />
+                        {phoneWarning && <p className="field-warning" id="reservation-phone-error">{phoneWarning}</p>}
+                      </div>
                     </div>
-                    <div className="form-field-full">
-                      <label className="label" htmlFor="reservation-phone">Contact No.</label>
-                      <input id="reservation-phone" className="field-input" value={form.phone} onChange={(event) => updateForm("phone", event.target.value)} placeholder="09XX XXX XXXX" inputMode="numeric" autoComplete="tel" maxLength="11" required />
-                      {phoneWarning && <p className="field-warning">{phoneWarning}</p>}
-                    </div>
+                    <OptionalEmailField
+                      id="reservation-email"
+                      value={form.email}
+                      onChange={(event) => updateForm("email", event.target.value)}
+                      warning={emailWarning}
+                    />
                   </>
                 )}
 
@@ -661,7 +729,10 @@ export default function OnlineReservationForm({
 
                     <div className="form-field-full">
                       <label className="label" htmlFor="reservation-notes">Notes (optional)</label>
-                      <textarea id="reservation-notes" className="field-input reservation-notes" value={form.notes} onChange={(event) => updateForm("notes", event.target.value)} placeholder="Any special request" rows="3" />
+                      <textarea id="reservation-notes" className="field-input reservation-notes" value={form.notes} onChange={(event) => updateForm("notes", event.target.value)} placeholder="Any special request" rows="3" maxLength={MAX_NOTES} aria-describedby="reservation-notes-count" />
+                      <p className="field-helper field-count" id="reservation-notes-count">
+                        {form.notes.length}/{MAX_NOTES}
+                      </p>
                     </div>
                   </>
                 )}
@@ -682,7 +753,7 @@ export default function OnlineReservationForm({
                           icon: "bi-person",
                           label: "Booking for",
                           value: form.customerName.trim(),
-                          more: [formatMobile(form.phone)],
+                          more: [formatMobile(form.phone), email],
                           onChange: () => openStep(0),
                           changeLabel: "Change your details",
                         },

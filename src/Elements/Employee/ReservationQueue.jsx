@@ -1,5 +1,6 @@
 // ReservationQueue.jsx
 import { useEffect, useRef, useState } from "react";
+import CompleteReservationDialog from "../Global/CompleteReservationDialog";
 import ConfirmDialog from "../Global/ConfirmDialog";
 import Pagination from "../Global/Pagination";
 import usePagination from "../Global/usePagination";
@@ -8,7 +9,8 @@ import { describeReservationTime, getArrivalWindow, hasReservationEnded } from "
 import { getReservationIssues, getReservationMode } from "../../utils/reservationIssues";
 import PaymentStatusChip from "../Global/PaymentStatusChip";
 import RefundChoice from "../Global/RefundChoice";
-import { describeRefund, findReservationPayment, formatPayer, formatPeso, needsRefundChoice } from "../../utils/onlinePayments";
+import { NO_REFUND_CHOICE, refundChoiceReady, toRefundExtra } from "../../utils/bookingPayments";
+import { describeRefund, findReservationPayment, formatPayer, formatPeso } from "../../utils/onlinePayments";
 
 const HISTORY_STATUSES = new Set(["completed", "cancelled", "rejected", "expired"]);
 
@@ -62,14 +64,15 @@ export default function ReservationQueue({
   // A booking opened from the bell: the list opens at its page, marked and in view.
   highlightId = null,
 }) {
-  // Cancelling or rejecting cannot be undone, so the click only arms the confirmation.
+  // Completing, cancelling or rejecting cannot be undone, so the click only arms the confirmation.
   const [cancelTarget, setCancelTarget] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
-  // For a cancelled booking whose payment was accepted: "refund" or "keep".
-  const [refundChoice, setRefundChoice] = useState("");
+  const [completeTarget, setCompleteTarget] = useState(null);
+  // What happens to a cancelled booking's payment.
+  const [refundChoice, setRefundChoice] = useState(NO_REFUND_CHOICE);
   const paymentOf = (booking) => (booking.source === "online" ? findReservationPayment(payments, booking.id) : null);
   const openCancel = (booking) => {
-    setRefundChoice("");
+    setRefundChoice(NO_REFUND_CHOICE);
     setCancelTarget(booking);
   };
   // The clock Mark Arrived is judged by. Booking times are whole minutes, so it
@@ -93,13 +96,16 @@ export default function ReservationQueue({
   // the closure: the React Compiler narrows a closed-over `cancelTarget.id` into
   // a render-time memo check, which throws while the target is still null.
   const confirmCancel = (booking, choice) => {
-    const asked = needsRefundChoice(paymentOf(booking));
-    onBookingStatus(booking.id, "cancelled", asked ? { refundPayment: choice === "refund" } : {});
+    onBookingStatus(booking.id, "cancelled", toRefundExtra(booking, paymentOf(booking), choice));
     setCancelTarget(null);
   };
   const confirmReject = (booking) => {
     onDecide(booking, "rejected");
     setRejectTarget(null);
+  };
+  const confirmComplete = (booking) => {
+    onBookingStatus(booking.id, "completed");
+    setCompleteTarget(null);
   };
 
   // What is wrong with each booking right now, judged on the same clock.
@@ -265,6 +271,7 @@ export default function ReservationQueue({
                         {booking.phone ? (
                           <div className="rd-table-sub">{booking.phone}</div>
                         ) : null}
+                        {booking.email ? <div className="rd-table-sub">{booking.email}</div> : null}
                       </td>
                       <td>
                         <div className="rd-table-datetime">{booking.date}</div>
@@ -282,11 +289,9 @@ export default function ReservationQueue({
                         <span className={`rd-status ${getStatusClass(booking.status)}`}>
                           {getStatusLabel(booking.status)}
                         </span>
-                        {payment && (
-                          <div className="rd-pay-status">
-                            <PaymentStatusChip payment={payment} short />
-                          </div>
-                        )}
+                        <div className="rd-pay-status">
+                          <PaymentStatusChip payment={payment} booking={booking} short />
+                        </div>
                       </td>
                       <td className="rd-table-notes">
                         <div>{getNote(booking)}</div>
@@ -390,7 +395,7 @@ export default function ReservationQueue({
                             <button
                               type="button"
                               className="rd-secondary-btn"
-                              onClick={() => onBookingStatus(booking.id, "completed")}
+                              onClick={() => setCompleteTarget(booking)}
                             >
                               Complete
                             </button>
@@ -441,6 +446,14 @@ export default function ReservationQueue({
 
       <Pagination {...pagination} />
 
+      {completeTarget && (
+        <CompleteReservationDialog
+          booking={completeTarget}
+          onConfirm={() => confirmComplete(completeTarget)}
+          onClose={() => setCompleteTarget(null)}
+        />
+      )}
+
       {cancelTarget && (
         <ConfirmDialog
           title="Cancel this reservation?"
@@ -454,11 +467,11 @@ export default function ReservationQueue({
           detail="This cannot be undone. The booking moves to history and has to be created again if the customer still wants it."
           confirmLabel="Yes, Cancel Reservation"
           cancelLabel="Keep Reservation"
-          confirmDisabled={needsRefundChoice(paymentOf(cancelTarget)) && !refundChoice}
+          confirmDisabled={!refundChoiceReady(cancelTarget, paymentOf(cancelTarget), refundChoice)}
           onConfirm={() => confirmCancel(cancelTarget, refundChoice)}
           onClose={() => setCancelTarget(null)}
         >
-          <RefundChoice payment={paymentOf(cancelTarget)} value={refundChoice} onChange={setRefundChoice} />
+          <RefundChoice payment={paymentOf(cancelTarget)} booking={cancelTarget} value={refundChoice} onChange={setRefundChoice} />
         </ConfirmDialog>
       )}
 

@@ -2,14 +2,15 @@ import { useState } from "react";
 import ConfirmDialog from "../Global/ConfirmDialog";
 import RefundChoice from "../Global/RefundChoice";
 import { useOnlinePayments } from "../Global/useOnlinePayments";
+import { NO_REFUND_CHOICE, refundChoiceReady, toRefundExtra } from "../../utils/bookingPayments";
 import { findTableReservation, formatReservationDate, formatReservationTime } from "../../utils/reservations";
-import { findReservationPayment, needsRefundChoice } from "../../utils/onlinePayments";
+import { findReservationPayment } from "../../utils/onlinePayments";
 
 /**
  * Asks before a reserved table's booking is cancelled from its card. The
- * admin's Pool Tables and the employee dashboard both use it. A website booking
- * whose GCash payment was accepted also asks whether to give it back:
- * `onConfirm` gets { refundPayment } then, to send with the cancel.
+ * admin's Pool Tables and the employee dashboard both use it. A booking that
+ * was paid for also asks whether to give it back: `onConfirm` gets what to send
+ * with the cancel (toRefundExtra).
  */
 export default function CancelReservationModal({ table, reservations = [], onClose, onConfirm }) {
   const tableName = table.name || `Table ${table.id}`;
@@ -19,13 +20,10 @@ export default function CancelReservationModal({ table, reservations = [], onClo
       }`
     : "";
   const { payments } = useOnlinePayments();
-  const booking = findTableReservation(table, reservations);
-  const payment =
-    booking && String(booking.id) === String(table.reservationId) && booking.source === "online"
-      ? findReservationPayment(payments, booking.id)
-      : null;
-  const asks = needsRefundChoice(payment);
-  const [choice, setChoice] = useState("");
+  const found = findTableReservation(table, reservations);
+  const booking = found && String(found.id) === String(table.reservationId) ? found : null;
+  const payment = booking?.source === "online" ? findReservationPayment(payments, booking.id) : null;
+  const [choice, setChoice] = useState(NO_REFUND_CHOICE);
 
   return (
     <ConfirmDialog
@@ -39,11 +37,11 @@ export default function CancelReservationModal({ table, reservations = [], onClo
       detail="This cannot be undone. The customer has to book again if they still want the table."
       confirmLabel="Yes, Cancel Reservation"
       cancelLabel="Keep Reservation"
-      confirmDisabled={asks && !choice}
-      onConfirm={() => onConfirm(asks ? { refundPayment: choice === "refund" } : {})}
+      confirmDisabled={!refundChoiceReady(booking, payment, choice)}
+      onConfirm={() => onConfirm(toRefundExtra(booking, payment, choice))}
       onClose={onClose}
     >
-      <RefundChoice payment={payment} value={choice} onChange={setChoice} />
+      <RefundChoice payment={payment} booking={booking} value={choice} onChange={setChoice} />
     </ConfirmDialog>
   );
 }

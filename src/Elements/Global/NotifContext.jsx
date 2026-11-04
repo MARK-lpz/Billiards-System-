@@ -1,13 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { NotificationContext } from './NotificationContext';
 import { apiFetch } from '../../utils/apiFetch';
-import { SITE_HOST, APP_API_BASE } from '../../utils/siteAddress';
-
-const NOTIFICATION_API_URL = import.meta.env.VITE_NOTIFICATION_API_URL || (
-  !import.meta.env.DEV && window.location.hostname === SITE_HOST
-    ? `${APP_API_BASE}notifications.php`
-    : '/api/notifications.php'
-);
+import { NOTIFICATION_API_URL } from '../../utils/noticeApi';
 
 // How often a signed-in screen asks the server for new notices. A tab out of
 // sight does not ask at all, and asks at once when it comes back into view.

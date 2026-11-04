@@ -31,7 +31,7 @@ export default function useTimeUpSection({ role, tables = [], reservations = [],
     items: timeUp.map((entry) => {
       const { table, endsAt, key } = entry;
       const tableName = table.name || `Table ${table.id}`;
-      // Table time and orders, less what was paid online or while playing, as the pop-up shows.
+      // Table time and orders, less what was paid with the booking or while playing, as the pop-up shows.
       const due = createTableCharge({ table, reservations, tableCharges: [], endedBy: "", now: endsAt }).amountDue;
       const open = () => {
         markSeen([key]);

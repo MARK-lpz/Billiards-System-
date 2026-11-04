@@ -11,7 +11,7 @@ import {
   getExtensionBlock,
 } from "../../utils/reservations";
 import { getTimeAdjustmentError } from "../../utils/formValidation";
-import { getCheckInBlock, getUpcomingBookings } from "../../utils/tableHolds";
+import { getCheckInBlock, getTableBookings, getUpcomingBookings } from "../../utils/tableHolds";
 import useClock from "../Global/useClock";
 
 // The pop-up is drawn at the app's theme wrapper, not inside the card: the card
@@ -35,6 +35,8 @@ export default function PoolTableCard({
   onDelete,
   // Opens the food and drinks order pop-up for a table that is playing.
   onOrder,
+  // Opens the pop-up with every booking still to come on this table.
+  onShowBookings,
   // Used to stop Add Time from running into the table's next booking.
   reservations = [],
 }) {
@@ -68,6 +70,8 @@ export default function PoolTableCard({
     (booking) => !isReserved || String(booking.id) !== String(table.reservationId)
   );
   const nextBooking = laterBookings[0] || null;
+  // What the Bookings pop-up lists: confirmed ones and payments still to check.
+  const bookingCount = onShowBookings ? getTableBookings(table, reservations, new Date(clock)).length : 0;
   const describeWhen = (booking) =>
     booking.date === today
       ? `today, ${formatReservationTime(booking.time)}`
@@ -114,21 +118,21 @@ export default function PoolTableCard({
     : 0;
   const remainingSeconds = plannedSeconds ? Math.max(0, plannedSeconds - elapsedSeconds) : null;
   const isEndingSoon = isOccupied && remainingSeconds !== null && remainingSeconds > 0 && remainingSeconds <= 600;
-  // The booked hours (they move only when time is added or undone) plus what was
-  // ordered at the table: the bill so far.
-  const timeTotal = getSessionTotal(table);
-  const orders = getTableOrders(table);
-  const ordersTotal = sumOrders(orders);
-  const orderCount = countOrderItems(orders);
-  const total = getTableBillTotal(table);
-  const showOrder = isOccupied && Boolean(onOrder);
-  // What is still owed, less an online booking's payment and anything paid in
-  // Sales / POS while playing: the pill says Paid once nothing is, and Due when
-  // time or orders were added after paying.
+  // What is still owed, less a booking's payment and anything paid in Sales / POS
+  // while playing: the pill says Paid once nothing is, and Due when time or orders
+  // were added after paying.
   const bill =
     isOccupied && table.startTime
       ? createTableCharge({ table, reservations, tableCharges: [], endedBy: "", now: Number(table.startTime) })
       : null;
+  // The booked hours (they move only when time is added or undone) plus what was
+  // ordered at the table: the bill so far. Paid hours stay at what was paid.
+  const timeTotal = bill ? bill.sessionTotal : getSessionTotal(table);
+  const orders = getTableOrders(table);
+  const ordersTotal = sumOrders(orders);
+  const orderCount = countOrderItems(orders);
+  const total = bill ? timeTotal + ordersTotal : getTableBillTotal(table);
+  const showOrder = isOccupied && Boolean(onOrder);
   const paidSoFar = bill ? bill.paidEarlier + (bill.prepaid?.amount || 0) : 0;
   const billState = !bill || paidSoFar === 0 ? "total" : bill.amountDue > 0 ? "due" : "paid";
   const billTitle =
@@ -308,7 +312,7 @@ export default function PoolTableCard({
           )}
         </div>
 
-        {(showOrder || onEdit || onDelete) && (
+        {(showOrder || onShowBookings || onEdit || onDelete) && (
           <div className="pool-table-secondary-actions">
             {showOrder && (
               <button
@@ -319,6 +323,19 @@ export default function PoolTableCard({
                 <i className="bi bi-cup-hot me-1"></i>
                 Order
                 {orderCount > 0 && <span className="pool-table-order-count">{orderCount}</span>}
+              </button>
+            )}
+            {onShowBookings && (
+              <button
+                type="button"
+                className="btn btn-sm pool-table-bookings-btn"
+                onClick={onShowBookings}
+                aria-label={`Bookings for ${table.name} (${bookingCount || "none"})`}
+                title="See this table's reservations"
+              >
+                <i className="bi bi-calendar-event me-1"></i>
+                Bookings
+                {bookingCount > 0 && <span className="pool-table-bookings-count">{bookingCount}</span>}
               </button>
             )}
             {(onEdit || onDelete) && (
@@ -369,7 +386,7 @@ export default function PoolTableCard({
                     type="text"
                     inputMode="numeric"
                     value={extensionMinutes}
-                    onChange={(event) => setExtensionMinutes(event.target.value)}
+                    onChange={(event) => setExtensionMinutes(event.target.value.replace(/\D/g, "").slice(0, 3))}
                   />
                   <button
                     type="button"

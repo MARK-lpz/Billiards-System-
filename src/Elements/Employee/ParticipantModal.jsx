@@ -4,6 +4,9 @@ import { formatEventWhen } from "../../utils/eventUpdates";
 import { describePayment, findConfirmation, formatRegisteredAt } from "../../utils/tournamentRegistrations";
 import PaymentStatusChip from "../Global/PaymentStatusChip";
 import { formatPayer, formatPeso as formatFee } from "../../utils/onlinePayments";
+import { formatClockTime } from "../../utils/tableCharges";
+import { checkEntryFee, firstCounterMethod, getCounterMethods } from "../../utils/tournamentFees";
+import EntryFeeFields from "./EntryFeeFields";
 
 const formatPeso = (amount) => `₱${Number(amount || 0).toLocaleString("en-PH")}`;
 
@@ -26,10 +29,23 @@ const TEXT_STATUS = {
  * registration the number and payment from the confirmation the server saved.
  */
 // `payment`: the entry fee this player paid on the website, if any (checked
-// under "Entry fees paid online" on the Tournament Schedule).
-export default function ParticipantModal({ registration, payment: feePayment = null, onClose, onOpenTournament }) {
+// under "Entry fees paid online" on the Tournament Schedule). `fee`: where the
+// player's entry fee stands (getPlayerFee); one still unpaid can be taken here
+// (`onTakeFee({ method, reference })`, which rejects with the reason it failed).
+export default function ParticipantModal({
+  registration,
+  payment: feePayment = null,
+  fee = null,
+  usedReferences = [],
+  onTakeFee,
+  onClose,
+  onOpenTournament,
+}) {
   // { status: "loading" | "done" | "error", confirmation }
   const [lookup, setLookup] = useState(() => ({ status: registration.walkIn ? "done" : "loading", confirmation: null }));
+  // Taking an unpaid entry fee: how it is paid, and the save under way or its error.
+  const [feeValue, setFeeValue] = useState(() => ({ method: firstCounterMethod(registration.event), reference: "" }));
+  const [feeSave, setFeeSave] = useState({ busy: false, error: "" });
 
   useEffect(() => {
     const handleKey = (event) => {
@@ -60,6 +76,20 @@ export default function ParticipantModal({ registration, payment: feePayment = n
   const total = event.participants?.length || 0;
   const confirmation = lookup.confirmation;
   const payment = confirmation ? describePayment(confirmation.message) : "";
+  const canTakeFee =
+    fee?.key === "unpaid" && Boolean(onTakeFee) && event.status !== "cancelled" && getCounterMethods(event).length > 0;
+  const feeCheck = checkEntryFee(event, feeValue, usedReferences);
+
+  const takeFee = async () => {
+    if (!feeCheck.ready || feeSave.busy) return;
+    setFeeSave({ busy: true, error: "" });
+    try {
+      await onTakeFee(feeCheck.entryFee);
+      setFeeSave({ busy: false, error: "" });
+    } catch (error) {
+      setFeeSave({ busy: false, error: error?.message || "Unable to save the entry fee. Please try again." });
+    }
+  };
 
   return (
     <>
@@ -105,6 +135,51 @@ export default function ParticipantModal({ registration, payment: feePayment = n
                   </dd>
                 </div>
               </dl>
+
+              {fee && fee.key !== "free" && (
+                <div className="tourna-player-contact tourna-player-fee-box">
+                  <span className="tourna-section-label">
+                    Entry fee <span className={`fee-chip tone-${fee.tone}`}>{fee.label}</span>
+                  </span>
+                  {fee.fee && (
+                    <p className="tourna-player-note">
+                      <i className="bi bi-check-circle" aria-hidden="true"></i> {formatFee(fee.amount)}{" "}
+                      {fee.fee.method === "gcash" ? `by GCash (ref ${fee.fee.reference})` : "in cash"}
+                      {fee.fee.by ? `, taken by ${fee.fee.by}` : ""}
+                      {fee.fee.at ? ` at ${formatClockTime(fee.fee.at)}` : ""}.
+                    </p>
+                  )}
+                  {fee.key === "unpaid" && !canTakeFee && (
+                    <p className="tourna-player-note">
+                      <i className="bi bi-info-circle" aria-hidden="true"></i> Not paid. This tournament takes the entry
+                      fee by GCash on the website only.
+                    </p>
+                  )}
+                  {canTakeFee && (
+                    <>
+                      <EntryFeeFields
+                        event={event}
+                        value={feeValue}
+                        onChange={setFeeValue}
+                        usedReferences={usedReferences}
+                        idPrefix="player-fee"
+                      />
+                      {feeSave.error && (
+                        <p className="tourna-walkin-error" role="alert">{feeSave.error}</p>
+                      )}
+                      <button
+                        type="button"
+                        className="btn btn-success tourna-take-fee-btn"
+                        onClick={takeFee}
+                        disabled={!feeCheck.ready || feeSave.busy}
+                      >
+                        <i className="bi bi-cash-coin" aria-hidden="true"></i>
+                        {feeSave.busy ? "Saving…" : `Record ${formatFee(event.entryFee)} payment`}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
 
               {!registration.walkIn && (
                 <div className="tourna-player-contact">

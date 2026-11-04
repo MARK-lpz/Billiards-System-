@@ -2,8 +2,9 @@ import { useState } from "react";
 import Pagination from "../Global/Pagination";
 import usePagination from "../Global/usePagination";
 
+// Money given back is a sale below zero: -₱200.00.
 const fmtPeso = (value) =>
-  `₱${Number(value || 0).toLocaleString("en-PH", {
+  `${Number(value) < 0 ? "-" : ""}₱${Math.abs(Number(value || 0)).toLocaleString("en-PH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;

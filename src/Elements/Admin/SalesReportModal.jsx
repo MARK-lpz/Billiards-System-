@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { downloadExcel } from "../../utils/exportExcel";
+import ReportLetterhead, { ReportFooter } from "./ReportLetterhead";
 import { printElement } from "../../utils/printElement";
+import { HALL_NAME, downloadReportExcel, preparedByName } from "../../utils/reportExcel";
+import { getSignedInUser } from "../../utils/session";
 import {
   ORIENTATIONS,
   PAPER_MARGIN_MM,
@@ -12,13 +14,13 @@ import {
   savePaperChoice,
 } from "../../utils/reportPaper";
 import {
-  buildSalesReportRows,
   describeItems,
   describePeriod,
   formatPesoAmount as peso,
   methodLabel,
   receiptNumber,
   reportTypeLabel,
+  salesReportDocument,
 } from "../../utils/salesReport";
 
 const PX_PER_MM = 96 / 25.4;
@@ -39,10 +41,17 @@ export default function SalesReportModal({ period, transactions, summary, breakd
   const paperRef = useRef(null);
   const [paper, setPaper] = useState(readPaperChoice);
   const [stageWidth, setStageWidth] = useState(0);
-  // When the report was opened, printed on it and in the Excel file.
+  // When the report was opened and who opened it, printed on it and in the Excel file.
   const [generatedAt] = useState(() => new Date().toLocaleString("en-PH"));
+  const [preparedBy] = useState(() => preparedByName(getSignedInUser()));
   const periodLabel = describePeriod(period);
   const typeLabel = reportTypeLabel(period);
+  const title = `${typeLabel} Sales Report`;
+  const details = [
+    ["Period", periodLabel],
+    ["Generated", generatedAt],
+    ...(preparedBy ? [["Prepared by", preparedBy]] : []),
+  ];
   const { width, height } = paperDimensions(paper);
   // The whole sheet fits the pop-up's width: the same layout as on paper, only smaller.
   const zoom = stageWidth ? Math.min(1, stageWidth / (width * PX_PER_MM)) : 1;
@@ -77,16 +86,14 @@ export default function SalesReportModal({ period, transactions, summary, breakd
 
   const handlePrint = () =>
     printElement(paperRef.current, {
-      title: `Sales Report - ${periodLabel}`,
+      title: `${title} - ${periodLabel}`,
       bodyClass: "srp-print-body",
-      extraCss: pagePrintCss(paper),
+      extraCss: pagePrintCss(paper, `${HALL_NAME} · ${title} · ${periodLabel}`),
     });
 
   const handleDownload = () =>
-    downloadExcel({
-      fileName: `${typeLabel} Sales Report ${periodLabel}`,
-      sheetName: periodLabel.slice(0, 31),
-      rows: buildSalesReportRows({ period, transactions, summary, breakdown, generatedAt }),
+    downloadReportExcel(salesReportDocument({ period, transactions, summary, breakdown, generatedAt, preparedBy }), {
+      fileName: `${title} ${periodLabel}`,
       pageSetup: excelPageSetup(paper),
     });
 
@@ -154,17 +161,11 @@ export default function SalesReportModal({ period, transactions, summary, breakd
                     className={`srp-paper srp-paper--${paper.orientation}`}
                     ref={paperRef}
                     style={{ "--paper-w": `${width}mm`, "--paper-h": `${height}mm`, "--paper-margin": `${PAPER_MARGIN_MM}mm` }}
-                    aria-label={`Preview: ${typeLabel} Sales Report, ${periodLabel}`}
+                    aria-label={`Preview: ${title}, ${periodLabel}`}
                   >
-                    <div className="srp-head">
-                      <div>
-                        <div className="srp-brand">BREAK &amp; CHILL BILLIARD HALL</div>
-                        <h2 className="srp-title">{typeLabel} Sales Report</h2>
-                        <div className="srp-muted">{periodLabel}</div>
-                      </div>
-                      <div className="srp-muted srp-generated">Generated {generatedAt}</div>
-                    </div>
+                    <ReportLetterhead title={title} subtitle={periodLabel} details={details} />
 
+                    <h3 className="srp-section">Summary</h3>
                     <div className="srp-scroll srp-summary">
                       <table className="srp-table">
                         <tbody>
@@ -262,6 +263,7 @@ export default function SalesReportModal({ period, transactions, summary, breakd
                         </table>
                       </div>
                     )}
+                    <ReportFooter title={`${title} · ${periodLabel}`} />
                   </div>
                 </div>
               </div>

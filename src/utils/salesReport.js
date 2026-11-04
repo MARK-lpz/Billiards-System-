@@ -18,8 +18,9 @@ export const PERIOD_TYPES = [
 
 export const methodLabel = (method) => (method === "cash" ? "Cash" : method === "ewallet" ? "GCash" : method || "—");
 
+// Money given back is a sale below zero: -₱200.00.
 export const formatPesoAmount = (value) =>
-  `₱${Number(value || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  `${Number(value) < 0 ? "-" : ""}₱${Math.abs(Number(value || 0)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const parseDay = (date) => {
   const day = new Date(`${date}T00:00:00`);
@@ -176,42 +177,68 @@ export const describeItems = (tx) =>
 
 export const receiptNumber = (tx) => `#${String(tx.id ?? "").slice(-5)}`;
 
-/** The same report as a spreadsheet: summary, breakdown, then every sale. */
-export const buildSalesReportRows = ({ period, transactions, summary, breakdown, generatedAt }) => [
-  ["Break & Chill Billiard Hall"],
-  [`${reportTypeLabel(period)} Sales Report`],
-  ["Period", describePeriod(period)],
-  ["Generated", generatedAt],
-  [],
-  ["Summary"],
-  ["Revenue", Number(summary.revenue)],
-  ["Transactions", summary.count],
-  ["Cash", Number(summary.cash)],
-  ["GCash", Number(summary.gcash)],
-  ["Table time", Number(summary.tableTime)],
-  ["Food & items", Number(summary.items)],
-  ["Average sale", Number(summary.average.toFixed(2))],
-  ...(breakdown
-    ? [
-        [],
-        [breakdown.title],
-        [breakdown.firstColumn, "Sales", "Cash", "GCash", "Total"],
-        ...breakdown.rows.map((row) => [row.label, row.count, Number(row.cash), Number(row.gcash), Number(row.revenue)]),
-        ["TOTAL", summary.count, Number(summary.cash), Number(summary.gcash), Number(summary.revenue)],
-      ]
-    : []),
-  [],
-  ["Transactions"],
-  ["Date", "Time", "Receipt No.", "Cashier", "Items", "Paid by", "Reference No.", "Total"],
-  ...transactions.map((tx) => [
-    tx.date || "",
-    tx.time || "",
-    receiptNumber(tx),
-    tx.cashier || "",
-    describeItems(tx),
-    methodLabel(tx.method),
-    tx.paymentDetails?.referenceNumber || "",
-    Number(tx.total || 0),
-  ]),
-  ["", "", "", "", "", "", "TOTAL", Number(summary.revenue)],
-];
+/** The same report for Excel (see reportExcel.js): summary, breakdown, then every sale. */
+export const salesReportDocument = ({ period, transactions, summary, breakdown, generatedAt, preparedBy }) => ({
+  title: `${reportTypeLabel(period)} Sales Report`,
+  subtitle: describePeriod(period),
+  details: [
+    ["Period", describePeriod(period)],
+    ["Generated", generatedAt],
+    ...(preparedBy ? [["Prepared by", preparedBy]] : []),
+  ],
+  sections: [
+    {
+      title: "Summary",
+      figures: [
+        { label: "Revenue", value: summary.revenue, format: "peso" },
+        { label: "Transactions", value: summary.count, format: "int" },
+        { label: "Cash", value: summary.cash, format: "peso" },
+        { label: "GCash", value: summary.gcash, format: "peso" },
+        { label: "Table time", value: summary.tableTime, format: "peso" },
+        { label: "Food & items", value: summary.items, format: "peso" },
+        { label: "Average sale", value: Number(summary.average.toFixed(2)), format: "peso" },
+      ],
+    },
+    ...(breakdown
+      ? [
+          {
+            title: breakdown.title,
+            columns: [
+              { label: breakdown.firstColumn },
+              { label: "Sales", format: "int" },
+              { label: "Cash", format: "peso" },
+              { label: "GCash", format: "peso" },
+              { label: "Total", format: "peso" },
+            ],
+            rows: breakdown.rows.map((row) => [row.label, row.count, row.cash, row.gcash, row.revenue]),
+            total: ["TOTAL", summary.count, summary.cash, summary.gcash, summary.revenue],
+          },
+        ]
+      : []),
+    {
+      title: `Transactions (${transactions.length})`,
+      columns: [
+        { label: "Date", format: "date" },
+        { label: "Time" },
+        { label: "Receipt No." },
+        { label: "Cashier" },
+        { label: "Items", format: "wrap" },
+        { label: "Paid by" },
+        { label: "Reference No." },
+        { label: "Total", format: "peso" },
+      ],
+      rows: transactions.map((tx) => [
+        tx.date || "",
+        tx.time || "",
+        receiptNumber(tx),
+        tx.cashier || "",
+        describeItems(tx),
+        methodLabel(tx.method),
+        tx.paymentDetails?.referenceNumber || "",
+        Number(tx.total || 0),
+      ]),
+      total: ["", "", "", "", "", "", "TOTAL", summary.revenue],
+      empty: `No sales recorded for ${describePeriod(period)}.`,
+    },
+  ],
+});

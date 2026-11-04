@@ -1,0 +1,398 @@
+/* Dashboard cards.
+   What the admin and the employee dashboards share: the row of number cards
+   under the title band, the Active Tables card, and one table's reservations
+   in a pop-up (from Active Tables, or a table card's Bookings button on Pool
+   Tables). Both shells set the --ax-* colors these read. App.jsx imports this
+   after both layouts. */
+
+/* A dashboard's number cards (DashboardStatCards): a card each, side by side;
+   each opens its page. */
+:is(.admin-shell, .employee-shell) .dash-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+  margin: 0 0 1.25rem;
+}
+
+:is(.admin-shell, .employee-shell) .dash-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--ax-border);
+  border-top: 3px solid var(--tone);
+  border-radius: 14px;
+  background: var(--ax-panel);
+  box-shadow: var(--ax-shadow);
+  color: var(--ax-text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+:is(.admin-shell, .employee-shell) .dash-stat:hover {
+  background: var(--ax-active-soft);
+  transform: translateY(-2px);
+}
+
+:is(.admin-shell, .employee-shell) .dash-stat:focus-visible {
+  outline: 2px solid var(--tone);
+  outline-offset: -4px;
+}
+
+:is(.admin-shell, .employee-shell) .dash-stat.tone-red { --tone: #f87171; }
+:is(.admin-shell, .employee-shell) .dash-stat.tone-green { --tone: #34d399; }
+:is(.admin-shell, .employee-shell) .dash-stat.tone-purple { --tone: #a78bfa; }
+:is(.admin-shell, .employee-shell) .dash-stat.tone-amber { --tone: #fbbf24; }
+:is(.admin-shell, .employee-shell) .dash-stat.tone-blue { --tone: #60a5fa; }
+
+.light :is(.admin-shell, .employee-shell) .dash-stat.tone-red { --tone: #dc2626; }
+.light :is(.admin-shell, .employee-shell) .dash-stat.tone-green { --tone: #047857; }
+.light :is(.admin-shell, .employee-shell) .dash-stat.tone-purple { --tone: #7c3aed; }
+.light :is(.admin-shell, .employee-shell) .dash-stat.tone-amber { --tone: #b45309; }
+.light :is(.admin-shell, .employee-shell) .dash-stat.tone-blue { --tone: #2563eb; }
+
+:is(.admin-shell, .employee-shell) .dash-stat-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+  color: var(--tone);
+  font-size: 1.15rem;
+}
+
+:is(.admin-shell, .employee-shell) .dash-stat-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+:is(.admin-shell, .employee-shell) .dash-stat-label {
+  color: var(--ax-muted);
+  font-family: var(--bc-font-label);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+:is(.admin-shell, .employee-shell) .dash-stat-value {
+  color: var(--ax-text);
+  font-size: 1.55rem;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Wraps rather than cutting off on a narrower card (a laptop). */
+:is(.admin-shell, .employee-shell) .dash-stat-note {
+  color: var(--ax-muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+/* Phones: two cards a row, the icon above the text, so the tables under them
+   are not pushed a screen down. */
+@media (max-width: 640px) {
+  :is(.admin-shell, .employee-shell) .dash-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  /* An odd card out (the employee's Stock Alarm) takes the whole last row. */
+  :is(.admin-shell, .employee-shell) .dash-stat:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  :is(.admin-shell, .employee-shell) .dash-stat {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.8rem 0.9rem;
+  }
+
+  :is(.admin-shell, .employee-shell) .dash-stat-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+  }
+
+  :is(.admin-shell, .employee-shell) .dash-stat-label {
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+  }
+
+  :is(.admin-shell, .employee-shell) .dash-stat-value {
+    font-size: 1.3rem;
+  }
+
+  :is(.admin-shell, .employee-shell) .dash-stat-note {
+    font-size: 0.75rem;
+  }
+}
+
+/* Active Tables: every table seen from above, with its next booking. */
+.employee-shell .active-tables-card {
+  margin: 0 0 1.25rem;
+  box-shadow: var(--ax-shadow);
+}
+
+/* A few tables share the card's whole width instead of bunching at the left;
+   each keeps a pool table's shape as it grows. Wide enough for its next booking. */
+:is(.admin-shell, .employee-shell) .active-tables-card .active-tables-grid {
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+}
+
+:is(.admin-shell, .employee-shell) .active-tables-card .mini-table-card {
+  aspect-ratio: 2 / 1;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 0;
+  max-height: 180px;
+  padding: 0.6rem 0.75rem;
+}
+
+/* The title opens Pool Tables. */
+:is(.admin-shell, .employee-shell) .active-tables-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ax-text);
+  cursor: pointer;
+}
+
+:is(.admin-shell, .employee-shell) .active-tables-link > i {
+  color: var(--ax-muted);
+  font-size: 1rem;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+:is(.admin-shell, .employee-shell) .active-tables-link:hover > i,
+:is(.admin-shell, .employee-shell) .active-tables-link:focus-visible > i {
+  color: var(--ax-active);
+  transform: translateX(3px);
+}
+
+:is(.admin-shell, .employee-shell) .active-tables-link:focus-visible {
+  outline: 2px solid var(--ax-active);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/* Each table is a button: it opens its reservations (TableBookingsModal). */
+:is(.admin-shell, .employee-shell) .active-tables-card button.mini-table-card {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+:is(.admin-shell, .employee-shell) .active-tables-card button.mini-table-card:focus-visible {
+  outline: 3px solid var(--ax-active);
+  outline-offset: 2px;
+}
+
+/* The table's next confirmed booking, on the felt (ActiveTables). */
+:is(.admin-shell, .employee-shell) .active-tables-card .mini-table-booking {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  margin-top: 0.15rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.34);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+:is(.admin-shell, .employee-shell) .active-tables-card .mini-table-booking-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(.admin-shell, .employee-shell) .active-tables-card .mini-table-booking-more {
+  flex: none;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 0.66rem;
+}
+
+:is(.admin-shell, .employee-shell) .active-tables-card .mini-table-booking.is-empty {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+/* Phones: two tables a row, a little taller than a pool table's shape so the
+   name, status and booking still fit. */
+@media (max-width: 640px) {
+  :is(.admin-shell, .employee-shell) .active-tables-card .active-tables-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  :is(.admin-shell, .employee-shell) .active-tables-card .mini-table-card {
+    aspect-ratio: auto;
+    min-height: 96px;
+    padding: 0.55rem 0.5rem;
+  }
+
+  :is(.admin-shell, .employee-shell) .active-tables-card .table-number {
+    font-size: 1rem;
+  }
+}
+
+/* One table's reservations (TableBookingsModal). */
+:is(.admin-shell, .employee-shell) .table-bookings-modal .modal-dialog {
+  max-width: min(560px, calc(100vw - 2rem));
+}
+
+:is(.admin-shell, .employee-shell) .table-bookings-modal .modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+}
+
+:is(.admin-shell, .employee-shell) .table-bookings-modal .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+:is(.admin-shell, .employee-shell) .table-bookings-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0 0 1rem;
+  color: var(--ax-muted);
+  font-size: 0.85rem;
+}
+
+:is(.admin-shell, .employee-shell) .table-bookings-state {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.14);
+  color: #6ee7b7;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+:is(.admin-shell, .employee-shell) .table-bookings-state.is-occupied { background: rgba(248, 113, 113, 0.14); color: #fca5a5; }
+:is(.admin-shell, .employee-shell) .table-bookings-state.is-reserved { background: rgba(251, 191, 36, 0.14); color: #fcd34d; }
+:is(.admin-shell, .employee-shell) .table-bookings-state:is(.is-cleaning, .is-maintenance) { background: rgba(148, 163, 184, 0.16); color: #cbd5e1; }
+
+:is(.admin-shell, .employee-shell) .table-bookings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:is(.admin-shell, .employee-shell) .table-bookings-item {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem 0.9rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+:is(.admin-shell, .employee-shell) :is(.table-bookings-when, .table-bookings-who) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+:is(.admin-shell, .employee-shell) :is(.table-bookings-when, .table-bookings-who) strong {
+  color: var(--ax-text);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+:is(.admin-shell, .employee-shell) :is(.table-bookings-when, .table-bookings-who) span {
+  color: var(--ax-muted);
+  font-size: 0.78rem;
+}
+
+:is(.admin-shell, .employee-shell) .table-bookings-chip {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+:is(.admin-shell, .employee-shell) .table-bookings-chip.tone-green { border-color: rgba(52, 211, 153, 0.4); background: rgba(16, 185, 129, 0.12); color: #6ee7b7; }
+:is(.admin-shell, .employee-shell) .table-bookings-chip.tone-amber { border-color: rgba(251, 191, 36, 0.45); background: rgba(245, 158, 11, 0.12); color: #fcd34d; }
+:is(.admin-shell, .employee-shell) .table-bookings-chip.tone-gold { border-color: rgba(234, 179, 8, 0.45); background: rgba(234, 179, 8, 0.12); color: #fde047; }
+:is(.admin-shell, .employee-shell) .table-bookings-chip.tone-blue { border-color: rgba(96, 165, 250, 0.45); background: rgba(59, 130, 246, 0.12); color: #93c5fd; }
+
+:is(.admin-shell, .employee-shell) .table-bookings-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 1.25rem;
+  border: 1px dashed var(--ax-border);
+  border-radius: 10px;
+  color: var(--ax-muted);
+  font-size: 0.9rem;
+}
+
+/* Beat the theme's ".light .modal-body span/strong/p", which would make these all one color. */
+.light :is(.admin-shell, .employee-shell) .table-bookings-modal .modal-body :is(.table-bookings-when, .table-bookings-who) span,
+.light :is(.admin-shell, .employee-shell) .table-bookings-modal .modal-body .table-bookings-now,
+.light :is(.admin-shell, .employee-shell) .table-bookings-modal .modal-body .table-bookings-now > span:not(.table-bookings-state),
+.light :is(.admin-shell, .employee-shell) .table-bookings-modal .modal-body .table-bookings-empty { color: var(--text-muted) !important; }
+.light :is(.admin-shell, .employee-shell) .table-bookings-item { background: var(--bg-subtle); }
+.light :is(.admin-shell, .employee-shell) .table-bookings-modal .modal-body .table-bookings-state { background: #ecfdf5; color: #047857 !important; }
+.light :is(.admin-shell, .employee-shell) .table-bookings-modal .modal-body .table-bookings-state.is-occupied { background: #fef2f2; color: #b91c1c !important; }
+.light :is(.admin-shell, .employee-shell) .table-bookings-modal .modal-body .table-bookings-state.is-reserved { background: #fffbeb; color: #92400e !important; }
+.light :is(.admin-shell, .employee-shell) .table-bookings-modal .modal-body .table-bookings-chip.tone-green { background: #ecfdf5; color: #047857 !important; }
+.light :is(.admin-shell, .employee-shell) .table-bookings-modal .modal-body .table-bookings-chip.tone-amber { background: #fffbeb; color: #92400e !important; }
+.light :is(.admin-shell, .employee-shell) .table-bookings-modal .modal-body .table-bookings-chip.tone-gold { background: #fefce8; color: #854d0e !important; }
+.light :is(.admin-shell, .employee-shell) .table-bookings-modal .modal-body .table-bookings-chip.tone-blue { background: #eff6ff; color: #1d4ed8 !important; }
+
+@media (max-width: 640px) {
+  :is(.admin-shell, .employee-shell) .table-bookings-item {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  :is(.admin-shell, .employee-shell) .table-bookings-who {
+    grid-column: 1 / -1;
+  }
+
+  :is(.admin-shell, .employee-shell) .table-bookings-chip {
+    grid-row: 1;
+    grid-column: 2;
+  }
+}
+
+/* A card that picks the list under it (the employee's Stock alarm): pressed. */
+:is(.admin-shell, .employee-shell) .dash-stat.is-active {
+  border-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 10%, var(--ax-panel));
+}

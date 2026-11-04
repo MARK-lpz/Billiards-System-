@@ -1,9 +1,11 @@
 import { useState } from "react";
+import CompleteReservationDialog from "../Global/CompleteReservationDialog";
 import ConfirmDialog from "../Global/ConfirmDialog";
 import PaymentStatusChip from "../Global/PaymentStatusChip";
 import RefundChoice from "../Global/RefundChoice";
+import { NO_REFUND_CHOICE, refundChoiceReady, toRefundExtra } from "../../utils/bookingPayments";
 import { describeReservationTime } from "../../utils/reservations";
-import { findReservationPayment, needsRefundChoice } from "../../utils/onlinePayments";
+import { findReservationPayment } from "../../utils/onlinePayments";
 
 const HISTORY_STATUSES = new Set(["completed", "rejected", "cancelled", "expired"]);
 
@@ -18,14 +20,15 @@ const getReservationMode = (reservation) => {
 // `payments`: the website's GCash payments; `onViewPayment` / `onRefund` open
 // one (with its receipt) or send it back: (payment, reservation).
 export default function ReservationsTable({ reservations, onUpdate, onEdit, emptyMessage, payments = [], onViewPayment, onRefund }) {
-  // Cancelling cannot be undone, so the click only arms the confirmation.
+  // Completing or cancelling cannot be undone, so the click only arms the confirmation.
   const [cancelTarget, setCancelTarget] = useState(null);
-  // For a cancelled booking whose payment was accepted: "refund" or "keep".
-  const [refundChoice, setRefundChoice] = useState("");
+  const [completeTarget, setCompleteTarget] = useState(null);
+  // What happens to a cancelled booking's payment.
+  const [refundChoice, setRefundChoice] = useState(NO_REFUND_CHOICE);
   const paymentOf = (reservation) =>
     String(reservation.source || "").toLowerCase() === "online" ? findReservationPayment(payments, reservation.id) : null;
   const openCancel = (reservation) => {
-    setRefundChoice("");
+    setRefundChoice(NO_REFUND_CHOICE);
     setCancelTarget(reservation);
   };
 
@@ -33,9 +36,12 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
   // the closure: the React Compiler narrows a closed-over `cancelTarget.id` into
   // a render-time memo check, which throws while the target is still null.
   const confirmCancel = (reservation, choice) => {
-    const asked = needsRefundChoice(paymentOf(reservation));
-    onUpdate(reservation.id, { status: "rejected" }, asked ? { refundPayment: choice === "refund" } : {});
+    onUpdate(reservation.id, { status: "rejected" }, toRefundExtra(reservation, paymentOf(reservation), choice));
     setCancelTarget(null);
+  };
+  const confirmComplete = (reservation) => {
+    onUpdate(reservation.id, { status: "completed" });
+    setCompleteTarget(null);
   };
 
   return (
@@ -89,11 +95,9 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
                         <span className={`badge reservations-badge-${r.status}`}>
                           {r.status}
                         </span>
-                        {payment && (
-                          <div className="reservations-pay-status">
-                            <PaymentStatusChip payment={payment} short />
-                          </div>
-                        )}
+                        <div className="reservations-pay-status">
+                          <PaymentStatusChip payment={payment} booking={r} short />
+                        </div>
                       </td>
                       <td className="reservations-notes">{r.notes || "—"}</td>
                       <td>
@@ -132,7 +136,7 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
                             <>
                               <button
                                 className="btn btn-sm btn-info"
-                                onClick={() => onUpdate(r.id, { status: "completed" })}
+                                onClick={() => setCompleteTarget(r)}
                               >
                                 <i className="bi bi-check-circle me-1"></i>
                                 Complete
@@ -165,6 +169,14 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
         </div>
       </div>
 
+      {completeTarget && (
+        <CompleteReservationDialog
+          booking={completeTarget}
+          onConfirm={() => confirmComplete(completeTarget)}
+          onClose={() => setCompleteTarget(null)}
+        />
+      )}
+
       {cancelTarget && (
         <ConfirmDialog
           title="Cancel this reservation?"
@@ -178,11 +190,11 @@ export default function ReservationsTable({ reservations, onUpdate, onEdit, empt
           detail="This cannot be undone. The booking moves to history and has to be created again if the customer still wants it."
           confirmLabel="Yes, Cancel Reservation"
           cancelLabel="Keep Reservation"
-          confirmDisabled={needsRefundChoice(paymentOf(cancelTarget)) && !refundChoice}
+          confirmDisabled={!refundChoiceReady(cancelTarget, paymentOf(cancelTarget), refundChoice)}
           onConfirm={() => confirmCancel(cancelTarget, refundChoice)}
           onClose={() => setCancelTarget(null)}
         >
-          <RefundChoice payment={paymentOf(cancelTarget)} value={refundChoice} onChange={setRefundChoice} />
+          <RefundChoice payment={paymentOf(cancelTarget)} booking={cancelTarget} value={refundChoice} onChange={setRefundChoice} />
         </ConfirmDialog>
       )}
     </div>

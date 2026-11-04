@@ -51,7 +51,11 @@ export const createAuditEntry = ({
 export const appendAuditLog = (setLogs, entry) => {
   if (!setLogs) return;
 
-  setLogs((prev) => [createAuditEntry(entry), ...prev]);
+  // Made once, outside the updater: React may run an updater again (when an
+  // update from the server lands first), and a new id each time would save
+  // the same event twice.
+  const created = createAuditEntry(entry);
+  setLogs((prev) => [created, ...prev]);
 };
 
 export const normalizeAuditLog = (log) => {

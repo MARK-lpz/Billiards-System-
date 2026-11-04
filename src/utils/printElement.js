@@ -11,7 +11,14 @@ export const printElement = (element, { title = "Print", bodyClass = "", extraCs
   frame.setAttribute("aria-hidden", "true");
   frame.className = "print-frame";
   Object.assign(frame.style, { position: "fixed", right: "0", bottom: "0", width: "0", height: "0", border: "0" });
-  frame.onload = () => {
+  // The fonts (the sign's lettering) finish loading first, so the paper is not
+  // printed in a stand-in font.
+  frame.onload = async () => {
+    try {
+      await frame.contentDocument.fonts?.ready;
+    } catch {
+      // Printed with whatever font has loaded.
+    }
     frame.contentWindow.focus();
     frame.contentWindow.print();
     setTimeout(() => frame.remove(), 0);

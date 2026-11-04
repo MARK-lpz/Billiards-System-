@@ -1,7 +1,18 @@
+import "../../styles/TournamentFees.css";
 import { formatEventWhen, wasRescheduled } from "../../utils/eventUpdates";
 import { eventMediaUrl, getEventMedia } from "../../utils/eventMedia";
 import CancelledNoticeControl from "../Global/CancelledNoticeControl";
 import TournamentPayments from "../Global/TournamentPayments";
+import { useOnlinePayments } from "../Global/useOnlinePayments";
+import EntryFeeSummary from "../Global/EntryFeeSummary";
+import {
+  describePaymentMethods,
+  describePlayers,
+  describeSlots,
+  getPlayerFee,
+  hasEntryFee,
+  isEventFull,
+} from "../../utils/tournamentFees";
 
 const formatAssignedTables = (assignedTables = [], tables = []) => {
   const labels = (assignedTables || [])
@@ -19,6 +30,11 @@ const formatAssignedTables = (assignedTables = [], tables = []) => {
 
 // `setLogs`: the Audit Trail, for the entry fees checked or sent back here.
 export default function EventCard({ event, tables = [], now, setLogs, onEdit, onMarkComplete, onCancel, onNoticeChange }) {
+  // The entry fees paid on the website; a player's status reads them with the counter's.
+  const { payments } = useOnlinePayments();
+  const paid = hasEntryFee(event);
+  const slots = describeSlots(event);
+
   return (
     <div className={`card events-card ${event.status === "upcoming" ? "events-card-upcoming" : ""}`}>
       <div className="card-body">
@@ -56,7 +72,19 @@ export default function EventCard({ event, tables = [], now, setLogs, onEdit, on
           </div>
           <div className="events-info-box">
             <div className="events-info-label">Participants</div>
-            <div className="events-info-value">{event.participants.length} registered</div>
+            <div className="events-info-value">
+              {describePlayers(event)}
+              {slots && (
+                <span className={`events-slots${isEventFull(event) ? " is-full" : ""}`}>{slots}</span>
+              )}
+            </div>
+          </div>
+          <div className="events-info-box">
+            <div className="events-info-label">Entry Fee</div>
+            <div className="events-info-value">
+              {paid ? `₱${Number(event.entryFee).toLocaleString()}` : "Free"}
+              {paid && <span className="events-info-sub">{describePaymentMethods(event)}</span>}
+            </div>
           </div>
           <div className="events-info-box">
             <div className="events-info-label">Prize Pool</div>
@@ -92,13 +120,18 @@ export default function EventCard({ event, tables = [], now, setLogs, onEdit, on
         {event.participants.length > 0 && (
           <div className="events-participants">
             <div className="events-participants-label">Participants</div>
+            {paid && <EntryFeeSummary event={event} payments={payments} className="events-fee-summary" />}
             <div className="events-participants-list">
-              {event.participants.map((p, i) => (
-                <span key={i} className="events-participant-badge">
-                  <i className="bi bi-person-fill me-1"></i>
-                  {p}
-                </span>
-              ))}
+              {event.participants.map((p, i) => {
+                const fee = paid ? getPlayerFee(event, p, payments) : null;
+                return (
+                  <span key={i} className="events-participant-badge">
+                    <i className="bi bi-person-fill me-1"></i>
+                    {p}
+                    {fee && <span className={`fee-chip tone-${fee.tone}`}>{fee.label}</span>}
+                  </span>
+                );
+              })}
             </div>
           </div>
         )}

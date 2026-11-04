@@ -8,6 +8,11 @@ import TableCheckout from "../../Elements/Admin/TableCheckout";
 import TableOrderModal from "../../Elements/Admin/TableOrderModal";
 import useTableOrders from "../../Elements/Admin/useTableOrders";
 import CancelReservationModal from "../../Elements/Admin/CancelReservationModal";
+import TableBookingsModal from "../../Elements/Admin/TableBookingsModal";
+import ActiveTables from "../../Elements/Admin/ActiveTables";
+import EmployeeDashboardStats from "../../Elements/Employee/EmployeeDashboardStats";
+import useStockAlarm from "../../Elements/Employee/useStockAlarm";
+import { getShelfProducts } from "../../utils/productShelf";
 import { useOnlinePayments } from "../../Elements/Global/useOnlinePayments";
 import TimeUpAlert from "../../Elements/Global/TimeUpAlert";
 import Toast from "../../Elements/Global/Toast";
@@ -21,13 +26,16 @@ import TournamentSchedule from "./TournamentSchedule";
 import QuickActions from "./QuickAction";
 import SalesPOS from "./SalesPos";
 import ReservationDesk from "./ReservationDesk";
+import StockAlarm from "./StockAlarm";
+import TableHistory from "../../Elements/Global/TableHistory";
 import Website from "../Admin/Website";
 import { appendAuditLog } from "../../utils/audit";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import { findTableReservation, formatHoursLabel, getExtensionBlock } from "../../utils/reservations";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
 import { ENDED_SESSION_FIELDS } from "../../utils/tableCharges";
-import { getCheckInBlock, hasTableReservation } from "../../utils/tableHolds";
+import { getCheckInBlock, getTableBookings, hasTableReservation } from "../../utils/tableHolds";
+import useBookingPayment from "../../Elements/Global/useBookingPayment";
 import useClock from "../../Elements/Global/useClock";
 import useStaffShell from "../../Elements/Global/useStaffShell";
 import useMyProfile from "../../Elements/Global/useMyProfile";
@@ -37,7 +45,8 @@ import { navItems } from "../../Elements/Employee/employeeNav";
 
 const getCurrentTimestamp = () => Date.now();
 
-// The parts of the website the front desk keeps up to date; the rest is the admin's.
+// The parts of the website the front desk sees: the GCash details to check
+// (only the admin changes them) and the slides it keeps up to date.
 const EMPLOYEE_WEBSITE_SECTIONS = ["gcash", "showcase"];
 
 // Pages the top bar can name that are not in the sidebar.
@@ -71,21 +80,25 @@ export default function EmployeeDashboard({
   setEvents,
   theme,
   setTheme,
+  density,
+  setDensity,
   // The Online reservations switch, on the Website page.
   onlineReservationsOpen,
+  onlineReservationsStatus,
   isUpdatingOnlineReservations,
   onOnlineReservationsChange,
 }) {
   const { addNotification, showToast } = useNotifications();
   // A website booking's GCash payment moves with it on the server; asked again after a cancel.
   const { refresh: refreshPayments } = useOnlinePayments();
+  const { recordBookingRefund } = useBookingPayment({ staff: "Employee", setReservations, setTransactions, setLogs });
   const { collapsed: sidebarCollapsed, toggleCollapsed: toggleSidebarCollapsed, navOpen, setNavOpen, shellClassName } =
     useStaffShell("employee-sidebar-collapsed");
   // The employee's own profile: the Profile page and the picture in the top bar.
   const myProfile = useMyProfile();
   // Must match a sidebar nav id, otherwise nothing is highlighted on load and
   // the page header has no entry to read its title from.
-  const [activeNav, setActiveNav] = useState("Pool Tables");
+  const [activeNav, setActiveNav] = useState("dashboard");
   const [loading, setLoading] = useState(false);
   // What the bell opened, for the page it leads to: a booking on the Reservation
   // Desk, or a player on the Tournament Schedule. Cleared by any other navigation.
@@ -93,6 +106,9 @@ export default function EmployeeDashboard({
   // Tournament players already opened on this device: one list for the bell and
   // the Tournament Schedule, so opening a player in either clears it in both.
   const [seenPlayers, markPlayersSeen] = useSeenRegistrations(events);
+  // The products still in the Inventory (archived ones are the admin's only),
+  // and what the stock alarm says about them, for its page, the sidebar and the bell.
+  const shelfProducts = getShelfProducts(products);
   const [statusFilter, setStatusFilter] = useState("all");
   // The table a walk-in is being started on, while staff enter how long they stay.
   const [walkInTableId, setWalkInTableId] = useState(null);
@@ -102,10 +118,13 @@ export default function EmployeeDashboard({
   // The table whose Order pop-up is open; gone once its session ends.
   const [orderTableId, setOrderTableId] = useState(null);
   const orderTable = tables.find((t) => t.id === orderTableId && t.status === "occupied") || null;
-  const tableOrders = useTableOrders({ tables, setTables, products, setProducts, setLogs, staff: "Employee" });
+  const tableOrders = useTableOrders({ tables, setTables, products: shelfProducts, setProducts, setLogs, staff: "Employee" });
   // The reserved table whose Cancel pop-up is open; gone if it is no longer reserved.
   const [cancelTableId, setCancelTableId] = useState(null);
   const cancelTable = tables.find((t) => t.id === cancelTableId && t.status === "reserved") || null;
+  // The table whose reservations are open in the pop-up.
+  const [bookingsTableId, setBookingsTableId] = useState(null);
+  const bookingsTable = tables.find((t) => t.id === bookingsTableId) || null;
 
   const handleReload = () => {
     setLoading(true);
@@ -126,6 +145,11 @@ export default function EmployeeDashboard({
   // Reserved covers tables held now and those booked for later, which stay
   // Available (and count there too) until their booking comes due.
   const clock = useClock();
+  const stockAlarm = useStockAlarm(shelfProducts, clock);
+  // Expired and low products wait on the Stock Alarm until the admin acts: the
+  // sidebar counts them, red while any is expired or out.
+  const stockAttention = stockAlarm.alarm.expired.length + stockAlarm.alarm.low.length;
+  const stockUrgent = stockAlarm.alarm.expired.length > 0 || stockAlarm.alarm.low.some((entry) => entry.state === "out");
   const isReservedTable = (table) => hasTableReservation(table, reservations, new Date(clock));
   const stats = {
     available: tables.filter((t) => t.status === "available").length,
@@ -272,7 +296,7 @@ export default function EmployeeDashboard({
 
   // Runs once the Cancel pop-up is confirmed. The booking itself is cancelled
   // too, or the reservations sync would mark the table reserved again. `extra`:
-  // whether to give a website booking's accepted GCash payment back.
+  // whether to give the booking's payment back.
   const cancelReservation = (id, extra = {}) => {
     const table = tables.find((t) => t.id === id);
     if (!table) return;
@@ -285,7 +309,10 @@ export default function EmployeeDashboard({
       from: ["approved", "reserved", "arrived"],
       status: "cancelled",
       extra,
-      onSaved: refreshPayments,
+      onSaved: (saved) => {
+        refreshPayments();
+        recordBookingRefund(saved, extra);
+      },
     });
     addLog({
       action: "Cancelled reservation",
@@ -313,7 +340,7 @@ export default function EmployeeDashboard({
             tables={tables}
             setTables={setTables}
             reservations={reservations}
-            products={products}
+            products={shelfProducts}
             setProducts={setProducts}
             transactions={transactions}
             setTransactions={setTransactions}
@@ -330,6 +357,8 @@ export default function EmployeeDashboard({
             events={events}
             setEvents={setEvents}
             setLogs={setLogs}
+            transactions={transactions}
+            setTransactions={setTransactions}
             tables={tables}
             focusPlayer={focus?.nav === "tournaments" ? focus : null}
             seen={seenPlayers}
@@ -338,19 +367,32 @@ export default function EmployeeDashboard({
         );
 
       case "settings":
-        return <Settings theme={theme} setTheme={setTheme} showHeader={false} />;
+        return (
+          <Settings
+            theme={theme}
+            setTheme={setTheme}
+            density={density}
+            setDensity={setDensity}
+            showHeader={false}
+          />
+        );
 
       case "profile":
         return <Profile myProfile={myProfile} setLogs={setLogs} staffLabel="Employee" />;
 
-      case "website":
+      case "content-management":
         return (
           <Website
             reservations={reservations}
             setLogs={setLogs}
             only={EMPLOYEE_WEBSITE_SECTIONS}
             staff="Employee"
-            bookings={{ open: onlineReservationsOpen, updating: isUpdatingOnlineReservations, onChange: onOnlineReservationsChange }}
+            bookings={{
+              open: onlineReservationsOpen,
+              status: onlineReservationsStatus,
+              updating: isUpdatingOnlineReservations,
+              onChange: onOnlineReservationsChange,
+            }}
           />
         );
 
@@ -365,8 +407,27 @@ export default function EmployeeDashboard({
             setReservations={setReservations}
             tableCharges={tableCharges}
             setTableCharges={setTableCharges}
+            events={events}
+            transactions={transactions}
+            setTransactions={setTransactions}
             setLogs={setLogs}
           />
+        );
+
+      case "stock-alarm":
+        return (
+          <StockAlarm
+            key={focus?.key || "stock-alarm"}
+            products={shelfProducts}
+            stockAlarm={stockAlarm}
+            setLogs={setLogs}
+            initialTab={focus?.nav === "stock-alarm" ? focus.stockTab : null}
+          />
+        );
+
+      case "history":
+        return (
+          <TableHistory tables={tables} reservations={reservations} tableCharges={tableCharges} now={clock} />
         );
 
       case "quick-actions":
@@ -380,21 +441,17 @@ export default function EmployeeDashboard({
           />
         );
 
-      case "dashboard":
-      default:
+      // Laid out like the admin's Pool Tables: the status filter, then the
+      // tables, without adding, editing or deleting a table.
+      case "pool-tables":
         return (
           <>
-            <section className="page-header employee-hero">
-              <div className="page-header-text employee-hero-text">
-                <span className="employee-hero-eyebrow">{formatToday(clock)}</span>
-                <h1 className="page-title">Pool Table Dashboard</h1>
-              </div>
-              <PoolTableStats
-                stats={stats}
-                activeStatus={statusFilter}
-                onFilterChange={setStatusFilter}
-              />
-            </section>
+            <PoolTableStats
+              stats={stats}
+              activeStatus={statusFilter}
+              onFilterChange={setStatusFilter}
+            />
+
             <div className="pool-tables-grid employee-table-grid">
               {filtered.map((table) => (
                 <PoolTableCard
@@ -408,9 +465,23 @@ export default function EmployeeDashboard({
                   onAddTime={(minutes) => handleAddTime(table.id, minutes)}
                   onUndoTime={(minutes) => handleUndoTime(table.id, minutes)}
                   onOrder={() => setOrderTableId(table.id)}
+                  onShowBookings={() => setBookingsTableId(table.id)}
                 />
               ))}
             </div>
+
+            {bookingsTable && (
+              <TableBookingsModal
+                table={bookingsTable}
+                bookings={getTableBookings(bookingsTable, reservations, new Date(clock))}
+                now={clock}
+                onClose={() => setBookingsTableId(null)}
+                onOpenReservations={() => {
+                  setBookingsTableId(null);
+                  handleNavChange("reservations");
+                }}
+              />
+            )}
 
             {walkInTableId !== null && (
               <WalkInModal
@@ -424,7 +495,7 @@ export default function EmployeeDashboard({
             {orderTable && (
               <TableOrderModal
                 table={orderTable}
-                products={products}
+                products={shelfProducts}
                 onPlace={(draft) => tableOrders.placeOrder(orderTable, draft)}
                 onTakeOff={(lineId) => tableOrders.takeOffOrder(orderTable, lineId)}
                 onClose={() => setOrderTableId(null)}
@@ -442,6 +513,38 @@ export default function EmployeeDashboard({
                 }}
               />
             )}
+          </>
+        );
+
+      case "dashboard":
+      default:
+        return (
+          <>
+            <section className="page-header employee-hero">
+              <div className="page-header-text employee-hero-text">
+                <span className="employee-hero-eyebrow">{formatToday(clock)}</span>
+                <h1 className="page-title">Employee Dashboard</h1>
+                <p className="page-subtitle">The hall today: players, reservations, stock and every table</p>
+              </div>
+            </section>
+
+            {/* Players, reservations by day, then the Stock Alarm; each opens its page */}
+            <EmployeeDashboardStats
+              events={events}
+              reservations={reservations}
+              now={clock}
+              onOpen={(navId) => handleNavChange(navId)}
+              stockAlarm={stockAlarm}
+            />
+
+            {/* The title opens Pool Tables; a table opens its reservations */}
+            <ActiveTables
+              tables={tables}
+              reservations={reservations}
+              now={clock}
+              onViewPoolTables={() => handleNavChange("pool-tables")}
+              onViewReservations={() => handleNavChange("reservations")}
+            />
           </>
         );
     }
@@ -486,6 +589,17 @@ export default function EmployeeDashboard({
           onReload={handleReload}
           collapsed={sidebarCollapsed}
           onToggleCollapsed={toggleSidebarCollapsed}
+          badges={
+            stockAttention
+              ? {
+                  "stock-alarm": {
+                    count: stockAttention,
+                    tone: stockUrgent ? "danger" : "warning",
+                    label: `${stockAttention} ${stockAttention === 1 ? "product needs" : "products need"} attention`,
+                  },
+                }
+              : {}
+          }
         />
         {navOpen && <div className="employee-nav-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
 
@@ -500,7 +614,7 @@ export default function EmployeeDashboard({
               events={events}
               tables={tables}
               reservations={reservations}
-              onOpenTables={() => handleNavChange("Pool Tables")}
+              onOpenTables={() => handleNavChange("pool-tables")}
               onEndSession={handleEndSession}
               seen={seenPlayers}
               markSeen={markPlayersSeen}
@@ -509,6 +623,10 @@ export default function EmployeeDashboard({
               }
               onOpenRegistration={(player) =>
                 handleNavChange("tournaments", { nav: "tournaments", ...player, key: `player-${Date.now()}` })
+              }
+              stockAlarm={stockAlarm}
+              onOpenStockAlarm={(stockTab) =>
+                handleNavChange("stock-alarm", { nav: "stock-alarm", stockTab, key: `stock-${Date.now()}` })
               }
             />
             <ProfileButton profile={myProfile.profile} onOpen={() => handleNavChange("profile")} />

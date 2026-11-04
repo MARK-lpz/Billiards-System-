@@ -1,32 +1,16 @@
 import { useEffect, useState } from "react";
 import { appendAuditLog } from "../../utils/audit";
-import { isValidSmsNumber } from "../../utils/phone";
+import { describeRefundExtra } from "../../utils/bookingPayments";
 import { useNotifications } from "../Global/useNotifications";
-import { useSiteSettings } from "../Global/useSiteSettings";
-import { createRemoteReservation, updateRemoteReservation } from "../../utils/reservationApi";
+import useBookingPayment from "../Global/useBookingPayment";
+import { updateRemoteReservation } from "../../utils/reservationApi";
 import { RESERVATIONS_PAGE_SIZE as PAGE_SIZE, matchesSearch } from "../../utils/reservationList";
 import { paginate } from "../../utils/pagination";
-import {
-  getAvailableReservationTables,
-  getChosenTableError,
-  getReservationScheduleError,
-  hasReservationConflict,
-} from "../../utils/reservations";
 import { ENDED_SESSION_FIELDS, createTableCharge, endedChargeToast } from "../../utils/tableCharges";
 import { useOnlinePayments } from "../Global/useOnlinePayments";
 
 // Read only from handlers, never while rendering.
 const getCurrentTimestamp = () => Date.now();
-
-const emptyReservationForm = {
-  customerName: "",
-  phone: "",
-  date: "",
-  time: "",
-  tableId: "",
-  partySize: 2,
-  notes: "",
-};
 
 const HISTORY_STATUSES = new Set(["completed", "rejected", "cancelled", "expired"]);
 const statusFilters = ["all", "pending", "approved", "history"];
@@ -39,51 +23,26 @@ export default function useAdminReservations({
   setTables,
   tableCharges = [],
   setTableCharges,
+  setTransactions,
   setLogs,
 }) {
   const { addNotification, showToast } = useNotifications();
-  // The hall's hours (Admin > Website), which bookings must keep to.
-  const { hours } = useSiteSettings().settings;
   // A website booking's GCash payment moves with it on the server; asked again after a save.
   const { refresh: refreshPayments } = useOnlinePayments();
+  const { createPaidBooking, recordBookingRefund } = useBookingPayment({
+    staff: "Admin",
+    setReservations,
+    setTransactions,
+    setLogs,
+  });
   const [filter, setFilter] = useState(statusFilters.includes(initialFilter) ? initialFilter : "all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState(null);
-  const [form, setForm] = useState(emptyReservationForm);
   const [editId, setEditId] = useState(null);
-
-  const availableTables = getAvailableReservationTables({
-    tables,
-    reservations,
-    date: form.date,
-    time: form.time,
-    excludeId: editId,
-  });
-
-  // A booking being edited may keep the slot it already has, even once that has
-  // passed; a new date or time must still be ahead.
-  const editedReservation = editId ? reservations.find((reservation) => reservation.id === editId) : null;
-  const keepsBookedSlot =
-    Boolean(editedReservation) && editedReservation.date === form.date && editedReservation.time === form.time;
-  const scheduleError = keepsBookedSlot ? "" : getReservationScheduleError(form.date, form.time, undefined, hours);
-  // The picked table must be free then: not occupied, reserved or under
-  // maintenance. A booking kept on its own slot and table is not checked against
-  // itself (its guest may be the one playing there).
-  const keepsBookedTable =
-    keepsBookedSlot && Number(editedReservation.tableId ?? editedReservation.table) === Number(form.tableId);
-  const tableError = keepsBookedTable
-    ? ""
-    : getChosenTableError({
-        tables,
-        reservations,
-        tableId: form.tableId,
-        date: form.date,
-        time: form.time,
-        durationMinutes: editedReservation?.durationMinutes,
-        excludeId: editId,
-      });
-  const chosenTableName = tables.find((table) => String(table.id) === String(form.tableId))?.name || "";
+  // A new booking's receipt, shown right after it is paid.
+  const [receipt, setReceipt] = useState(null);
+  const editedReservation = editId ? reservations.find((reservation) => reservation.id === editId) || null : null;
 
   const matchedReservations = reservations.filter((reservation) => {
     const inFilter =
@@ -214,6 +173,7 @@ const releaseTable = (tableId, reservation, nextStatus) => {
     updateRemoteReservation(nextReservation, extra)
       .then(() => {
         if (currentReservation.source === "online") refreshPayments();
+        recordBookingRefund(nextReservation, extra);
       })
       .catch((error) => {
         console.warn("Unable to sync reservation update", error);
@@ -222,13 +182,7 @@ const releaseTable = (tableId, reservation, nextStatus) => {
     if (changes.status && changes.status !== currentReservation.status) {
       logReservationEvent({
         action: `Reservation ${changes.status}`,
-        detail: [
-          `${currentReservation.customerName} reservation for ${currentReservation.tableName}`,
-          `moved from ${currentReservation.status} to ${changes.status}`,
-          ...("refundPayment" in extra
-            ? [extra.refundPayment ? "(the GCash payment is listed to send back)" : "(the GCash payment is kept)"]
-            : []),
-        ].join(" "),
+        detail: `${currentReservation.customerName} reservation for ${currentReservation.tableName} moved from ${currentReservation.status} to ${changes.status}.${describeRefundExtra(nextReservation, extra)}`,
         reservation: nextReservation,
         previousStatus: currentReservation.status,
         nextStatus,
@@ -240,71 +194,19 @@ const releaseTable = (tableId, reservation, nextStatus) => {
     }
   };
 
-  const saveReservation = async () => {
-    if (!isValidSmsNumber(form.phone)) {
-      window.alert("Please enter the customer's mobile number in 09XXXXXXXXX format.");
-      return;
-    }
-
-    if (scheduleError) {
-      window.alert(scheduleError);
-      return;
-    }
-
-    if (tableError) {
-      window.alert(tableError);
-      return;
-    }
-
-    const payload = buildReservationPayload(form, tables);
-    if (!payload) return;
-
-    if (hasScheduleConflict(payload, editId)) return;
-
-    if (editId) {
-      saveExistingReservation(payload);
-    } else if (!(await saveNewReservation(payload))) {
-      return;
-    }
-
+  const closeForm = () => {
     setModal(null);
     setEditId(null);
   };
 
-  const buildReservationPayload = (sourceForm, tableList) => {
-    const tableId = Number(sourceForm.tableId);
-    const tableName = tableList.find((table) => table.id === tableId)?.name || `Table ${tableId}`;
-
-    return {
-      customerName: sourceForm.customerName.trim(),
-      phone: sourceForm.phone.trim(),
-      date: sourceForm.date,
-      time: sourceForm.time,
-      tableId,
-      tableName,
-      partySize: Number(sourceForm.partySize) || 1,
-      notes: sourceForm.notes.trim(),
-    };
+  // Paid in the booking window; what goes wrong stays there.
+  const createBooking = async (paid) => {
+    const sale = await createPaidBooking(paid);
+    closeForm();
+    setReceipt(sale);
   };
 
-  const hasScheduleConflict = (payload, excludedId) => {
-    // An edit keeps the booked length, so a multi-hour stay is checked in full.
-    const candidate = {
-      tableId: payload.tableId,
-      date: payload.date,
-      time: payload.time,
-      durationMinutes: reservations.find((reservation) => reservation.id === excludedId)?.durationMinutes,
-    };
-
-    if (!payload.date || !payload.time || !hasReservationConflict(reservations, candidate, excludedId)) {
-      return false;
-    }
-
-    window.alert(`${payload.tableName} already has a reservation at ${payload.time} on ${payload.date}.`);
-    return true;
-  };
-
-  const saveExistingReservation = (payload) => {
+  const saveEdit = (payload) => {
     const currentReservation = reservations.find((reservation) => reservation.id === editId);
     const previousTableId = Number(currentReservation?.tableId ?? currentReservation?.table);
 
@@ -321,48 +223,15 @@ const releaseTable = (tableId, reservation, nextStatus) => {
       nextStatus: currentReservation?.status || "pending",
     });
     addNotification({ message: `${payload.customerName} reservation updated.` });
-  };
-
-  // Booked in person (walk-in), so it is confirmed on the spot: only online
-  // bookings wait for approval. Saved to the server first, as the front desk
-  // does, so the employees see it and the slot cannot be booked online.
-  const saveNewReservation = async (payload) => {
-    let saved;
-    try {
-      saved = await createRemoteReservation({ id: Date.now(), ...payload, status: "approved", source: "admin" });
-    } catch (error) {
-      window.alert(error.message || "Unable to save the reservation.");
-      return false;
-    }
-
-    setReservations((prev) => [...prev, saved]);
-    logReservationEvent({
-      action: "Reservation created",
-      detail: `${saved.customerName} walk-in reservation created and confirmed for ${saved.tableName} on ${saved.date} ${saved.time}`,
-      reservation: saved,
-      previousStatus: null,
-      nextStatus: "approved",
-    });
-    addNotification({ message: `${saved.customerName} is booked for ${saved.tableName} on ${saved.date} at ${saved.time}.` });
-    return true;
+    closeForm();
   };
 
   const openEdit = (reservation) => {
-    setForm({
-      customerName: reservation.customerName || reservation.customer || "",
-      phone: reservation.phone || "",
-      date: reservation.date || "",
-      time: reservation.time || "",
-      tableId: String(reservation.tableId ?? reservation.table ?? ""),
-      partySize: reservation.partySize ?? reservation.pax ?? 2,
-      notes: reservation.notes || "",
-    });
     setEditId(reservation.id);
     setModal("form");
   };
 
   const openNew = () => {
-    setForm(emptyReservationForm);
     setEditId(null);
     setModal("form");
   };
@@ -376,16 +245,15 @@ const releaseTable = (tableId, reservation, nextStatus) => {
   }, [reservations, setTables]);
 
   return {
-    availableTables,
-    chosenTableName,
+    closeForm,
+    closeReceipt: () => setReceipt(null),
     counts,
-    editId,
+    createBooking,
+    editedReservation,
     filter,
     filteredReservations,
-    form,
     modal,
-    scheduleError,
-    tableError,
+    receipt,
     search,
     setSearch: changeSearch,
     page: currentPage,
@@ -395,12 +263,10 @@ const releaseTable = (tableId, reservation, nextStatus) => {
     totalMatches: matchedReservations.length,
     goToPage,
     setFilter: changeFilter,
-    setForm,
-    setModal,
     statusFilters,
     openEdit,
     openNew,
-    saveReservation,
+    saveEdit,
     updateReservation,
   };
 }

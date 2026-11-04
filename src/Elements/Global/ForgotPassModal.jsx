@@ -1,17 +1,33 @@
 import { useState, useEffect, useCallback } from "react";
 import "../../styles/ForgotModal.css";
-import { fetchResetMode, resetPassword, sendResetCode } from "../../utils/passwordResetApi";
+import { fetchResetChannels, resetPassword, sendResetCode } from "../../utils/passwordResetApi";
 import { getSmsWarning, isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
 import { MIN_PASSWORD_LENGTH } from "../../utils/passwordRules";
+import { checkSignInUsername } from "../../utils/formValidation";
 
 // Shows only the last four digits once the code is on its way.
 const maskMobile = (phone) => `${phone.slice(0, 2)}•• ••• ${phone.slice(-4)}`;
+// And only the start of an email address: "ju•••@gmail.com".
+const maskEmail = (email) => {
+  const [name, domain] = email.toLowerCase().split("@");
+  return `${name.slice(0, 2)}•••@${domain}`;
+};
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const CHANNELS = {
+  email: { label: "Email", icon: "bi-envelope" },
+  sms: { label: "Text message", icon: "bi-chat-dots" },
+};
+
+// One form for every staff account: the server finds whether the username is
+// an admin's or an employee's, so no one has to pick first.
 export default function ForgotPassModal({ visible, onClose }) {
-  const [accountType, setAccountType] = useState("employee");
-  // "sms-code" when texting is set up on the server, otherwise "disabled".
-  const [mode, setMode] = useState(null);
+  // The ways the server can send the code ("email", "sms"); null until asked,
+  // empty when neither is set up.
+  const [channels, setChannels] = useState(null);
+  const [channel, setChannel] = useState("email");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
@@ -23,8 +39,8 @@ export default function ForgotPassModal({ visible, onClose }) {
   const [loading, setLoading] = useState(false);
 
   const handleClose = useCallback(() => {
-    setAccountType("employee");
     setUsername("");
+    setEmail("");
     setPhone("");
     setCode("");
     setCodeSent(false);
@@ -48,20 +64,24 @@ export default function ForgotPassModal({ visible, onClose }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [visible, handleClose]);
 
-  // Asked each time the modal opens, so adding the SMS key takes effect
-  // without anyone reloading the page.
+  // Asked each time the modal opens, so adding the Gmail app password or the
+  // SMS key takes effect without anyone reloading the page.
   useEffect(() => {
     if (!visible) return;
     let cancelled = false;
 
-    fetchResetMode()
-      .then((nextMode) => {
-        if (!cancelled) setMode(nextMode);
+    fetchResetChannels()
+      .then((nextChannels) => {
+        if (cancelled) return;
+        setChannels(nextChannels);
+        setChannel(nextChannels[0] || "email");
       })
       .catch(() => {
         // Unreachable server: let "Send Code" show the real error rather than
         // claiming reset is switched off.
-        if (!cancelled) setMode("sms-code");
+        if (cancelled) return;
+        setChannels(["email", "sms"]);
+        setChannel("email");
       });
 
     return () => {
@@ -71,18 +91,27 @@ export default function ForgotPassModal({ visible, onClose }) {
 
   if (!visible) return null;
 
-  // Without texting, knowing a username and number proves nothing, so the
-  // whole reset is off instead of offering a way around the code.
-  const resetOff = mode === "disabled";
+  // Without a way to send the code, knowing a username and an address or
+  // number proves nothing, so the whole reset is off instead of offering a
+  // way around the code.
+  const loaded = channels !== null;
+  const resetOff = loaded && channels.length === 0;
+  const byEmail = channel === "email";
   const showPasswordFields = !resetOff && codeSent;
   const phoneWarning = getSmsWarning(phone);
+  const contact = { channel, email: byEmail ? email.trim() : "", phone: byEmail ? "" : phone };
 
   const validateIdentity = () => {
-    if (!username.trim()) {
-      setError(`Please enter your ${accountType} username.`);
+    const usernameProblem = checkSignInUsername(username)?.hard;
+    if (usernameProblem) {
+      setError(usernameProblem);
       return false;
     }
-    if (!isValidSmsNumber(phone)) {
+    if (byEmail && !EMAIL_PATTERN.test(email.trim())) {
+      setError("Please enter the email address saved in your Profile.");
+      return false;
+    }
+    if (!byEmail && !isValidSmsNumber(phone)) {
       setError("Please enter your registered mobile number in 09XXXXXXXXX format.");
       return false;
     }
@@ -108,22 +137,26 @@ export default function ForgotPassModal({ visible, onClose }) {
   const requestCode = async () => {
     if (!validateIdentity()) return;
 
-    await sendResetCode({ username: username.trim(), role: accountType, phone });
+    await sendResetCode({ username: username.trim(), ...contact });
     setCodeSent(true);
     setCode("");
-    setInfo(`A 6-digit code was sent to ${maskMobile(phone)}. It expires in 10 minutes.`);
+    setInfo(
+      byEmail
+        ? `A 6-digit code was sent to ${maskEmail(email.trim())}. It expires in 10 minutes. Not in your inbox? Check Spam.`
+        : `A 6-digit code was sent to ${maskMobile(phone)}. It expires in 10 minutes.`
+    );
   };
 
   const submitReset = async () => {
     if (!validateIdentity()) return;
     if (!/^\d{6}$/.test(code)) {
-      setError("Enter the 6-digit code from the text message.");
+      setError(`Enter the 6-digit code from the ${byEmail ? "email" : "text message"}.`);
       return;
     }
     if (!validateNewPassword()) return;
 
     // The server tells the admin's bell that it happened (never the password).
-    await resetPassword({ username: username.trim(), role: accountType, phone, code, newPassword });
+    await resetPassword({ username: username.trim(), ...contact, code, newPassword });
     setResetSuccess(true);
   };
 
@@ -141,21 +174,17 @@ export default function ForgotPassModal({ visible, onClose }) {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (resetOff || !mode) return;
+    if (resetOff || !loaded) return;
     runStep(codeSent ? submitReset : requestCode);
-  };
-
-  const switchAccountType = (nextType) => {
-    setAccountType(nextType);
-    setError("");
-    setInfo("");
   };
 
   const description = resetOff
     ? ""
     : codeSent
-      ? "Enter the code from the text message, then choose a new password."
-      : "Enter your username and registered mobile number. We will text you a 6-digit code.";
+      ? `Enter the code from the ${byEmail ? "email" : "text message"}, then choose a new password.`
+      : byEmail
+        ? "Enter your username and the email saved in your Profile. We will email you a 6-digit code."
+        : "Enter your username and registered mobile number. We will text you a 6-digit code.";
 
   return (
     <div className="forgot-modal">
@@ -180,37 +209,14 @@ export default function ForgotPassModal({ visible, onClose }) {
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
-              {!codeSent && (
-                <div className="forgot-role-tabs">
-                  <button
-                    type="button"
-                    className={`forgot-role-tab ${accountType === "employee" ? "active" : ""}`}
-                    onClick={() => switchAccountType("employee")}
-                  >
-                    <i className="bi bi-person-badge"></i>
-                    Employee
-                  </button>
-                  <button
-                    type="button"
-                    className={`forgot-role-tab ${accountType === "admin" ? "active" : ""}`}
-                    onClick={() => switchAccountType("admin")}
-                  >
-                    <i className="bi bi-shield-lock"></i>
-                    Admin
-                  </button>
-                </div>
-              )}
-
               {description && <p className="forgot-description">{description}</p>}
 
               {resetOff && (
                 <div className="forgot-notice">
                   <i className="bi bi-chat-dots"></i>
                   <span>
-                    Password reset works by a code sent to your phone, which is not switched on yet.{" "}
-                    {accountType === "admin"
-                      ? "Until it is, the admin password can only be changed from Account Management by a signed-in admin."
-                      : "Until it is, please ask the admin for help signing in."}
+                    Password reset works by a code sent to your email or phone, which is not switched on yet. Until it
+                    is, ask the admin to set a new password for you in Accounts.
                   </span>
                 </div>
               )}
@@ -218,32 +224,79 @@ export default function ForgotPassModal({ visible, onClose }) {
               {error && <div className="forgot-error">{error}</div>}
               {info && !error && <div className="forgot-info">{info}</div>}
 
+              {!resetOff && !codeSent && loaded && channels.length > 1 && (
+                <div className="forgot-channels" role="radiogroup" aria-label="Send the code by">
+                  {channels.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      role="radio"
+                      aria-checked={channel === option}
+                      className={`forgot-channel${channel === option ? " is-on" : ""}`}
+                      onClick={() => {
+                        setChannel(option);
+                        setError("");
+                      }}
+                      disabled={loading}
+                    >
+                      <i className={`bi ${CHANNELS[option].icon}`} aria-hidden="true"></i>
+                      {CHANNELS[option].label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {!resetOff && !codeSent && (
                 <>
-                  <label className="form-label">{accountType === "admin" ? "Admin" : "Employee"} Username</label>
+                  <label className="form-label">Username</label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder={`Enter ${accountType} username`}
+                    placeholder="Enter your username"
                     autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     disabled={loading}
                     autoFocus
                   />
-                  <label className="form-label forgot-field-gap">Registered Mobile Number</label>
-                  <input
-                    type="tel"
-                    className="form-input"
-                    placeholder="09XXXXXXXXX"
-                    inputMode="numeric"
-                    autoComplete="tel"
-                    maxLength={11}
-                    value={phone}
-                    onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
-                    disabled={loading}
-                  />
-                  {phoneWarning && <p className="forgot-field-warning">{phoneWarning}</p>}
+                  {byEmail ? (
+                    <>
+                      <label className="form-label forgot-field-gap">Email in Your Profile</label>
+                      <input
+                        type="email"
+                        className="form-input"
+                        placeholder="you@gmail.com"
+                        autoComplete="email"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        maxLength={120}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value.replace(/\s/g, ""))}
+                        disabled={loading}
+                      />
+                      <p className="forgot-field-hint">
+                        No email saved yet? Add it in Profile once you are signed in, or ask the admin to reset your password.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <label className="form-label forgot-field-gap">Registered Mobile Number</label>
+                      <input
+                        type="tel"
+                        className="form-input"
+                        placeholder="09XXXXXXXXX"
+                        inputMode="numeric"
+                        autoComplete="tel"
+                        maxLength={11}
+                        value={phone}
+                        onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
+                        disabled={loading}
+                      />
+                      {phoneWarning && <p className="forgot-field-warning">{phoneWarning}</p>}
+                    </>
+                  )}
                 </>
               )}
 
@@ -307,10 +360,10 @@ export default function ForgotPassModal({ visible, onClose }) {
                   {resetOff ? "Close" : "Cancel"}
                 </button>
                 {!resetOff && (
-                  <button type="submit" className="btn btn-success" disabled={loading || !mode}>
+                  <button type="submit" className="btn btn-success" disabled={loading || !loaded}>
                     {loading
                       ? "Please wait..."
-                      : !mode
+                      : !loaded
                         ? "Loading..."
                         : codeSent
                           ? "Reset Password"

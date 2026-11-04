@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import ConfirmDialog from "../Global/ConfirmDialog";
 import { useCounterGcash } from "../Global/useCounterGcash";
+import { numberKeys } from "../../utils/numberField";
 
 // The pop-up is drawn at the app's theme wrapper: the cart is sticky, which makes
 // it its own layer, so a pop-up inside it could end up under the product grid.
@@ -298,12 +299,14 @@ export default function CartPanel({
                             value={qtyDrafts[item.id] ?? String(item.qty)}
                             onChange={(event) => handleQtyChange(item, event.target.value)}
                             onBlur={() => commitQty(item)}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter") {
-                                event.preventDefault();
-                                commitQty(item);
-                              }
-                            }}
+                            {...numberKeys({
+                              onKeyDown: (event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  commitQty(item);
+                                }
+                              },
+                            })}
                           />
                           <button
                             type="button"

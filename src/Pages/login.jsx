@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ForgotPassModal from "../Elements/Global/ForgotPassModal";
 import { hasSignInEndedNote, saveSignedInUser } from "../utils/session";
+import { checkSignInUsername } from "../utils/formValidation";
 import "../styles/login.css";
 
 export default function Login({ onLogin, onGoToRegister }) {
@@ -10,6 +11,21 @@ export default function Login({ onLogin, onGoToRegister }) {
   const [loading, setLoading] = useState(false);
   // Sent back here because the server ended the sign-in (see App.jsx).
   const [signInEnded] = useState(hasSignInEndedNote);
+  // The username a "most likely a typo" warning was shown for on Login: pressing
+  // Login again with it unchanged sends it anyway (an older account may have it).
+  const [warnedUsername, setWarnedUsername] = useState("");
+
+  // What is wrong with the username before it is sent, or "".
+  const usernameMessage = (value, onLogin = false) => {
+    const problem = checkSignInUsername(value);
+    if (!problem) return "";
+    if (problem.hard) return problem.hard;
+    if (!onLogin) return problem.soft;
+    const name = value.trim();
+    if (warnedUsername === name) return "";
+    setWarnedUsername(name);
+    return `${problem.soft} If your username really is like this, press Login again.`;
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -17,8 +33,8 @@ export default function Login({ onLogin, onGoToRegister }) {
     const newErrors = {};
 
     // Client-side validation
-    if (!username.value.trim()) newErrors.username = "Username is required";
-    else if (username.value.trim().length < 3) newErrors.username = "Min 3 characters";
+    const usernameProblem = usernameMessage(username.value, true);
+    if (usernameProblem) newErrors.username = usernameProblem;
 
     // No length check here: passwords set before the 8-character minimum still sign in.
     if (!password.value) newErrors.password = "Password is required";
@@ -101,12 +117,22 @@ export default function Login({ onLogin, onGoToRegister }) {
                 name="username"
                 placeholder="Enter your Username"
                 className={`form-input ${errors.username ? "input-error" : ""}`}
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
+                aria-invalid={Boolean(errors.username)}
+                aria-describedby={errors.username ? "login-username-error" : undefined}
                 onChange={() => clearError("username")}
+                // Checked on leaving the field too, so a typo shows before Login.
+                onBlur={(event) =>
+                  event.target.value.trim() &&
+                  setErrors((prev) => ({ ...prev, username: usernameMessage(event.target.value) }))
+                }
                 disabled={loading}
               />
             </div>
             {errors.username && (
-              <span className="error-message">
+              <span className="error-message" id="login-username-error" role="alert">
                 <i className="bi bi-exclamation-circle"></i>
                 {errors.username}
               </span>
@@ -121,7 +147,7 @@ export default function Login({ onLogin, onGoToRegister }) {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Enter your password"
-                className={`form-input ${errors.password ? "wrong password" : ""}`}
+                className={`form-input ${errors.password ? "input-error" : ""}`}
                 onChange={() => clearError("password")}
                 disabled={loading}
               />

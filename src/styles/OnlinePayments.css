@@ -137,6 +137,62 @@
 .light .pay-receipt-box.is-error { border-color: #fca5a5; color: #991b1b; }
 .light .pay-receipt-thumb { border-color: #cbd5e1; background: #f8fafc; }
 
+/* ---------------------------------------------------------------- the payment check window
+   (PaymentCheckModal, PaymentReviewModal). The window never grows past the
+   screen: the title and the Approve / Reject buttons stay in view and only the
+   middle scrolls. On a wide screen the receipt sits on the left, beside the
+   details and the GCash check, so nothing has to be scrolled to. */
+.pay-check-dialog .modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+}
+
+.pay-check-dialog .modal-header,
+.pay-check-dialog .modal-footer { flex-shrink: 0; }
+
+.pay-check-dialog .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.pay-check-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.pay-check-layout > .pay-receipt { margin: 0; }
+.pay-check-action > :first-child { margin-top: 0; }
+
+@media (min-width: 760px) {
+  .modal-dialog.pay-check-dialog.has-receipt { max-width: min(900px, calc(100vw - 2rem)); }
+
+  .has-receipt .pay-check-layout {
+    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "receipt summary"
+      "receipt action";
+    column-gap: 22px;
+  }
+
+  .has-receipt .pay-check-layout > .payment-review-summary { grid-area: summary; }
+  .has-receipt .pay-check-layout > .pay-check-action { grid-area: action; }
+
+  .has-receipt .pay-check-layout > .pay-receipt {
+    grid-area: receipt;
+    position: sticky;
+    top: 0;
+    align-self: start;
+  }
+
+  /* A phone screenshot is tall: let it use the height of the column. */
+  .has-receipt .pay-receipt-thumb img { max-height: min(540px, calc(100vh - 290px)); }
+}
+
 /* ---------------------------------------------------------------- the refund question and form */
 .pay-choice {
   margin: 14px 0 0;

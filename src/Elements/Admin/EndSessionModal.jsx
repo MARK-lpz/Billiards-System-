@@ -29,7 +29,7 @@ function BillRows({ charge }) {
       ))}
       {charge.prepaid && (
         <div className="pool-end-bill-row is-credit">
-          <span>Paid online (GCash)</span>
+          <span>Paid with the booking</span>
           <strong>-{formatPeso(charge.prepaid.amount)}</strong>
         </div>
       )}

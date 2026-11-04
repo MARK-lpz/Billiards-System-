@@ -1,0 +1,123 @@
+/* Tournament entry fees, for the admin's Events and the front desk's
+   Tournament Schedule: each player's status chip, the one-line summary, and
+   the choice of how a fee is paid at the counter (EntryFeeFields). */
+
+.fee-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.fee-chip.tone-green { border-color: rgba(52, 211, 153, 0.4); background: rgba(16, 185, 129, 0.12); color: #6ee7b7; }
+.fee-chip.tone-amber { border-color: rgba(251, 191, 36, 0.45); background: rgba(245, 158, 11, 0.12); color: #fcd34d; }
+.fee-chip.tone-red { border-color: rgba(248, 113, 113, 0.45); background: rgba(239, 68, 68, 0.12); color: #fca5a5; }
+.fee-chip.tone-grey { border-color: rgba(148, 163, 184, 0.4); background: rgba(148, 163, 184, 0.12); color: #cbd5e1; }
+
+.light .fee-chip.tone-green { background: #ecfdf5; color: #047857; }
+.light .fee-chip.tone-amber { background: #fffbeb; color: #92400e; }
+.light .fee-chip.tone-red { background: #fef2f2; color: #b91c1c; }
+.light .fee-chip.tone-grey { background: #f1f5f9; color: #475569; }
+
+/* Beat the theme's ".light .modal-body span", which would make them all one color. */
+.light .modal-body .fee-chip.tone-green { color: #047857 !important; }
+.light .modal-body .fee-chip.tone-amber { color: #92400e !important; }
+.light .modal-body .fee-chip.tone-red { color: #b91c1c !important; }
+.light .modal-body .fee-chip.tone-grey { color: #475569 !important; }
+
+.fee-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  margin: 0 0 0.6rem;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.fee-summary-collected {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.fee-summary-collected i { color: #34d399; }
+.fee-summary strong { color: #e2e8f0; font-variant-numeric: tabular-nums; }
+
+.light .fee-summary { color: var(--text-muted); }
+.light .fee-summary strong { color: var(--text-primary); }
+.light .fee-summary-collected i { color: #047857; }
+
+/* How a fee is paid at the counter. */
+.entry-fee-fields {
+  margin: 0.25rem 0 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.entry-fee-fields legend {
+  float: none;
+  width: auto;
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.entry-fee-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.entry-fee-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.entry-fee-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.entry-fee-option.is-on {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+}
+
+.entry-fee-option:has(input:focus-visible) {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+.light .entry-fee-option.is-on { background: #ecfdf5; color: #047857; }
+.light .modal-body .entry-fee-option.is-on { color: #047857 !important; }
+
+.entry-fee-reference {
+  margin-top: 0.65rem;
+}
+
+.entry-fee-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.6rem 0 0;
+  color: #94a3b8;
+  font-size: 0.8rem;
+}

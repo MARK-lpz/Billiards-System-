@@ -91,44 +91,6 @@
   gap: 20px;
 }
 
-.forgot-role-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  padding: 4px;
-  margin-bottom: 16px;
-  border-radius: 14px;
-  background: rgba(17, 22, 20, 0.65);
-  border: 1px solid rgba(155, 165, 158, 0.16);
-}
-
-.forgot-role-tab {
-  border: 0;
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: transparent;
-  color: #9ba59e;
-  font-size: 0.88rem;
-  font-weight: 800;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.forgot-role-tab:hover {
-  background: rgba(155, 165, 158, 0.1);
-  color: #e2e6e0;
-}
-
-.forgot-role-tab.active {
-  background: #1fbf64;
-  color: #06130d;
-  box-shadow: 0 8px 18px rgba(31, 191, 100, 0.24);
-}
-
 .forgot-description {
   color: #a0a7a2;
   font-size: 14px;
@@ -387,6 +349,52 @@
   margin: 6px 0 0;
   color: #ffcf33;
   font-size: 12px;
+}
+
+/* How the code is sent, when the server can do both: Email or Text message */
+.forgot-channels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.forgot-channel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(155, 165, 158, 0.18);
+  border-radius: 12px;
+  background: rgba(17, 22, 20, 0.85);
+  color: #ccd3cc;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.forgot-channel:hover:not(:disabled) {
+  border-color: rgba(69, 217, 130, 0.45);
+}
+
+.forgot-channel.is-on {
+  border-color: #45d982;
+  background: rgba(69, 217, 130, 0.12);
+  color: #7ee8a6;
+}
+
+.forgot-channel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.forgot-field-hint {
+  margin: 6px 0 0;
+  color: #9ba59e;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .forgot-modal .form-input.forgot-code-input {

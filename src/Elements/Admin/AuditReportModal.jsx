@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import "../../styles/Admin/Reports.css";
+import ReportLetterhead, { ReportFooter } from "./ReportLetterhead";
 import { printElement } from "../../utils/printElement";
+import { HALL_NAME, downloadReportExcel, preparedByName } from "../../utils/reportExcel";
+import { getSignedInUser } from "../../utils/session";
 import {
   ORIENTATIONS,
   PAPER_MARGIN_MM,
   PAPER_SIZES,
+  excelPageSetup,
   pagePrintCss,
   paperDimensions,
   readPaperChoice,
@@ -16,6 +20,7 @@ import {
   auditDayLabel,
   auditFilterLabel,
   auditLevel,
+  auditReportDocument,
   auditTypeLabel,
   filterAuditLogs,
   getPeriodAuditLogs,
@@ -31,7 +36,7 @@ const today = () => new Date().toLocaleDateString("en-CA");
  * a year or a range of dates) and which activity (the page's filters), and see
  * it as the sheet it prints on: its totals by kind, by staff and by level, then
  * every event, oldest first. The paper size and Portrait or Landscape are the
- * same choice as the sales report's.
+ * same choice as the sales report's, and so are Print and Download Excel.
  */
 export default function AuditReportModal({ logs = [], initialFilter = "all", onClose }) {
   const stageRef = useRef(null);
@@ -43,8 +48,9 @@ export default function AuditReportModal({ logs = [], initialFilter = "all", onC
     return { type: "daily", date, month: date.slice(5, 7), year: date.slice(0, 4), from: `${date.slice(0, 7)}-01`, to: date };
   });
   const [filter, setFilter] = useState(initialFilter);
-  // When the report was opened, printed on it.
+  // When the report was opened and who opened it, printed on it and in the Excel file.
   const [generatedAt] = useState(() => new Date().toLocaleString("en-PH"));
+  const [preparedBy] = useState(() => preparedByName(getSignedInUser()));
 
   const years = [
     ...new Set([period.year, today().slice(0, 4), ...logs.map((log) => String(log.date || "").slice(0, 4)).filter(Boolean)]),
@@ -92,11 +98,24 @@ export default function AuditReportModal({ logs = [], initialFilter = "all", onC
     savePaperChoice(next);
   };
 
+  const details = [
+    ["Period", periodLabel],
+    ["Showing", showing],
+    ["Generated", generatedAt],
+    ...(preparedBy ? [["Prepared by", preparedBy]] : []),
+  ];
+
   const handlePrint = () =>
     printElement(paperRef.current, {
       title: `Audit Trail Report - ${periodLabel}`,
       bodyClass: "srp-print-body",
-      extraCss: pagePrintCss(paper),
+      extraCss: pagePrintCss(paper, `${HALL_NAME} · Audit Trail Report · ${periodLabel}`),
+    });
+
+  const handleDownload = () =>
+    downloadReportExcel(auditReportDocument({ logs: reportLogs, summary, periodLabel, showing, generatedAt, preparedBy }), {
+      fileName: `Audit Trail Report ${periodLabel}`,
+      pageSetup: excelPageSetup(paper),
     });
 
   const summaryTables = [
@@ -268,16 +287,7 @@ export default function AuditReportModal({ logs = [], initialFilter = "all", onC
                     style={{ "--paper-w": `${width}mm`, "--paper-h": `${height}mm`, "--paper-margin": `${PAPER_MARGIN_MM}mm` }}
                     aria-label={`Preview: Audit Trail Report, ${periodLabel}`}
                   >
-                    <div className="srp-head">
-                      <div>
-                        <div className="srp-brand">BREAK &amp; CHILL BILLIARD HALL</div>
-                        <h2 className="srp-title">Audit Trail Report</h2>
-                        <div className="srp-muted">
-                          {periodLabel} · {showing}
-                        </div>
-                      </div>
-                      <div className="srp-muted srp-generated">Generated {generatedAt}</div>
-                    </div>
+                    <ReportLetterhead title="Audit Trail Report" subtitle={periodLabel} details={details} />
 
                     <h3 className="srp-section">Summary · {summary.total} {summary.total === 1 ? "event" : "events"}</h3>
                     {summary.total > 0 && (
@@ -341,15 +351,20 @@ export default function AuditReportModal({ logs = [], initialFilter = "all", onC
                         </table>
                       </div>
                     )}
+                    <ReportFooter title={`Audit Trail Report · ${periodLabel}`} />
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="modal-footer">
-              <button type="button" className="btn btn-success" onClick={handlePrint}>
+              <button type="button" className="btn btn-secondary" onClick={handlePrint}>
                 <i className="bi bi-printer"></i>
                 Print
+              </button>
+              <button type="button" className="btn btn-success" onClick={handleDownload} disabled={!reportLogs.length}>
+                <i className="bi bi-file-earmark-excel"></i>
+                Download Excel
               </button>
               <button type="button" className="btn btn-secondary" onClick={onClose}>
                 Close

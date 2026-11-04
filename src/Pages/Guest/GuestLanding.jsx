@@ -2,17 +2,22 @@ import { useEffect, useState } from "react";
 import "../../styles/Guest/GuestLanding.css";
 import "../../styles/Guest/EventMedia.css";
 import { eventMediaUrl, getEventCover } from "../../utils/eventMedia";
-import { describeClosedHours, formatOpeningHours, formatReservationTime, isOutsideReservationHours } from "../../utils/reservations";
-import { formatEventWhen, getEventNotices, getOpenEvents } from "../../utils/eventUpdates";
+import { formatOpeningHours, formatReservationTime } from "../../utils/reservations";
+import { describeClosingForGuests } from "../../utils/onlineBookingSwitch";
+import { formatEventWhen, getOpenEvents } from "../../utils/eventUpdates";
 import TournamentShowcase from "../../Elements/Guest/TournamentShowcase";
-import { dayInManila, facebookLinkKind, hasBusinessInfo, isAnnouncementShowing, slidePictureUrl, telLink } from "../../utils/siteSettings";
+import { facebookLinkKind, slidePictureUrl } from "../../utils/siteSettings";
 import { useSiteSettings } from "../../Elements/Global/useSiteSettings";
-import { useMyRequests } from "../../Elements/Guest/useMyRequests";
-import MyRequestsPanel from "../../Elements/Guest/MyRequestsPanel";
+import GuestHeader from "../../Elements/Guest/GuestHeader";
+import GuestFooter from "../../Elements/Guest/GuestFooter";
+import ContactLinks from "../../Elements/Guest/ContactLinks";
+import AnnouncementList from "../../Elements/Guest/AnnouncementList";
+import { useReservationState } from "../../Elements/Guest/useReservationState";
+import { useAnnouncements } from "../../Elements/Guest/useAnnouncements";
 
 // The showcase at the top of the page: open tournaments with a promo picture or
 // video first (see promoSlides), then the hall's own slides, each a photo with
-// its words (Admin > Website).
+// its words (Admin > Website). The arrows and the dots under it pick one.
 
 // At most this many tournaments get a slide, soonest first.
 const PROMO_SLIDE_LIMIT = 5;
@@ -32,18 +37,24 @@ const formatGameType = (type) => String(type || "").replace(/(^|[\s-])([a-z])/g,
 // The home page shows the first few; the Tournaments page lists them all.
 const HOME_TOURNAMENT_LIMIT = 3;
 
+// The same for the announcements and the Announcements page.
+const HOME_NEWS_LIMIT = 3;
+
 /**
- * The public home page. Each part follows what there is to show: the notices
- * share one strip, a slide with its own photo shows it, the booking steps turn
- * into "book at the hall" when online booking is off, the tournaments take as
- * much room as there are of them, and Visit us is one line until the hall's
- * address or contacts are set.
+ * The public home page. Each part follows what there is to show: a slide with
+ * its own photo shows it, the booking steps turn into "book at the hall" when
+ * online booking is off, the tournaments take as much room as there are of
+ * them, and the announcements show only when there are some. About us has its
+ * own page (AboutPage.jsx).
  */
 export default function GuestLanding({
+  // Opens another public page by its view (App.jsx): "tournaments", "announcements", ...
+  onNavigate,
   onOpenReservation,
   onOpenTournamentForm,
-  onOpenTournaments,
   onlineReservationsOpen = true,
+  // Why online bookings are closed and until when (see utils/onlineBookingSwitch.js).
+  onlineReservationsStatus = {},
   events = [],
 }) {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -51,40 +62,19 @@ export default function GuestLanding({
   const [showcaseHovered, setShowcaseHovered] = useState(false);
   const [showcaseFocused, setShowcaseFocused] = useState(false);
   const showcasePaused = showcaseHovered || showcaseFocused;
-  // This visitor's own bookings and sign-ups (kept in this browser): a notice
-  // when one is decided, and all of them under My bookings.
-  const myRequests = useMyRequests();
-  const [requestsOpen, setRequestsOpen] = useState(false);
-  // Refreshed every minute, so the reservation check follows the clock and a past event drops off.
-  const [now, setNow] = useState(() => Date.now());
-  // The hall's hours, contacts, GCash account and home page words (Admin > Website).
-  // Bookings are paid by GCash, so none are taken until the admin has set the account.
+  // The hall's hours, contacts and home page words (Admin > Website).
   const { settings, loaded, failed } = useSiteSettings();
-  const { hours, business, gcash, announcement, showcase, bookingSteps, footer } = settings;
+  const { hours, business, showcase, bookingSteps } = settings;
   // Until the server answers, the admin's words and photos are not known yet:
   // their places are kept but blank (is-loading), so the old ones never flash
   // first. If the server cannot be reached, the defaults show.
   const contentReady = loaded || failed;
-  const paymentUnavailable = loaded && !gcash.ready;
-  // Closed from closing until opening, not only until midnight.
-  const afterHours = isOutsideReservationHours(new Date(now), hours);
-  const reservationsClosed = afterHours || !onlineReservationsOpen || paymentUnavailable;
-  const reservationClosedMessage = !onlineReservationsOpen
-    ? "Online reservations are temporarily closed by the hall. Please check back later."
-    : paymentUnavailable
-      ? `Online booking is not available yet. Please book at the hall${business.phone ? ` or call ${business.phone}` : ""}.`
-      : describeClosedHours(hours);
-  const reserveLabel = reservationsClosed ? "Reservations Closed" : "Reserve a Table";
-  const reserveTitle = reservationsClosed ? reservationClosedMessage : "Reserve a table";
-  // How tables are booked right now: online, online but not at this hour, or only at the hall.
-  const bookingMode = !onlineReservationsOpen || paymentUnavailable ? "hall" : afterHours ? "later" : "online";
+  // Whether a table can be booked online now, and why not. Its `now` is
+  // refreshed every minute, so a past event drops off too.
+  const reservation = useReservationState(onlineReservationsOpen, onlineReservationsStatus);
+  const { now, reservationsClosed, reserveLabel, reserveTitle, bookingMode } = reservation;
+  const news = useAnnouncements(events, reservation);
   const facebook = business.facebookUrl ? facebookLinkKind(business.facebookUrl) : null;
-
-  useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 60_000);
-
-    return () => window.clearInterval(interval);
-  }, []);
 
   // Each open tournament with a promo picture or video gets its own slide.
   const promoSlides = getOpenEvents(events, now)
@@ -95,14 +85,14 @@ export default function GuestLanding({
   const hallSlides = showcase.slides.map((slide) => ({ ...slide, key: `site-${slide.id}` }));
   const slides = [...promoSlides, ...hallSlides];
   const slideCount = slides.length;
-  // One slide stands still, without arrows or bars.
+  // One slide stands still, without arrows, dots or peeks.
   const sliding = slideCount > 1;
   // A tournament that drops off can leave the index past the end.
   const shownSlide = Math.min(activeSlide, slideCount - 1);
 
   // Moves on by itself. Any slide change (by hand too) restarts the wait, so a
   // picked slide gets its full time. Visitors who ask for less motion are not
-  // moved; they still have the arrows and bars.
+  // moved; they still have the arrows and the dots.
   useEffect(() => {
     if (!sliding || showcasePaused || prefersReducedMotion) return undefined;
     const timer = window.setTimeout(() => {
@@ -112,249 +102,194 @@ export default function GuestLanding({
     return () => window.clearTimeout(timer);
   }, [activeSlide, showcasePaused, slideCount, sliding]);
 
-  // Cancelled and rescheduled tournaments are announced in the notices; open
-  // ones (rescheduled included) can be joined, and take the room there is.
-  const notices = getEventNotices(events, now);
-  const openTournaments = getOpenEvents(events, now);
-  const homeTournaments = openTournaments.slice(0, HOME_TOURNAMENT_LIMIT);
-  const announcementShowing = isAnnouncementShowing(announcement, dayInManila(now));
-  const hasNotices = myRequests.unseen.length > 0 || announcementShowing || reservationsClosed || notices.length > 0;
-
-  // Opening My bookings counts as seeing what is new there.
-  const openMyRequests = () => {
-    myRequests.unseen.forEach((request) => myRequests.markSeen(request));
-    setRequestsOpen(true);
-  };
+  // Open tournaments (rescheduled included) can be joined, and take the room
+  // there is; moved and cancelled ones are announced under them.
+  const homeTournaments = getOpenEvents(events, now).slice(0, HOME_TOURNAMENT_LIMIT);
+  const homeNews = news.items.slice(0, HOME_NEWS_LIMIT);
+  // The picture beside them: the announcement's own (Admin > Website), else
+  // the poster of a tournament among them, else the felt with the hall's sign.
+  const newsPicture = homeNews
+    .map((item) => item.announcement?.image || (item.event ? getEventCover(item.event) : null))
+    .find((media) => media?.type === "image");
 
   const changeSlide = (direction) => {
     setActiveSlide((current) => (Math.min(current, slideCount - 1) + direction + slideCount) % slideCount);
   };
 
-  // Call, Message us and Open in Maps, for whichever the admin has set.
-  const contactLinks = [
-    business.mapsUrl && { key: "maps", href: business.mapsUrl, icon: "bi-map", label: "Open in Maps", external: true },
-    business.phone && { key: "call", href: telLink(business.phone), icon: "bi-telephone", label: "Call", external: false },
-    business.facebookUrl && { key: "message", href: business.facebookUrl, icon: "bi-messenger", label: "Message us", external: true },
-  ].filter(Boolean);
-  const renderContactLinks = (className) =>
-    contactLinks.map((link) => (
-      <a
-        key={link.key}
-        className={className}
-        href={link.href}
-        {...(link.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      >
-        <i className={`bi ${link.icon}`} aria-hidden="true"></i>
-        {link.label}
-      </a>
-    ));
+  // The slide before or after (`index`), peeking out beside the frame: its
+  // picture and name only, darker and smaller. A click on it goes there; the
+  // arrows are the way for keyboards and screen readers. With two slides the
+  // other one shows on both sides, so neither side is ever empty.
+  const renderPeek = (side, index) => (
+    <div className={`guest-carousel-peek is-${side}`} aria-hidden="true" onClick={() => changeSlide(side === "prev" ? -1 : 1)}>
+      {slides.map((slide, slideIndex) => {
+        const picture = slide.event ? (slide.cover.type === "image" ? eventMediaUrl(slide.cover) : "") : slidePictureUrl(slide);
+        return (
+          <div key={slide.key} className={`guest-peek-card${slideIndex === index ? " is-active" : ""}`}>
+            {picture ? (
+              <img src={picture} alt="" loading="lazy" style={slide.event ? undefined : { objectPosition: slide.position }} />
+            ) : (
+              <div className={slide.event ? "guest-peek-dark" : "guest-carousel-felt"}></div>
+            )}
+            <span className="guest-peek-title">{slide.title}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
     <main className="guest-template">
-      {requestsOpen && (
-        <MyRequestsPanel requests={myRequests.requests} onForget={myRequests.forget} onClose={() => setRequestsOpen(false)} />
-      )}
-      <header className="guest-template-header">
-        <div className="guest-template-brand">
-          <img src="/Logo.png" alt="Break and Chill Billiard Hall" />
-          <span>
-            <strong>BREAK &amp; CHILL</strong>
-            <small>Billiard Hall</small>
-          </span>
-        </div>
-        <div className={`guest-template-actions${myRequests.requests.length > 0 ? " has-my-requests" : ""}`}>
-          {myRequests.requests.length > 0 && (
-            <button
-              type="button"
-              className="guest-template-link guest-my-requests-btn"
-              onClick={openMyRequests}
-              aria-label={`My bookings${myRequests.unseen.length ? `, ${myRequests.unseen.length} new` : ""}`}
-            >
-              <i className="bi bi-receipt" aria-hidden="true"></i>
-              <span className="guest-template-link-text">My bookings</span>
-              {myRequests.unseen.length > 0 && <span className="guest-my-requests-dot" aria-hidden="true"></span>}
-            </button>
-          )}
-          <button type="button" className="guest-template-link" onClick={onOpenTournaments} aria-label="Tournaments">
-            <i className="bi bi-trophy" aria-hidden="true"></i>
-            <span className="guest-template-link-text">Tournaments</span>
-          </button>
-          <button
-            type="button"
-            className="guest-template-register"
-            onClick={onOpenReservation}
-            disabled={reservationsClosed}
-            title={reserveTitle}
-          >
-            {reserveLabel}
-          </button>
-        </div>
-      </header>
+      <GuestHeader
+        page="guest"
+        onNavigate={onNavigate}
+        onOpenReservation={onOpenReservation}
+        reservation={reservation}
+        newsCount={news.unseen}
+      />
 
-      {/* Every notice in one strip, one line each, so the showcase stays near the top. */}
-      {hasNotices && (
-        <div className="guest-notices" role="status">
-          {/* The visitor's own news first: a booking or sign-up that was decided. */}
-          {myRequests.unseen.map((request) => (
-            <div key={request.key} className={`guest-notice is-request is-${request.info.tone}`}>
-              <i className={`bi ${request.info.icon}`} aria-hidden="true"></i>
-              <p>
-                <strong>{request.info.title}:</strong> {request.info.label}. {request.info.detail}
-              </p>
-              <button type="button" className="guest-notice-link" onClick={() => myRequests.markSeen(request)}>
-                Got it
-              </button>
-            </div>
-          ))}
-          {announcementShowing && (
-            <div className="guest-notice is-announcement">
-              <i className="bi bi-megaphone-fill" aria-hidden="true"></i>
-              <p>{announcement.message}</p>
-            </div>
-          )}
-          {reservationsClosed && (
-            <div className="guest-notice is-closed">
-              <i className="bi bi-calendar-x" aria-hidden="true"></i>
-              <p>
-                <strong>Online table reservations are closed.</strong> {reservationClosedMessage}
-              </p>
-            </div>
-          )}
-          {notices.map(({ event, type }) => (
-            <div key={event.id} className={`guest-notice is-${type}`}>
-              <i className={`bi ${type === "cancelled" ? "bi-x-octagon-fill" : "bi-calendar2-week-fill"}`} aria-hidden="true"></i>
-              <p>
-                <strong>{type === "cancelled" ? "Cancelled:" : "Moved:"}</strong>{" "}
-                {type === "cancelled"
-                  ? `${event.name} on ${formatEventWhen(event.date, event.time)} is cancelled.`
-                  : `${event.name} is moved to ${formatEventWhen(event.date, event.time)}.`}
-              </p>
-              <button type="button" className="guest-notice-link" onClick={onOpenTournaments}>
-                Details
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
+      {/* The showcase: the shown slide in a lit frame in the middle, the one
+          before and the one after peeking out on either side (a click on one
+          goes there), and dots under it. */}
       <section className={`guest-showcase ${contentReady ? "" : "is-loading"}`} aria-label="Break and Chill showcase">
-        {/* Slides sit side by side on a track that slides over; the arrows and the
-            bar indicators sit on top of the picture. */}
         {/* Touch taps and mouse clicks focus the buttons too, so only a mouse
             pointer and keyboard focus pause it; a tap must not stop it for good. */}
         <div
-          className="guest-template-carousel"
+          className={`guest-carousel-stage${sliding ? " is-sliding" : ""}`}
           onPointerEnter={(event) => event.pointerType === "mouse" && setShowcaseHovered(true)}
           onPointerLeave={(event) => event.pointerType === "mouse" && setShowcaseHovered(false)}
           onFocus={(event) => event.target.matches(":focus-visible") && setShowcaseFocused(true)}
           onBlur={(event) => !event.currentTarget.contains(event.relatedTarget) && setShowcaseFocused(false)}
         >
-          <div
-            className="guest-carousel-track"
-            style={{ transform: `translateX(-${shownSlide * 100}%)` }}
-            aria-live={showcasePaused ? "polite" : "off"}
-          >
-            {slides.map((slide, index) => {
-              const active = index === shownSlide;
-              const Heading = active ? "h1" : "h2";
+          {sliding && renderPeek("prev", (shownSlide - 1 + slideCount) % slideCount)}
+          <div className="guest-carousel-frame">
+            {/* Every slide in the same place; the shown one fades in over the others. */}
+            <div className="guest-template-carousel" aria-live={showcasePaused ? "polite" : "off"}>
+                {slides.map((slide, index) => {
+                  const active = index === shownSlide;
+                  const Heading = active ? "h1" : "h2";
 
-              if (slide.event) {
-                const { event, cover } = slide;
-                return (
-                  <div key={slide.key} className="guest-carousel-slide guest-promo-slide" aria-hidden={!active} inert={!active}>
-                    {cover.type === "image" && <img className="guest-promo-backdrop" src={eventMediaUrl(cover)} alt="" />}
-                    <div className="guest-promo">
-                      <div className="guest-promo-copy">
-                        <p>
-                          <i className="bi bi-trophy-fill" aria-hidden="true"></i> Tournament ·{" "}
-                          {formatEventWhen(event.date, event.time)}
-                        </p>
-                        <Heading>{event.name}</Heading>
-                        <span>
-                          Prize pool {formatPrize(event.prize)} ·{" "}
-                          {Number(event.entryFee) > 0 ? `Entry ${formatPrize(event.entryFee)}` : "Free entry"}
-                          {event.gameType ? ` · ${formatGameType(event.gameType)}` : ""}
-                        </span>
-                        <div className="guest-promo-actions">
-                          <button type="button" className="guest-template-primary" onClick={() => onOpenTournamentForm(event.id)}>
-                            Register
-                            <i className="bi bi-arrow-right"></i>
+                  if (slide.event) {
+                    const { event, cover } = slide;
+                    return (
+                      <div key={slide.key} className={`guest-carousel-slide guest-promo-slide${active ? " is-active" : ""}`} aria-hidden={!active} inert={!active}>
+                        {cover.type === "image" && <img className="guest-promo-backdrop" src={eventMediaUrl(cover)} alt="" />}
+                        <div className="guest-promo">
+                          <div className="guest-promo-copy">
+                            <p>
+                              <i className="bi bi-trophy-fill" aria-hidden="true"></i> Tournament ·{" "}
+                              {formatEventWhen(event.date, event.time)}
+                            </p>
+                            <Heading>{event.name}</Heading>
+                            <span>
+                              Prize pool {formatPrize(event.prize)} ·{" "}
+                              {Number(event.entryFee) > 0 ? `Entry ${formatPrize(event.entryFee)}` : "Free entry"}
+                              {event.gameType ? ` · ${formatGameType(event.gameType)}` : ""}
+                            </span>
+                            <div className="guest-promo-actions">
+                              <button type="button" className="guest-template-primary" onClick={() => onOpenTournamentForm(event.id)}>
+                                Register
+                                <i className="bi bi-arrow-right"></i>
+                              </button>
+                              <button type="button" className="guest-template-secondary" onClick={() => onNavigate("tournaments")}>
+                                Details
+                              </button>
+                            </div>
+                          </div>
+                          <div className="guest-promo-media">
+                            {cover.type === "video" ? (
+                              active && (
+                                <video
+                                  src={eventMediaUrl(cover)}
+                                  muted
+                                  loop
+                                  playsInline
+                                  autoPlay={!prefersReducedMotion}
+                                  controls={prefersReducedMotion}
+                                  preload="metadata"
+                                  aria-label={`${event.name} video`}
+                                />
+                              )
+                            ) : (
+                              <img src={eventMediaUrl(cover)} alt={`${event.name} poster`} />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // The hall's own slide: its photo (or the felt, with the sign
+                  // glowing on its empty side), the words on the left with the ways
+                  // in: a table, or the tournaments.
+                  const picture = slidePictureUrl(slide);
+                  return (
+                    <div
+                      key={slide.key}
+                      className={`guest-carousel-slide${picture ? " has-photo" : ""}${active ? " is-active" : ""}`}
+                      aria-hidden={!active}
+                      inert={!active}
+                    >
+                      {picture ? (
+                        <img src={picture} alt="" style={{ objectPosition: slide.position }} />
+                      ) : (
+                        <div className="guest-carousel-felt" aria-hidden="true">
+                          <img className="guest-carousel-mark" src="/Logo.png" alt="" />
+                        </div>
+                      )}
+                      <div className="guest-carousel-caption">
+                        <p>BREAK &amp; CHILL BILLIARD HALL</p>
+                        <Heading>{slide.title}</Heading>
+                        {slide.text && <span>{slide.text}</span>}
+                        <div className="guest-carousel-actions">
+                          <button
+                            type="button"
+                            className="guest-template-primary"
+                            onClick={onOpenReservation}
+                            disabled={reservationsClosed}
+                            title={reserveTitle}
+                          >
+                            {reserveLabel}
+                            <i className={`bi ${reservationsClosed ? "bi-lock" : "bi-arrow-right"}`} aria-hidden="true"></i>
                           </button>
-                          <button type="button" className="guest-template-secondary" onClick={onOpenTournaments}>
-                            Details
+                          <button type="button" className="guest-template-secondary" onClick={() => onNavigate("tournaments")}>
+                            <i className="bi bi-trophy" aria-hidden="true"></i>
+                            Tournaments
                           </button>
                         </div>
                       </div>
-                      <div className="guest-promo-media">
-                        {cover.type === "video" ? (
-                          active && (
-                            <video
-                              src={eventMediaUrl(cover)}
-                              muted
-                              loop
-                              playsInline
-                              autoPlay={!prefersReducedMotion}
-                              controls={prefersReducedMotion}
-                              preload="metadata"
-                              aria-label={`${event.name} video`}
-                            />
-                          )
-                        ) : (
-                          <img src={eventMediaUrl(cover)} alt={`${event.name} poster`} />
-                        )}
-                      </div>
                     </div>
-                  </div>
-                );
-              }
-
-              // A slide with the hall's own photo keeps it in view: a lighter
-              // shade, and the words at the bottom. Without one, the felt keeps them centred.
-              const picture = slidePictureUrl(slide);
-              return (
-                <div
-                  key={slide.key}
-                  className={`guest-carousel-slide ${slide.image ? "has-photo" : ""}`}
-                  aria-hidden={!active}
-                  inert={!active}
-                >
-                  {picture ? (
-                    <img src={picture} alt="" style={{ objectPosition: slide.position }} />
-                  ) : (
-                    <div className="guest-carousel-felt" aria-hidden="true"></div>
-                  )}
-                  <div className="guest-carousel-caption">
-                    <p>BREAK &amp; CHILL BILLIARD HALL</p>
-                    <Heading>{slide.title}</Heading>
-                    {slide.text && <span>{slide.text}</span>}
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+            </div>
+            {sliding && (
+              <>
+                <button type="button" className="guest-carousel-control is-prev" onClick={() => changeSlide(-1)} aria-label="Previous slide">
+                  <i className="bi bi-chevron-left" aria-hidden="true"></i>
+                </button>
+                <button type="button" className="guest-carousel-control is-next" onClick={() => changeSlide(1)} aria-label="Next slide">
+                  <i className="bi bi-chevron-right" aria-hidden="true"></i>
+                </button>
+              </>
+            )}
           </div>
-          {sliding && (
-            <>
-              <button type="button" className="guest-carousel-control guest-carousel-control-prev" onClick={() => changeSlide(-1)} aria-label="Previous slide">
-                <i className="bi bi-chevron-left" aria-hidden="true"></i>
-              </button>
-              <button type="button" className="guest-carousel-control guest-carousel-control-next" onClick={() => changeSlide(1)} aria-label="Next slide">
-                <i className="bi bi-chevron-right" aria-hidden="true"></i>
-              </button>
-              <div className="guest-carousel-indicators">
-                {slides.map((slide, index) => (
-                  <button
-                    key={slide.key}
-                    type="button"
-                    className={index === shownSlide ? "is-active" : ""}
-                    onClick={() => setActiveSlide(index)}
-                    aria-label={`Show ${slide.title}`}
-                    aria-current={index === shownSlide ? "true" : undefined}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+          {sliding && renderPeek("next", (shownSlide + 1) % slideCount)}
         </div>
+
+        {sliding && (
+          <div className="guest-carousel-dots">
+            {slides.map((slide, index) => (
+              <button
+                key={slide.key}
+                type="button"
+                className={index === shownSlide ? "is-active" : ""}
+                onClick={() => setActiveSlide(index)}
+                aria-label={`Show slide ${index + 1}: ${slide.title}`}
+                aria-current={index === shownSlide ? "true" : undefined}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* How an online booking goes (Admin > Website), each step on a numbered
@@ -368,7 +303,7 @@ export default function GuestLanding({
             <h2 id="guest-steps-title">Book at the hall for now.</h2>
           </div>
           <p className="guest-steps-note">
-            {!onlineReservationsOpen ? "Online reservations are paused for a while." : "Online booking is not available yet."}{" "}
+            {!onlineReservationsOpen ? describeClosingForGuests(onlineReservationsStatus) : "Online booking is not available yet."}{" "}
             {business.phone && business.facebookUrl
               ? "Walk in, or call or message us to ask about a table."
               : business.phone
@@ -380,7 +315,7 @@ export default function GuestLanding({
           <p className="guest-steps-hours">
             <i className="bi bi-clock-fill" aria-hidden="true"></i> Open {formatOpeningHours(hours)}
           </p>
-          {contactLinks.length > 0 && <div className="guest-steps-contact">{renderContactLinks("guest-template-secondary")}</div>}
+          <ContactLinks business={business} className="guest-steps-contact" />
         </section>
       ) : (
         <section className={`guest-steps ${contentReady ? "" : "is-loading"}`} aria-labelledby="guest-steps-title">
@@ -447,85 +382,43 @@ export default function GuestLanding({
           </p>
         )}
 
-        <div className="guest-tournaments-actions">
-          {homeTournaments.length > 0 && (
-            <button type="button" className="guest-template-primary" onClick={() => onOpenTournamentForm()}>
-              Register for Tournament
-              <i className="bi bi-arrow-right"></i>
-            </button>
-          )}
-          <button type="button" className="guest-template-secondary" onClick={onOpenTournaments}>
-            {openTournaments.length > HOME_TOURNAMENT_LIMIT ? `See all ${openTournaments.length} tournaments` : "Open the tournaments page"}
-            <i className="bi bi-arrow-right"></i>
-          </button>
-        </div>
       </section>
 
-      {/* One line with the hours until the address or contacts are set; then
-          the details beside big buttons to find and reach the hall. */}
-      {hasBusinessInfo(business) ? (
-        <section className="guest-visit" id="visit" aria-labelledby="guest-visit-title">
-          <div className="guest-section-head">
-            <p className="guest-template-eyebrow">Visit us</p>
-            <h2 id="guest-visit-title">Come rack up at the hall.</h2>
+      {/* The hall's news (see useAnnouncements), under the tournaments it is
+          often about: the newest few on the left, a picture on the right (the
+          tournaments above have theirs on the left), all of them on the
+          Announcements page. Nothing shows when there is none. */}
+      {homeNews.length > 0 && (
+        <section className="guest-home-news" aria-labelledby="guest-news-title">
+          <div className="guest-home-news-copy">
+            <div className="guest-section-head">
+              <p className="guest-template-eyebrow">Announcements</p>
+              <h2 id="guest-news-title">News from the hall</h2>
+            </div>
+            <AnnouncementList items={homeNews} compact />
+            {news.items.length > HOME_NEWS_LIMIT && (
+              <button type="button" className="guest-home-news-more" onClick={() => onNavigate("announcements")}>
+                See all {news.items.length} announcements
+                <i className="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+            )}
           </div>
-          <div className="guest-visit-card">
-            <dl className="guest-visit-details">
-              {business.address && (
-                <div>
-                  <dt>
-                    <i className="bi bi-geo-alt-fill" aria-hidden="true"></i>
-                    Address
-                  </dt>
-                  <dd>{business.address}</dd>
-                </div>
-              )}
-              <div>
-                <dt>
-                  <i className="bi bi-clock-fill" aria-hidden="true"></i>
-                  Open
-                </dt>
-                <dd>{formatOpeningHours(hours)}</dd>
+          <div className="guest-home-news-picture" aria-hidden="true">
+            {newsPicture ? (
+              <>
+                <img className="guest-home-news-blur" src={eventMediaUrl(newsPicture)} alt="" />
+                <img className="guest-home-news-img" src={eventMediaUrl(newsPicture)} alt="" />
+              </>
+            ) : (
+              <div className="guest-carousel-felt">
+                <img className="guest-home-news-mark" src="/Logo.png" alt="" />
               </div>
-              {business.phone && (
-                <div>
-                  <dt>
-                    <i className="bi bi-telephone-fill" aria-hidden="true"></i>
-                    Contact
-                  </dt>
-                  <dd>{business.phone}</dd>
-                </div>
-              )}
-            </dl>
-            {contactLinks.length > 0 && <div className="guest-visit-actions">{renderContactLinks("guest-template-secondary")}</div>}
+            )}
           </div>
-        </section>
-      ) : (
-        <section className="guest-visit is-slim" id="visit" aria-label="Visit us">
-          <p className="guest-visit-line">
-            <i className="bi bi-clock-fill" aria-hidden="true"></i>
-            <strong>Visit us</strong>
-            <span>Open {formatOpeningHours(hours)}</span>
-          </p>
         </section>
       )}
 
-      <footer className="guest-template-footer">
-        <span className="guest-footer-mark">
-          Break &amp; Chill <small>Billiard Hall</small>
-        </span>
-        {footer.tagline && (
-          <span className={`guest-footer-tagline ${contentReady ? "" : "is-loading"}`}>{footer.tagline}</span>
-        )}
-        <span className="guest-footer-end">
-          <span className="guest-footer-hours">Open {formatOpeningHours(hours)}</span>
-          {facebook && (
-            <a className="guest-footer-social" href={business.facebookUrl} target="_blank" rel="noopener noreferrer" aria-label={facebook.label}>
-              <i className={`bi ${facebook.icon}`} aria-hidden="true"></i>
-            </a>
-          )}
-        </span>
-      </footer>
+      <GuestFooter />
     </main>
   );
 }

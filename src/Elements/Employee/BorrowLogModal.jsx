@@ -3,6 +3,7 @@ import FieldError from "../Global/FieldError";
 import useFormErrors from "../Global/useFormErrors";
 import useClock from "../Global/useClock";
 import { getBorrowErrors } from "../../utils/formValidation";
+import { readNameField, readTextField } from "../../utils/textField";
 import { closedAt, isClosedToday, isOut } from "../../utils/borrowLog";
 import { EQUIPMENT_TYPES, getEquipmentTable, getSpareEquipment } from "../../utils/equipment";
 
@@ -109,7 +110,7 @@ function BorrowForm({ equipment, tables, records, reportedItemIds, available, on
         aria-label="Borrower"
         maxLength={40}
         value={form.borrower}
-        onChange={(event) => setForm({ ...form, borrower: event.target.value })}
+        onChange={(event) => setForm({ ...form, borrower: readNameField(event) })}
         {...fieldProps("borrower", "form-control")}
       />
       <FieldError id="borrow-borrower-error" message={errorFor("borrower")} />
@@ -119,7 +120,7 @@ function BorrowForm({ equipment, tables, records, reportedItemIds, available, on
         aria-label="Notes"
         maxLength={MAX_NOTES}
         value={form.notes}
-        onChange={(event) => setForm({ ...form, notes: event.target.value })}
+        onChange={(event) => setForm({ ...form, notes: readTextField(event) })}
       />
       <button type="submit" className="btn btn-success">
         <i className="bi bi-box-arrow-up-right"></i> Log Borrow

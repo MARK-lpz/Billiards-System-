@@ -19,10 +19,21 @@ import useRefundsSection from "../Global/useRefundsSection";
 // The other notices the admin gets, under the low stock, all added by the server:
 // new online reservations, an account's password reset by texted code (who,
 // never the password), an employee changing their own password or reset number
-// on their Profile, and the GCash details changed by an employee. The front
+// on their Profile, the GCash details changed by an employee, an employee
+// opening or closing online reservations, and the front desk telling about a
+// product expired, running low or expiring soon (its Stock Alarm). The front
 // desk's approvals, rejections and cancellations are in the Audit Trail; the
 // admin's own actions are toasts (see NotifContext).
-const OTHER_TYPES = new Set(["general", "online-reservation", "password-reset", "login-locked", "account-change", "website-gcash"]);
+const OTHER_TYPES = new Set([
+  "general",
+  "online-reservation",
+  "password-reset",
+  "login-locked",
+  "account-change",
+  "website-gcash",
+  "online-booking-switch",
+  "stock-report",
+]);
 const ACCOUNT_TYPES = new Set(["password-reset", "login-locked", "account-change"]);
 const isOtherNotice = (notice) => !notice.type || OTHER_TYPES.has(notice.type);
 
@@ -39,9 +50,10 @@ const describeExpiry = ({ product, days }) => {
  * payment has waited PAYMENT_CHECK_ALERT_MINUTES or more for the front desk to
  * check it (opening one goes to Reservations, on the pending ones); then
  * products about to expire (5 days before, again at 3, and once expired), each
- * with View and Delete; then stock running low: every product at or under its
- * minimum (out of stock first). Opening a product goes to Inventory, at that
- * product; Delete opens its delete check there. Each list follows what it is
+ * with View, and once expired Remove expired stock; then stock running low:
+ * every product at or under its minimum (out of stock first). Opening a product
+ * goes to Inventory, at that product; Remove expired stock opens its check
+ * there. Archived products are not listed. Each list follows what it is
  * about, so a table ended, a payment checked or a product restocked leaves it.
  * Under them, the admin's other notices.
  * `now` (ms) comes from the dashboard's clock; `today` (YYYY-MM-DD) too, so the
@@ -78,7 +90,8 @@ export default function AdminBell({
   // its payment still needs checking); a password reset, a sign-in locked
   // after wrong passwords, or an employee's own password or reset number
   // changed, to Accounts, where a new password can be set; the GCash details
-  // changed by an employee, to Website on its GCash tab.
+  // changed by an employee, to Website on its GCash tab; the front desk's
+  // word about a product, to Inventory at that product.
   // Anything else is only marked read.
   const openerOf = (notice) => {
     if (notice.type === "online-reservation") {
@@ -86,6 +99,10 @@ export default function AdminBell({
       return () => onOpenReservations(booking?.status === "pending" ? "pending" : "all");
     }
     if (notice.type === "website-gcash") return onOpenWebsite ? () => onOpenWebsite("gcash") : null;
+    if (notice.type === "stock-report" && notice.data?.productId != null) {
+      return () => onOpenProduct(notice.data.productId);
+    }
+    if (notice.type === "online-booking-switch") return onOpenWebsite ? () => onOpenWebsite(null) : null;
     return ACCOUNT_TYPES.has(notice.type) ? onOpenAccounts : null;
   };
 
@@ -158,7 +175,9 @@ export default function AdminBell({
           onOpen: () => open(),
           actions: [
             { label: "View", icon: "bi-box-arrow-up-right", onClick: () => open() },
-            { label: "Delete product", icon: "bi-trash3", tone: "danger", onClick: () => open("delete") },
+            ...(stage === "expired"
+              ? [{ label: "Remove expired stock", icon: "bi-calendar-x", tone: "danger", onClick: () => open("remove-expired") }]
+              : []),
           ],
         };
       }),

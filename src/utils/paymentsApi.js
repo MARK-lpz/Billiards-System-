@@ -88,6 +88,17 @@ export const recordCounterGcash = async ({ reference, amount, label, saleKey }) 
   return data.payment || null;
 };
 
+/** The admin's: money the hall kept that is not in the sales yet, { count, total, months: [{ month, count, total }] }. */
+export const fetchMissingOnlineSales = async () => {
+  const response = await apiFetch(`${PAYMENTS_API_URL}?missingSales=1`);
+  const data = await readOrThrow(response, "Unable to check the past online payments.");
+  return { count: Number(data.count) || 0, total: Number(data.total) || 0, months: Array.isArray(data.months) ? data.months : [] };
+};
+
+/** The admin's: adds those sales. Resolves with how many were added. */
+export const addMissingOnlineSales = async () =>
+  Number((await send({ action: "addMissingSales" }, "Unable to add those sales.")).added) || 0;
+
 /** One day's GCash in and out ({ received, sentBack }), for the GCash check in Reports. */
 export const fetchGcashDay = async (day) => {
   const response = await apiFetch(`${PAYMENTS_API_URL}?day=${encodeURIComponent(day)}`);

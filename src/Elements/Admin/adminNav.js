@@ -26,7 +26,7 @@ export const navGroups = [
     label: "Administration",
     items: [
       { icon: "bi-people", label: "Accounts", id: "accounts" },
-      { icon: "bi-globe2", label: "Website", id: "website" },
+      { icon: "bi-globe2", label: "Content Management", id: "content-management" },
       { icon: "bi-list-check", label: "Audit Trail", id: "audit-trail" },
     ],
   },

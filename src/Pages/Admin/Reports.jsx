@@ -4,8 +4,9 @@ import SalesReport from "../../Elements/Admin/SalesReport";
 import ReservationReport from "../../Elements/Admin/ReservatioReport";
 import InventoryReport from "../../Elements/Admin/InventoryReport";
 import GcashDayCheck from "../../Elements/Admin/GcashDayCheck";
+import MissingOnlineSales from "../../Elements/Admin/MissingOnlineSales";
 
-export default function Reports({ transactions, reservations, products }) {
+export default function Reports({ transactions, reservations, products, setLogs }) {
   const [tab, setTab] = useState("sales");
 
   // Daily, monthly and yearly sales are one report; its period is picked inside it.
@@ -20,7 +21,12 @@ export default function Reports({ transactions, reservations, products }) {
   const renderReport = () => {
     switch (tab) {
       case "sales":
-        return <SalesReport transactions={transactions} />;
+        return (
+          <>
+            <MissingOnlineSales setLogs={setLogs} />
+            <SalesReport transactions={transactions} />
+          </>
+        );
       case "reservation":
         return <ReservationReport reservations={reservations} />;
       case "inventory":

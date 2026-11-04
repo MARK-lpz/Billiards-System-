@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { numberFieldValue, readNumberField } from "../../utils/numberField";
-import { formatExpiryDate } from "../../utils/inventoryValidation";
+import { numberFieldValue, numberKeys, readNumberField } from "../../utils/numberField";
+import { MAX_STOCK, formatExpiryDate } from "../../utils/inventoryValidation";
+import { readTitleField } from "../../utils/textField";
 
 // In the order they appear, so a failed save can jump to the first one.
 const FIELDS = ["name", "originalPrice", "price", "stock", "minStock", "expiryDate"];
@@ -10,7 +11,9 @@ const peso = (value) => `₱${Number(value).toLocaleString("en-PH", { minimumFra
 /**
  * Add / Edit Product. `errors` comes from getProductErrors (inventoryValidation.js).
  * A field's problem shows once that field has been left, or for every field once
- * Add is pressed, so a fresh form does not open covered in red.
+ * Add is pressed, so a fresh form does not open covered in red. The expiry date's
+ * shows as soon as a date is picked; `expiryWarning` is a date that can be saved
+ * but is close (getExpiryWarning), and `minExpiry` the earliest the picker offers.
  *
  * Two prices: the original price (what the hall paid for one piece) and the
  * retail price (what it is sold for, the price the POS charges). Once both are
@@ -20,7 +23,7 @@ const peso = (value) => `₱${Number(value).toLocaleString("en-PH", { minimumFra
  * category and min stock stay as they were added; stock and the expiry date
  * change through Restock (and stock goes down through sales).
  */
-export default function InventoryModal({ form, setForm, editId, errors = {}, onClose, onSave }) {
+export default function InventoryModal({ form, setForm, editId, errors = {}, expiryWarning = "", minExpiry, onClose, onSave }) {
   const locked = Boolean(editId);
   const [touched, setTouched] = useState({});
   const [attempted, setAttempted] = useState(false);
@@ -96,7 +99,7 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                   type="text"
                   className={inputClass("name")}
                   value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  onChange={e => setForm({ ...form, name: readTitleField(e) })}
                   placeholder="e.g. Coca Cola"
                   maxLength={80}
                   {...fieldProps("name")}
@@ -128,6 +131,7 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                     className={inputClass("originalPrice")}
                     value={numberFieldValue(form.originalPrice)}
                     onChange={e => setForm({ ...form, originalPrice: readNumberField(e) })}
+                    {...numberKeys({ decimal: true })}
                     min="0"
                     step="0.01"
                     placeholder="0"
@@ -142,6 +146,7 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                     className={inputClass("price")}
                     value={numberFieldValue(form.price)}
                     onChange={e => setForm({ ...form, price: readNumberField(e) })}
+                    {...numberKeys({ decimal: true })}
                     min="0"
                     step="0.01"
                     placeholder="0"
@@ -167,13 +172,15 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                     className={inputClass("stock")}
                     value={numberFieldValue(form.stock)}
                     onChange={e => setForm({ ...form, stock: readNumberField(e) })}
+                    {...numberKeys()}
                     min="0"
                     step="1"
                     placeholder="0"
                     {...fieldProps("stock")}
                     {...lockedProps}
                   />
-                  {errorText("stock")}
+                  {errorText("stock") ||
+                    (!locked && <small className="form-text text-muted">Up to {MAX_STOCK.toLocaleString("en-PH")} pcs.</small>)}
                 </div>
                 <div>
                   <label className="form-label" htmlFor="inventory-minStock">Min Stock (pcs){lockIcon}</label>
@@ -182,6 +189,7 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                     className={inputClass("minStock")}
                     value={numberFieldValue(form.minStock)}
                     onChange={e => setForm({ ...form, minStock: readNumberField(e) })}
+                    {...numberKeys()}
                     min="0"
                     step="1"
                     placeholder="0"
@@ -206,11 +214,24 @@ export default function InventoryModal({ form, setForm, editId, errors = {}, onC
                     type="date"
                     className={inputClass("expiryDate")}
                     value={form.expiryDate || ""}
-                    onChange={e => setForm({ ...form, expiryDate: e.target.value })}
+                    min={minExpiry}
+                    onChange={e => {
+                      setForm({ ...form, expiryDate: e.target.value });
+                      touch("expiryDate");
+                    }}
                     {...fieldProps("expiryDate")}
                   />
                 )}
-                {errorText("expiryDate")}
+                {errorText("expiryDate") ||
+                  (!locked &&
+                    (expiryWarning ? (
+                      <div className="inventory-field-warning" role="status">
+                        <i className="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>
+                        {expiryWarning}
+                      </div>
+                    ) : (
+                      <small className="form-text text-muted">Leave blank if it does not expire.</small>
+                    )))}
               </div>
             </div>
 

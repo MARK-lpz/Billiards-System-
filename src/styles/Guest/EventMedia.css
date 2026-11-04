@@ -22,9 +22,11 @@
   inset: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
+  /* One row as tall as the slide, so a tall poster shrinks to fit instead of pushing the words down */
+  grid-template-rows: minmax(0, 1fr);
   align-items: center;
   gap: clamp(1rem, 3vw, 2rem);
-  padding: 1.75rem 15% 2.75rem;
+  padding: 1.75rem clamp(1.5rem, 6%, 3.25rem) 1.75rem;
 }
 
 .guest-promo-copy {
@@ -257,7 +259,7 @@
     grid-template-rows: minmax(0, 1fr) auto;
     align-items: stretch;
     gap: 0.75rem;
-    padding: 1.25rem 12% 2.6rem;
+    padding: 1.25rem 1.25rem 1.5rem;
   }
 
   .guest-promo-media { order: -1; }

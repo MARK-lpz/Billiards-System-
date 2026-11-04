@@ -10,6 +10,7 @@ import {
   SLIDE_TITLE_MAX_LENGTH,
   slidePictureUrl,
 } from "../../../utils/siteSettings";
+import { readTextField } from "../../../utils/textField";
 
 const PHOTO_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const isPhoto = (file) => PHOTO_TYPES.includes(file.type) || /\.(png|jpe?g|webp)$/i.test(file.name || "");
@@ -206,7 +207,7 @@ export default function ShowcaseSettingsCard({ setLogs }) {
                       maxLength={SLIDE_TITLE_MAX_LENGTH}
                       placeholder="e.g. Play. Compete. Unwind."
                       aria-invalid={!slide.title.trim()}
-                      onChange={(event) => updateSlide(slide.id, { title: event.target.value })}
+                      onChange={(event) => updateSlide(slide.id, { title: readTextField(event) })}
                     />
                     {!slide.title.trim() ? (
                       <em className="error">A title is needed.</em>
@@ -225,7 +226,7 @@ export default function ShowcaseSettingsCard({ setLogs }) {
                       value={slide.text}
                       maxLength={SLIDE_TEXT_MAX_LENGTH}
                       placeholder="One or two short sentences."
-                      onChange={(event) => updateSlide(slide.id, { text: oneLine(event.target.value) })}
+                      onChange={(event) => updateSlide(slide.id, { text: oneLine(readTextField(event)) })}
                     />
                     <em>
                       {slide.text.length}/{SLIDE_TEXT_MAX_LENGTH} characters

@@ -1,0 +1,283 @@
+/* Compact view (Settings → Compact View): the same pages, the same look, with
+   less room around things, so more rows and cards fit on a small screen. Only
+   spacing and a few sizes change here, never the layout. The `.compact` class
+   sits beside the theme class on the app's outer element (App.jsx). Loaded
+   after every other stylesheet, so these win. */
+
+/* ---------- Default view: 18px text ---------- */
+
+/* The other choice in Settings: the panel's base text is 18px, so every size
+   given in rem grows with it; Compact keeps the browser's 16px. Only while a
+   staff panel is on screen, so the login page and the public site keep theirs. */
+html:has(:is(.admin-shell, .employee-shell)):not(:has(.compact)) {
+  font-size: 18px;
+}
+
+/* The longest menu names ("Tournament Schedule") need a little more room. */
+:is(.dark, .light):not(.compact) :is(.admin-shell, .employee-shell) {
+  --ax-sidebar-width: 256px;
+}
+
+/* The Inventory's six cards keep one row only on a screen wider than a laptop's;
+   the total value (₱) is cut off otherwise. Three a row, as on smaller screens. */
+@media (min-width: 641px) and (max-width: 1440px) {
+  :is(.dark, .light):not(.compact) .admin-shell .inventory-container > .stats-grid.inventory-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+/* ---------- The frame: top bar, sidebar, page edges ---------- */
+
+.compact :is(.admin-topbar, .employee-topbar) {
+  min-height: 56px;
+  padding: 0.4rem 1.25rem;
+}
+
+.compact :is(.admin-shell, .employee-shell) .main-content {
+  padding: 1rem 1.25rem 2rem;
+}
+
+.compact :is(.admin-shell, .employee-shell) .sidebar-nav {
+  gap: 0.6rem;
+}
+
+.compact :is(.admin-shell, .employee-shell) .sidebar-nav-group {
+  gap: 0.1rem;
+}
+
+.compact .nav-item {
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+@media (max-width: 900px) {
+  .compact :is(.admin-topbar, .employee-topbar) {
+    padding: 0.35rem 0.75rem;
+  }
+
+  .compact :is(.admin-shell, .employee-shell) .main-content {
+    padding: 0.85rem 0.75rem 2rem;
+  }
+}
+
+/* ---------- Title band, page headers, stat strips ---------- */
+
+.compact .admin-shell .admin-hero,
+.compact .employee-shell .employee-hero {
+  margin-bottom: 0.85rem;
+  padding: 1rem 1.1rem 1rem 1.35rem;
+}
+
+.compact .admin-shell .admin-hero .page-title,
+.compact .employee-shell .employee-hero .page-title {
+  font-size: 1.6rem;
+}
+
+.compact .admin-shell .admin-hero .stat-card-employee {
+  padding: 0.7rem 0.9rem;
+}
+
+.compact .admin-shell :is(.pool-tables-header, .reservations-header, .equipment-header) {
+  margin-bottom: 0.85rem;
+}
+
+.compact .admin-shell :is(.stats-grid, .events-container > .row.g-3, .audit-trail-container > .row.g-3,
+  .reports-container .row.g-3, .equipment-summary-grid, .sales-pos-summary-grid) {
+  margin-bottom: 0.85rem !important;
+}
+
+.compact .admin-shell :is(.inventory-stat-card, .events-stat-card, .audit-stat-card, .reports-stat-card,
+  .equipment-stat-card) .card-body {
+  padding: 0.6rem 1rem;
+}
+
+.compact .admin-shell :is(.inventory-stat-icon, .audit-stat-icon, .reports-stat-icon) {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  font-size: 1rem;
+}
+
+.compact .admin-shell :is(.inventory-stat-value, .events-stat-value, .audit-stat-value, .reports-stat-value,
+  .equipment-stat-value) {
+  font-size: 1.35rem;
+}
+
+.compact .admin-shell .sales-summary-card {
+  padding: 0.6rem 1rem;
+}
+
+.compact :is(.admin-shell, .employee-shell) .dash-stats {
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.compact :is(.admin-shell, .employee-shell) .dash-stat {
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+}
+
+.compact :is(.admin-shell, .employee-shell) .dash-stat-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  font-size: 1rem;
+}
+
+.compact :is(.admin-shell, .employee-shell) .dash-stat-value {
+  font-size: 1.3rem;
+}
+
+.compact .employee-shell :is(.rd-stats-row, .qa-summary, .tourna-stats) {
+  margin-bottom: 0.85rem !important;
+}
+
+.compact .employee-shell .tourna-stats {
+  margin-bottom: 0 !important;
+}
+
+.compact .employee-shell :is(.rd-stat-card, .qa-summary-pill, .tourna-stat-card) {
+  padding: 0.55rem 1rem !important;
+}
+
+.compact .employee-shell .pool-table-stats {
+  margin-bottom: 0.85rem;
+}
+
+.compact .employee-shell .pool-stat-pill {
+  padding: 0.3rem 0.8rem;
+}
+
+/* ---------- Tables: shorter rows (phones keep their own card layout) ---------- */
+
+@media (min-width: 769px) {
+  .compact :is(.inventory-table, .reservations-table, .reports-table, .rd-table) thead th {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .compact :is(.inventory-table, .reservations-table, .reports-table, .rd-table) tbody td {
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+
+  .compact .sales-report-table tbody td {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .compact .report-history-table th {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .compact .report-history-table td {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+}
+
+/* ---------- Cards and lists ---------- */
+
+/* Pool tables: a little narrower, so another card fits in a row. */
+.compact :is(.admin-shell, .employee-shell) .pool-tables-grid {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0.75rem;
+}
+
+.compact .pool-table-card {
+  padding: 14px;
+}
+
+.compact :is(.pool-table-card-header, .pool-table-status, .pool-table-customer) {
+  margin-bottom: 10px;
+}
+
+.compact :is(.pool-table-occupied-metrics, .pool-table-occupied-info, .pool-table-time-alert) {
+  margin-bottom: 8px;
+}
+
+.compact .pool-table-actions .btn {
+  padding-right: 10px;
+  padding-left: 10px;
+}
+
+/* Sales POS products */
+.compact .product-grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.compact .product-card {
+  min-height: 112px;
+  padding: 10px;
+}
+
+/* Equipment */
+.compact .equipment-grid {
+  gap: 8px;
+}
+
+/* Audit Trail */
+.compact .audit-log-item {
+  gap: 12px;
+  padding: 10px 0;
+}
+
+/* Employee Actions and Tournament Schedule */
+.compact .qa-card {
+  padding: 14px 16px;
+}
+
+.compact .tourna-card {
+  padding: 8px 12px;
+}
+
+/* Settings and Profile */
+.compact .settings-page {
+  gap: 12px;
+  padding: 12px;
+}
+
+.compact .settings-card {
+  padding: 14px 16px;
+}
+
+.compact .settings-card-head {
+  margin-bottom: 12px;
+}
+
+.compact .profile-page {
+  padding: 12px;
+}
+
+.compact :is(.profile-layout, .profile-main) {
+  gap: 12px;
+}
+
+.compact .profile-section {
+  padding: 14px 16px;
+}
+
+.compact .profile-rows > div {
+  min-height: 34px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.compact .profile-rows > div:first-child { padding-top: 0; }
+.compact .profile-rows > div:last-child { padding-bottom: 0; }
+
+/* ---------- Pop-up windows ---------- */
+
+.compact .modal-header {
+  padding: 12px 18px;
+}
+
+.compact .modal-body {
+  padding: 16px 18px;
+}
+
+.compact .modal-footer {
+  padding: 12px 18px;
+}

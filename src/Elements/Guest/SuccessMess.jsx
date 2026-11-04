@@ -24,6 +24,7 @@ export default function SuccessMessage({ form, event = null, onReset, status = n
           ...(event?.gameType ? [["Game", gameTypeLabel(event.gameType), "bi-circle-fill"]] : []),
           ["Name", `${form.firstName} ${form.lastName}`, "bi-person-fill"],
           ["Contact", form.contact, "bi-telephone-fill"],
+          ...(form.email?.trim() ? [["Email", form.email.trim().toLowerCase(), "bi-envelope-fill"]] : []),
           ["Age", form.age, "bi-calendar-fill"],
           ...(skillLevelLabel(form.skillLevel) ? [["Skill Level", skillLevelLabel(form.skillLevel), "bi-bar-chart-fill"]] : []),
           ...(form.teamName ? [["Team / Nickname", form.teamName, "bi-people-fill"]] : []),

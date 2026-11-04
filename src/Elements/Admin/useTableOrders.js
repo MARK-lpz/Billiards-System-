@@ -11,6 +11,8 @@ import {
   unpaidQty,
 } from "../../utils/tableOrders";
 import { useNotifications } from "../Global/useNotifications";
+import { getNotForSaleReason } from "../../utils/productShelf";
+import { getTodayDate } from "../../utils/reservations";
 
 // Read only from click handlers, never while rendering.
 const getCurrentTimestamp = () => Date.now();
@@ -60,7 +62,14 @@ export default function useTableOrders({ tables = [], setTables, products = [], 
       .map(([productId, qty]) => ({ product: products.find((product) => String(product.id) === productId), qty }));
     if (!items.length) return false;
 
-    // Checked again on the click: the stock may have changed while the pop-up was open.
+    // Checked again on the click: the stock may have changed while the pop-up
+    // was open, or midnight passed an expiry date.
+    const today = getTodayDate();
+    const expired = items.find(({ product }) => product && getNotForSaleReason(product, today));
+    if (expired) {
+      showToast({ tone: "error", icon: "bi-calendar-x", title: "Order not added", message: getNotForSaleReason(expired.product, today) });
+      return false;
+    }
     const short = items.find(({ product, qty }) => !product || Number(product.stock || 0) < qty);
     if (short) {
       showToast({

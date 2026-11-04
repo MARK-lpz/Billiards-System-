@@ -6,6 +6,7 @@ import {
   STEP_TEXT_MAX_LENGTH,
   STEP_TITLE_MAX_LENGTH,
 } from "../../../utils/siteSettings";
+import { readTextField } from "../../../utils/textField";
 
 const same = (first, second) => JSON.stringify(first ?? null) === JSON.stringify(second ?? null);
 const oneLine = (text) => text.replace(/\s*\n\s*/g, " ");
@@ -81,7 +82,7 @@ export default function BookingStepsSettingsCard({ setLogs }) {
             maxLength={STEPS_HEADING_MAX_LENGTH}
             placeholder="e.g. Your table in three shots."
             aria-invalid={!heading.trim()}
-            onChange={(event) => draft.update("heading", event.target.value)}
+            onChange={(event) => draft.update("heading", readTextField(event))}
           />
           {!heading.trim() ? <em className="error">A heading is needed.</em> : <em>Above the three steps.</em>}
         </label>
@@ -100,7 +101,7 @@ export default function BookingStepsSettingsCard({ setLogs }) {
                     value={step.title}
                     maxLength={STEP_TITLE_MAX_LENGTH}
                     aria-invalid={!step.title.trim()}
-                    onChange={(event) => updateStep(index, { title: event.target.value })}
+                    onChange={(event) => updateStep(index, { title: readTextField(event) })}
                   />
                   {!step.title.trim() && <em className="error">A title is needed.</em>}
                 </label>
@@ -111,7 +112,7 @@ export default function BookingStepsSettingsCard({ setLogs }) {
                     value={step.text}
                     maxLength={STEP_TEXT_MAX_LENGTH}
                     aria-invalid={!step.text.trim()}
-                    onChange={(event) => updateStep(index, { text: oneLine(event.target.value) })}
+                    onChange={(event) => updateStep(index, { text: oneLine(readTextField(event)) })}
                   />
                   {!step.text.trim() ? (
                     <em className="error">A text is needed.</em>

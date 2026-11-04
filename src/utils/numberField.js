@@ -11,3 +11,24 @@ export const numberFieldValue = (value) => {
 };
 
 export const readNumberField = (event) => (event.target.value === "" ? 0 : Number(event.target.value));
+
+const DIGIT = /^\d$/;
+
+/**
+ * A type="number" box still lets e, E, +, - and "." be typed or pasted in.
+ * Spread this on the box so only digits go in, and one "." where it takes
+ * centavos (`decimal`). `onKeyDown`: the box's own, still run.
+ */
+export const numberKeys = ({ decimal = false, onKeyDown } = {}) => ({
+  onKeyDown: (event) => {
+    const { key, currentTarget: box } = event;
+    const typing = key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
+    const firstDot = decimal && key === "." && !box.value.includes(".") && !box.validity?.badInput;
+    if (typing && !DIGIT.test(key) && !firstDot) event.preventDefault();
+    onKeyDown?.(event);
+  },
+  onPaste: (event) => {
+    const pasted = event.clipboardData.getData("text").trim();
+    if (!(decimal ? /^\d*\.?\d*$/ : /^\d*$/).test(pasted)) event.preventDefault();
+  },
+});

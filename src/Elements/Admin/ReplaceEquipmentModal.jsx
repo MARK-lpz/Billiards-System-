@@ -3,6 +3,7 @@ import FieldError from "../Global/FieldError";
 import useFormErrors from "../Global/useFormErrors";
 import { getReplaceErrors } from "../../utils/formValidation";
 import { EQUIPMENT_HISTORY_RETENTION_MONTHS } from "../../utils/equipment";
+import { readTitleField } from "../../utils/textField";
 
 const FIELDS = ["name", "date"];
 
@@ -45,7 +46,7 @@ export default function ReplaceEquipmentModal({ item, where, equipment = [], tod
                   type="text"
                   value={form.name}
                   maxLength={80}
-                  onChange={(event) => setForm({ ...form, name: event.target.value })}
+                  onChange={(event) => setForm({ ...form, name: readTitleField(event) })}
                   {...fieldProps("name")}
                 />
                 <FieldError id="replace-name-error" message={errorFor("name")} />

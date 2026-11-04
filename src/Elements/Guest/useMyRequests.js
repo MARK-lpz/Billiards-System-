@@ -11,14 +11,19 @@ import {
 
 // Asked again this often while the page is open (and at once when it comes back into view).
 const POLL_MS = 20000;
+// While one still waits for the front desk to check it (its GCash payment
+// included), this often instead, so the answer shows here almost as the staff
+// give it: as often as the staff's own screens hear of a new payment.
+const LIVE_POLL_MS = 3000;
 
 // Read from initializers and handlers only, never while rendering.
 const nowMs = () => Date.now();
 
 /**
  * The customer's own bookings and tournament sign-ups kept in this browser,
- * each with where it stands now (asked from the server every POLL_MS):
- * { requests: [{ key, kind, label, savedAt, view, info }], unseen, add,
+ * each with where it stands now (asked from the server every LIVE_POLL_MS
+ * while one waits, `live`, otherwise every POLL_MS):
+ * { requests: [{ key, kind, label, savedAt, view, info }], unseen, live, add,
  * markSeen, forget }. `info` is describeRequest()'s, or null until the server
  * answers. `unseen` are decided ones the customer has not seen yet.
  */
@@ -28,6 +33,13 @@ export function useMyRequests() {
   const [views, setViews] = useState({});
   const [seen, setSeen] = useState(readSeenRequests);
   const keyList = saved.map((entry) => entry.key).join(",");
+  const requests = saved.map((entry) => {
+    const view = views[entry.key] || null;
+    return { ...entry, view, info: view ? describeRequest(view) : null };
+  });
+  // Not answered yet counts as waiting too.
+  const live = requests.some((request) => !request.info || request.info.tone === "waiting");
+  const pollMs = live ? LIVE_POLL_MS : POLL_MS;
 
   useEffect(() => {
     if (!keyList) return undefined;
@@ -60,19 +72,15 @@ export function useMyRequests() {
     };
 
     load();
-    const timer = setInterval(load, POLL_MS);
+    const timer = setInterval(load, pollMs);
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
       active = false;
       clearInterval(timer);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [keyList]);
+  }, [keyList, pollMs]);
 
-  const requests = saved.map((entry) => {
-    const view = views[entry.key] || null;
-    return { ...entry, view, info: view ? describeRequest(view) : null };
-  });
   const unseen = requests.filter(
     (request) => request.info && request.info.tone !== "waiting" && seen[request.key] !== request.info.signature
   );
@@ -80,6 +88,7 @@ export function useMyRequests() {
   return {
     requests,
     unseen,
+    live,
     // A request the website just sent: { key, kind, label }.
     add: (entry) => {
       saveRequest(entry, nowMs());

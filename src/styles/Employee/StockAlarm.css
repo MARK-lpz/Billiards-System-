@@ -1,0 +1,512 @@
+/* The employee's Stock Alarm page (Pages/Employee/StockAlarm.jsx): the most
+   pressing line, a card per alarm, the picked card's products beside what to
+   do, then every product on sale. The cards are DashboardCards.css's. */
+
+.employee-shell .stock-module {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.employee-shell .stock-module .dash-stats {
+  margin: 0;
+}
+
+/* ---------- The most pressing line ---------- */
+
+.employee-shell .stock-alarm-headline {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--fill);
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.employee-shell .stock-alarm-headline.is-danger { --line: rgba(248, 113, 113, 0.5); --fill: rgba(248, 113, 113, 0.14); --ink: #fca5a5; }
+.employee-shell .stock-alarm-headline.is-warning { --line: rgba(251, 191, 36, 0.5); --fill: rgba(251, 191, 36, 0.12); --ink: #fcd34d; }
+.employee-shell .stock-alarm-headline.is-info { --line: rgba(96, 165, 250, 0.5); --fill: rgba(96, 165, 250, 0.12); --ink: #93c5fd; }
+.employee-shell .stock-alarm-headline.is-ok { --line: rgba(52, 211, 153, 0.45); --fill: rgba(52, 211, 153, 0.1); --ink: #6ee7b7; }
+
+.light .employee-shell .stock-alarm-headline.is-danger { --line: #fca5a5; --fill: #fef2f2; --ink: #b91c1c; }
+.light .employee-shell .stock-alarm-headline.is-warning { --line: #fcd34d; --fill: #fffbeb; --ink: #92400e; }
+.light .employee-shell .stock-alarm-headline.is-info { --line: #93c5fd; --fill: #eff6ff; --ink: #1e40af; }
+.light .employee-shell .stock-alarm-headline.is-ok { --line: #6ee7b7; --fill: #ecfdf5; --ink: #047857; }
+
+/* The danger line's icon pulses once in a while, so it is noticed from the counter. */
+@media (prefers-reduced-motion: no-preference) {
+  .employee-shell .stock-alarm-headline.is-danger > i {
+    animation: stock-alarm-pulse 2.4s ease-in-out infinite;
+  }
+}
+
+@keyframes stock-alarm-pulse {
+  0%, 70%, 100% { transform: scale(1); }
+  80% { transform: scale(1.25); }
+  90% { transform: scale(0.95); }
+}
+
+/* ---------- Panels ---------- */
+
+.employee-shell .stock-panel {
+  min-width: 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 14px;
+  background: var(--ax-panel);
+  box-shadow: var(--ax-shadow);
+}
+
+.employee-shell .stock-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.employee-shell .stock-panel-head p {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0;
+  color: var(--ax-muted);
+  font-size: 0.85rem;
+}
+
+.employee-shell .stock-panel-head strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ax-text);
+  font-size: 1rem;
+}
+
+.employee-shell .stock-panel-head strong > i {
+  color: var(--ax-active);
+}
+
+.employee-shell .stock-panel-count {
+  min-width: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--ax-active-soft);
+  color: var(--ax-text);
+  font-size: 0.75rem;
+  line-height: 20px;
+  text-align: center;
+}
+
+.employee-shell .stock-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ax-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.employee-shell .stock-ghost-btn:hover:not(:disabled) {
+  background: var(--ax-active-soft);
+}
+
+.employee-shell .stock-ghost-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* ---------- The picked alarm's products, beside what to do ---------- */
+
+.employee-shell .stock-focus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 1rem;
+}
+
+.employee-shell .stock-alarm-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.5rem 0;
+  color: var(--ax-muted);
+  font-size: 0.9rem;
+}
+
+.employee-shell .stock-alarm-empty > i { color: #34d399; }
+.light .employee-shell .stock-alarm-empty > i { color: #047857; }
+
+.employee-shell .stock-alarm-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.employee-shell .stock-alarm-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--ax-border);
+  border-left: 3px solid var(--tone);
+  border-radius: 10px;
+}
+
+.employee-shell .stock-alarm-item.is-fresh { --tone: #60a5fa; }
+.employee-shell .stock-alarm-item.is-low { --tone: #fbbf24; }
+.employee-shell .stock-alarm-item.is-soon { --tone: #fbbf24; }
+.employee-shell .stock-alarm-item.is-expired { --tone: #f87171; }
+
+.light .employee-shell .stock-alarm-item.is-fresh { --tone: #2563eb; }
+.light .employee-shell .stock-alarm-item.is-low { --tone: #b45309; }
+.light .employee-shell .stock-alarm-item.is-soon { --tone: #b45309; }
+.light .employee-shell .stock-alarm-item.is-expired { --tone: #dc2626; }
+
+.employee-shell .stock-alarm-item-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+  color: var(--tone);
+}
+
+.employee-shell .stock-alarm-item-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.employee-shell .stock-alarm-item-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.1rem 0.4rem;
+  color: var(--ax-text);
+  font-weight: 600;
+}
+
+.employee-shell .stock-alarm-item-no {
+  color: var(--ax-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.employee-shell .stock-alarm-item-meta {
+  color: var(--ax-muted);
+  font-size: 0.8rem;
+}
+
+/* The state, and Tell admin (or when it was told), on the right. */
+.employee-shell .stock-alarm-item-side {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.employee-shell .stock-alarm-new {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.employee-shell .stock-alarm-state {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.employee-shell .stock-alarm-state.is-danger { background: rgba(248, 113, 113, 0.16); color: #fca5a5; }
+.employee-shell .stock-alarm-state.is-warning { background: rgba(251, 191, 36, 0.16); color: #fcd34d; }
+.employee-shell .stock-alarm-state.is-ok { background: rgba(52, 211, 153, 0.14); color: #6ee7b7; }
+
+.light .employee-shell .stock-alarm-state.is-danger { background: #fee2e2; color: #991b1b; }
+.light .employee-shell .stock-alarm-state.is-warning { background: #fef3c7; color: #92400e; }
+.light .employee-shell .stock-alarm-state.is-ok { background: #d1fae5; color: #065f46; }
+
+.employee-shell .stock-reported {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #6ee7b7;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.light .employee-shell .stock-reported { color: #047857; }
+
+/* How much is left against twice the alert level (low stock, the stock list). */
+.employee-shell .stock-meter {
+  display: block;
+  width: 100%;
+  max-width: 160px;
+  height: 4px;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.22);
+}
+
+.employee-shell .stock-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tone, #34d399);
+}
+
+.employee-shell .stock-meter > span.is-ok { --tone: #34d399; }
+.employee-shell .stock-meter > span:is(.is-low, .is-soon) { --tone: #fbbf24; }
+.employee-shell .stock-meter > span:is(.is-out, .is-expired) { --tone: #f87171; }
+
+.light .employee-shell .stock-meter { background: #e2e8f0; }
+
+/* What to do about the picked alarm. */
+.employee-shell .stock-guide-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.6rem;
+  color: var(--ax-text);
+  font-weight: 700;
+}
+
+.employee-shell .stock-guide-title > i {
+  color: #fbbf24;
+}
+
+.light .employee-shell .stock-guide-title > i { color: #b45309; }
+
+.employee-shell .stock-guide ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--ax-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.employee-shell .stock-guide li::marker {
+  color: var(--ax-active);
+  font-weight: 700;
+}
+
+/* ---------- Every product on sale ---------- */
+
+.employee-shell .stock-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 300px;
+  min-width: 220px;
+  margin: 0;
+}
+
+.employee-shell .stock-search > i {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--ax-muted);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.employee-shell .stock-search input {
+  width: 100%;
+  padding: 0.5rem 0.75rem 0.5rem 2.1rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ax-text);
+  font-size: 0.85rem;
+}
+
+.employee-shell .stock-search input::placeholder { color: var(--ax-muted); }
+
+.employee-shell .stock-search input:focus {
+  outline: 2px solid var(--ax-active);
+  outline-offset: -1px;
+}
+
+.employee-shell .stock-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.employee-shell .stock-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--ax-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ax-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.employee-shell .stock-filter > span {
+  color: var(--ax-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.employee-shell .stock-filter:hover { color: var(--ax-text); }
+
+.employee-shell .stock-filter.is-active {
+  border-color: var(--ax-active);
+  background: var(--ax-active-soft);
+  color: var(--ax-text);
+}
+
+.employee-shell .stock-table-wrap {
+  overflow-x: auto;
+}
+
+.employee-shell .stock-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.employee-shell .stock-table th {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--ax-divider);
+  color: var(--ax-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.employee-shell .stock-table td {
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid var(--ax-divider);
+  color: var(--ax-text);
+  vertical-align: middle;
+}
+
+.employee-shell .stock-table tbody tr:last-child td { border-bottom: 0; }
+.employee-shell .stock-table tr.is-expired td { background: rgba(248, 113, 113, 0.06); }
+.light .employee-shell .stock-table tr.is-expired td { background: #fef2f2; }
+
+.employee-shell .stock-table-no {
+  color: var(--ax-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+}
+
+.employee-shell .stock-table-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.1rem 0.4rem;
+  font-weight: 600;
+}
+
+.employee-shell .stock-table-name mark {
+  padding: 0 1px;
+  border-radius: 3px;
+  background: rgba(251, 191, 36, 0.35);
+  color: inherit;
+}
+
+.light .employee-shell .stock-table-name mark { background: #fde68a; }
+
+.employee-shell .stock-table-sub {
+  display: block;
+  color: var(--ax-muted);
+  font-size: 0.75rem;
+}
+
+.employee-shell .stock-table-price {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.employee-shell .stock-table-qty {
+  font-variant-numeric: tabular-nums;
+}
+
+.employee-shell .stock-table-empty {
+  padding: 1.25rem 0.6rem !important;
+  color: var(--ax-muted) !important;
+  text-align: center;
+}
+
+.employee-shell .stock-all-foot {
+  margin: 0.75rem 0 0;
+  color: var(--ax-muted);
+  font-size: 0.75rem;
+}
+
+/* ---------- Narrower screens ---------- */
+
+@media (max-width: 1100px) {
+  .employee-shell .stock-focus {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .employee-shell .stock-alarm-list {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-shell .stock-alarm-item {
+    flex-wrap: wrap;
+  }
+
+  .employee-shell .stock-alarm-item-side {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .employee-shell .stock-panel {
+    padding: 0.8rem;
+  }
+
+  .employee-shell .stock-search {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}

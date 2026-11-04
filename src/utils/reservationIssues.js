@@ -15,7 +15,7 @@ import { isValidSmsNumber } from "./phone";
  * and the server, so the desk sees a problem before a button refuses it.
  */
 
-export const MAX_PARTY_SIZE = 12;
+export const MAX_PARTY_SIZE = 4;
 
 const normalizeTableName = (name) =>
   String(name || "")

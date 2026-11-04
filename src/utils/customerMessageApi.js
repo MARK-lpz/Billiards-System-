@@ -14,11 +14,11 @@ const MESSAGE_API_URL = import.meta.env.VITE_CUSTOMER_MESSAGE_API_URL || (
  * Resolves to { text, status }: "sent" once texted, "queued" while SMS is not
  * switched on (or a sending limit was reached), "failed" if the provider refused.
  */
-export const sendCustomerConfirmation = async ({ context, referenceId, phone, participant, paymentReference }) => {
+export const sendCustomerConfirmation = async ({ context, referenceId, phone, email, participant, paymentReference }) => {
   const response = await apiFetch(MESSAGE_API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ context, referenceId, phone, participant, paymentReference }),
+    body: JSON.stringify({ context, referenceId, phone, email, participant, paymentReference }),
   });
 
   const data = await response.json().catch(() => ({}));

@@ -4,13 +4,49 @@ import "../../styles/Guest/TournamentShowcase.css";
 import EventMediaViewer from "./EventMediaViewer";
 import { eventMediaUrl, getEventMedia } from "../../utils/eventMedia";
 import { describeDaysAway, formatEventWhen, gameTypeLabel, getDateTile, wasRescheduled } from "../../utils/eventUpdates";
+import {
+  describePlayers,
+  describeSlots,
+  describeWebsitePayment,
+  isAlmostFull,
+  isEventFull,
+  takesWebsiteSignUp,
+} from "../../utils/tournamentFees";
 
 const peso = (amount) => `₱${Number(amount || 0).toLocaleString("en-PH")}`;
 const entryLabel = (event) => (Number(event.entryFee) > 0 ? `Entry ${peso(event.entryFee)}` : "Free entry");
 const playersLabel = (event) => {
-  const players = event.participants?.length || 0;
-  return `${players} ${players === 1 ? "player" : "players"} registered`;
+  const slots = describeSlots(event);
+  return slots && slots !== "Full" ? `${describePlayers(event)} · ${slots}` : `${describePlayers(event)} registered`;
 };
+
+// The large one's badge: full, a few places left, or open.
+const featureBadge = (event, moved) => {
+  if (moved) return { tone: "is-rescheduled", label: "Rescheduled" };
+  if (isEventFull(event)) return { tone: "is-full", label: "Full" };
+  if (isAlmostFull(event)) return { tone: "is-almost-full", label: `Only ${describeSlots(event)}` };
+  return { tone: "is-open", label: "Open for registration" };
+};
+
+// Register, or why it can't be pressed: full, or registered for in person only.
+function RegisterButton({ event, className, onRegister }) {
+  const full = isEventFull(event);
+  const atHall = !full && !takesWebsiteSignUp(event);
+  if (full || atHall) {
+    return (
+      <span className={`${className} tshow-register-closed`} role="note">
+        <i className={`bi ${full ? "bi-people-fill" : "bi-shop"}`} aria-hidden="true"></i>
+        {full ? "Full" : "Register in person"}
+      </span>
+    );
+  }
+  return (
+    <button type="button" className={className} onClick={() => onRegister(event.id)}>
+      Register
+      <i className="bi bi-arrow-right" aria-hidden="true"></i>
+    </button>
+  );
+}
 
 // The tournament's poster, or its other pictures and videos one at a time
 // (arrows, "2 / 3"); clicking it opens the viewer. Without any, a felt with the
@@ -89,6 +125,8 @@ export default function TournamentShowcase({ events = [], now, onRegister, level
   const media = getEventMedia(featured);
   const moved = wasRescheduled(featured);
   const away = describeDaysAway(featured.date, now);
+  const badge = featureBadge(featured, moved);
+  const payWith = describeWebsitePayment(featured);
   const viewed = viewing && events.find((event) => event.id === viewing.eventId);
 
   return (
@@ -99,9 +137,7 @@ export default function TournamentShowcase({ events = [], now, onRegister, level
         <div className="tshow-info">
           <div className="tshow-info-top">
             <span className="tshow-eyebrow">{featured.date ? "Next up" : "Coming soon"}</span>
-            <span className={`guest-tournament-badge ${moved ? "is-rescheduled" : "is-open"}`}>
-              {moved ? "Rescheduled" : "Open for registration"}
-            </span>
+            <span className={`guest-tournament-badge ${badge.tone}`}>{badge.label}</span>
           </div>
           <Title className="tshow-name">{featured.name}</Title>
 
@@ -137,12 +173,15 @@ export default function TournamentShowcase({ events = [], now, onRegister, level
               <i className="bi bi-people-fill" aria-hidden="true"></i>
               {playersLabel(featured)}
             </li>
+            {payWith && (
+              <li>
+                <i className="bi bi-wallet2" aria-hidden="true"></i>
+                {payWith}
+              </li>
+            )}
           </ul>
 
-          <button type="button" className="guest-template-primary tshow-register" onClick={() => onRegister(featured.id)}>
-            Register
-            <i className="bi bi-arrow-right" aria-hidden="true"></i>
-          </button>
+          <RegisterButton event={featured} className="guest-template-primary tshow-register" onRegister={onRegister} />
         </div>
       </article>
 
@@ -165,12 +204,15 @@ export default function TournamentShowcase({ events = [], now, onRegister, level
                     <div className="tshow-row-head">
                       <RowTitle>{event.name}</RowTitle>
                       {rowMoved && <span className="guest-tournament-badge is-rescheduled">Rescheduled</span>}
+                      {!rowMoved && isAlmostFull(event) && (
+                        <span className="guest-tournament-badge is-almost-full">Only {describeSlots(event)}</span>
+                      )}
                     </div>
                     <p className="tshow-row-when">
                       {formatEventWhen(event.date, event.time)} {rowAway && <span className="tshow-countdown">{rowAway}</span>}
                     </p>
                     <p className="tshow-row-facts">
-                      {[gameTypeLabel(event.gameType), Number(event.prize) > 0 ? `Prize ${peso(event.prize)}` : "", entryLabel(event), playersLabel(event)]
+                      {[gameTypeLabel(event.gameType), Number(event.prize) > 0 ? `Prize ${peso(event.prize)}` : "", entryLabel(event), playersLabel(event), describeWebsitePayment(event)]
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
@@ -189,10 +231,7 @@ export default function TournamentShowcase({ events = [], now, onRegister, level
                       )}
                     </button>
                   )}
-                  <button type="button" className="guest-template-secondary tshow-row-register" onClick={() => onRegister(event.id)}>
-                    Register
-                    <i className="bi bi-arrow-right" aria-hidden="true"></i>
-                  </button>
+                  <RegisterButton event={event} className="guest-template-secondary tshow-row-register" onRegister={onRegister} />
                 </li>
               );
             })}

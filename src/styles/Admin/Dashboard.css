@@ -478,17 +478,13 @@
 .table-session-alert.warning { border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.1); color: #fbbf24; }
 .table-session-alert.ended { border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.1); color: #fca5a5; }
 
+/* Not a link as a whole any more: its title opens Pool Tables and each table
+   its reservations (ActiveTables). */
 .active-tables-card {
   background: rgba(30, 41, 59, 0.5);
   border: 1px solid rgba(71, 85, 105, 0.3);
   border-radius: 16px;
   padding: 1.5rem;
-  cursor: pointer;
-}
-
-.active-tables-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
 }
 
 .active-tables-card .active-tables-header {

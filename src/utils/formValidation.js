@@ -3,6 +3,7 @@
 // Inventory has its own (inventoryValidation.js); reservations use reservations.js.
 import { formatReservationTime } from "./reservations";
 import { EQUIPMENT_STATUS_LABELS, getDedicatedTable } from "./equipment";
+import { MAX_TOURNAMENT_PLAYERS } from "./tournamentFees";
 
 const sameText = (first, second) =>
   String(first || "").trim().toLowerCase() === String(second || "").trim().toLowerCase();
@@ -77,9 +78,10 @@ const isActiveEvent = (event) => ["upcoming", "active"].includes(String(event?.s
 const ACTIVE_BOOKING = new Set(["pending", "approved", "reserved", "arrived", "seated"]);
 
 /**
- * Create / Edit Tournament: { name, prize, entryFee, tables }. A tournament holds
- * its tables all day, so a table that already has a booking or another
- * tournament that day cannot be given to it.
+ * Create / Edit Tournament: { name, prize, entryFee, maxPlayers, paymentMethods,
+ * tables }. A tournament holds its tables all day, so a table that already has
+ * a booking or another tournament that day cannot be given to it. The limit
+ * can't go under the players already in; a paid one needs a way to pay.
  */
 export const getEventErrors = ({ form, events = [], tables = [], reservations = [] }) => {
   const errors = {};
@@ -96,6 +98,20 @@ export const getEventErrors = ({ form, events = [], tables = [], reservations = 
   if (prizeError) errors.prize = prizeError;
   const feeError = getMoneyError(form.entryFee, "entry fee", { max: MAX_ENTRY_FEE });
   if (feeError) errors.entryFee = feeError;
+
+  if (String(form.maxPlayers ?? "").trim() !== "") {
+    const max = Number(form.maxPlayers);
+    const registered = (events.find((event) => event.id === form.id)?.participants || []).length;
+    if (!Number.isInteger(max) || max < 0) errors.maxPlayers = "Enter the most players as a whole number.";
+    else if (max > MAX_TOURNAMENT_PLAYERS) errors.maxPlayers = `A tournament can take at most ${MAX_TOURNAMENT_PLAYERS} players.`;
+    else if (max > 0 && max < 2) errors.maxPlayers = "A tournament needs room for at least 2 players.";
+    else if (max > 0 && max < registered) {
+      errors.maxPlayers = `${registered} players are already registered. Set at least ${registered}, or leave it empty for no limit.`;
+    }
+  }
+  if (Number(form.entryFee) > 0 && !(form.paymentMethods || []).length) {
+    errors.paymentMethods = "Choose at least one way to pay the entry fee.";
+  }
 
   if (form.date && (form.tables || []).length) {
     const nameOf = (tableId) => tables.find((table) => table.id === tableId || table.name === tableId)?.name || `Table ${tableId}`;
@@ -231,6 +247,26 @@ export const getUsernameError = (value, accounts = [], editId = null) => {
   return "";
 };
 
+/**
+ * A username typed to sign in, checked before it is sent: { hard } when it can
+ * never be right (empty, too short), { soft } when it breaks the rules new
+ * usernames follow (getUsernameError) and is most likely a typo, or null.
+ * Soft is not final: an account made before those rules may still have such a
+ * name (see checkAccountFields in api/users.php), so the login screen lets a
+ * second try through.
+ */
+export const checkSignInUsername = (value) => {
+  const username = String(value || "").trim();
+  if (!username) return { hard: "Enter your username." };
+  if (username.length < 3) return { hard: "Usernames have at least 3 characters." };
+  if (/\s/.test(username)) return { soft: "Usernames have no spaces. Check for a typo." };
+  if (!/^[A-Za-z0-9._-]+$/.test(username)) {
+    return { soft: "Usernames use only letters, numbers, dots (.), dashes (-) and underscores (_)." };
+  }
+  if (username.length > 30) return { soft: "Usernames have at most 30 characters." };
+  return null;
+};
+
 // ---------------------------------------------------------------- Guest players
 
 /** A player's first or last name: letters, spaces, dots, dashes and apostrophes. */
@@ -240,6 +276,18 @@ export const getPersonNameError = (value, label) => {
   if (name.length < 2) return `Your ${label} needs at least 2 letters.`;
   if (name.length > 40) return `Keep your ${label} to 40 characters or fewer.`;
   if (!/^[\p{L}][\p{L} .'-]*$/u.test(name)) return `Use letters only in your ${label}.`;
+  return "";
+};
+
+export const MAX_GUEST_EMAIL = 120;
+
+/** The website forms' optional email: blank, or an address the updates can go to. */
+export const getOptionalEmailError = (value) => {
+  const email = String(value || "").trim();
+  if (!email) return "";
+  if (email.length > MAX_GUEST_EMAIL || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return "Check your email address, or leave it blank.";
+  }
   return "";
 };
 

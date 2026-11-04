@@ -7,13 +7,15 @@ import WalkInModal from "../../Elements/Admin/WalkInModal";
 import TableOrderModal from "../../Elements/Admin/TableOrderModal";
 import useTableOrders from "../../Elements/Admin/useTableOrders";
 import CancelReservationModal from "../../Elements/Admin/CancelReservationModal";
+import TableBookingsModal from "../../Elements/Admin/TableBookingsModal";
 import { useOnlinePayments } from "../../Elements/Global/useOnlinePayments";
 import ConfirmDialog from "../../Elements/Global/ConfirmDialog";
 import { useNotifications } from "../../Elements/Global/useNotifications";
 import { findTableReservation, formatHoursLabel, getExtensionBlock, getTodayDate } from "../../utils/reservations";
 import { getPoolTableErrors } from "../../utils/formValidation";
 import { saveTableReservationStatus } from "../../utils/reservationApi";
-import { getCheckInBlock, hasTableReservation } from "../../utils/tableHolds";
+import { getCheckInBlock, getTableBookings, hasTableReservation } from "../../utils/tableHolds";
+import useBookingPayment from "../../Elements/Global/useBookingPayment";
 import useClock from "../../Elements/Global/useClock";
 
 const UPCOMING_BOOKING = new Set(["pending", "approved", "reserved", "arrived"]);
@@ -44,12 +46,16 @@ export default function PoolTables({
   setReservations,
   products = [],
   setProducts,
+  setTransactions,
   setLogs,
   onEndSession,
+  // "Open Reservations" in a table's Bookings pop-up.
+  onViewReservations,
 }) {
   const { addNotification, showToast } = useNotifications();
   // A website booking's GCash payment moves with it on the server; asked again after a cancel.
   const { refresh: refreshPayments } = useOnlinePayments();
+  const { recordBookingRefund } = useBookingPayment({ staff: "Admin", setReservations, setTransactions, setLogs });
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ name: "", rate: 15, durationMinutes: 60 });
   const [editId, setEditId] = useState(null);
@@ -61,6 +67,9 @@ export default function PoolTables({
   // The reserved table whose Cancel pop-up is open; gone if it is no longer reserved.
   const [cancelTableId, setCancelTableId] = useState(null);
   const cancelTable = tables.find(t => t.id === cancelTableId && t.status === "reserved") || null;
+  // The table whose reservations are open in the pop-up.
+  const [bookingsTableId, setBookingsTableId] = useState(null);
+  const bookingsTable = tables.find(t => t.id === bookingsTableId) || null;
   const [statusFilter, setStatusFilter] = useState("all");
   // Deleting cannot be undone, so the trash button only arms this confirmation.
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -106,7 +115,7 @@ export default function PoolTables({
 
   // Runs once the Cancel pop-up is confirmed. The booking itself is cancelled
   // too, or the reservations sync would mark the table reserved again.
-  // `extra`: whether to give a website booking's accepted GCash payment back.
+  // `extra`: whether to give the booking's payment back.
   const cancelReserve = (id, extra = {}) => {
     const table = tables.find(t => t.id === id);
     if (!table) return;
@@ -118,7 +127,10 @@ export default function PoolTables({
       from: ["approved", "reserved", "arrived"],
       status: "cancelled",
       extra,
-      onSaved: refreshPayments,
+      onSaved: (saved) => {
+        refreshPayments();
+        recordBookingRefund(saved, extra);
+      },
     });
     addNotification({ message: `Reservation for ${table.name || 'Table'} was cancelled.` });
     setTables(prev => prev.map(t =>
@@ -265,6 +277,7 @@ export default function PoolTables({
       onWalkIn={() => openWalkInModal(table.id)}
       onEndSession={() => onEndSession?.(table.id)}
       onOrder={() => setOrderTableId(table.id)}
+      onShowBookings={() => setBookingsTableId(table.id)}
       onCheckIn={() => checkIn(table.id)}
       onCancelReserve={() => setCancelTableId(table.id)}
       onAddTime={(minutes) => addTime(table.id, minutes)}
@@ -297,6 +310,19 @@ export default function PoolTables({
       <div className="pool-tables-grid">
         {visibleTables.map(renderTableCard)}
       </div>
+
+      {bookingsTable && (
+        <TableBookingsModal
+          table={bookingsTable}
+          bookings={getTableBookings(bookingsTable, reservations, new Date(clock))}
+          now={clock}
+          onClose={() => setBookingsTableId(null)}
+          onOpenReservations={() => {
+            setBookingsTableId(null);
+            onViewReservations?.();
+          }}
+        />
+      )}
 
       {/* Walk-in Modal */}
       {modal === "walkin" && (

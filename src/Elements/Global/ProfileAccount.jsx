@@ -86,8 +86,10 @@ function PasswordForm({ onChanged, onCancel }) {
 
 /**
  * Account & security: the username and role (the admin's to change, in
- * Accounts) and the password, changed here with the current one. Every other
- * place the account is signed in then has to sign in again.
+ * Accounts) and the password. The admin changes theirs here with the current
+ * one; every other place the account is signed in then has to sign in again.
+ * An employee's password is the admin's to change too (or their own to reset
+ * with a code, by Forgot password), so they see no Change password here.
  */
 export default function ProfileAccount({ profile, onOpenAccounts, onPasswordChanged }) {
   const [changing, setChanging] = useState(false);
@@ -103,7 +105,7 @@ export default function ProfileAccount({ profile, onOpenAccounts, onPasswordChan
           <p>
             {isAdmin
               ? "Only you know your password."
-              : "Only the admin can change your username or role. Only you know your password."}
+              : "Only the admin can change your username, role or password. Forgot your password? Use Forgot password on the sign-in page, or ask the admin."}
           </p>
         </div>
       </div>
@@ -126,7 +128,7 @@ export default function ProfileAccount({ profile, onOpenAccounts, onPasswordChan
         <div>
           <dt>Password</dt>
           <dd className="profile-password-dots" aria-label="Hidden">••••••••</dd>
-          {!changing && (
+          {isAdmin && !changing && (
             <button
               type="button"
               className="profile-btn-ghost profile-row-action"
@@ -142,7 +144,7 @@ export default function ProfileAccount({ profile, onOpenAccounts, onPasswordChan
         </div>
       </dl>
 
-      {changing && (
+      {isAdmin && changing && (
         <PasswordForm
           onCancel={() => setChanging(false)}
           onChanged={(saved) => {

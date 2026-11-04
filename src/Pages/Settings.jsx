@@ -8,6 +8,7 @@ import {
   parseBackupFile,
 } from "../utils/backup";
 import { exportServerBackup, restoreServerBackup } from "../utils/backupApi";
+import { savePreferences } from "../utils/preferences";
 import { getSignedInUser } from "../utils/session";
 
 const THEME_OPTIONS = [
@@ -22,6 +23,21 @@ const THEME_OPTIONS = [
     label: "Light Mode",
     description: "Brighter screens for daytime and well-lit counters.",
     icon: "bi-sun-fill",
+  },
+];
+
+const DENSITY_OPTIONS = [
+  {
+    value: "comfortable",
+    label: "Default",
+    description: "Larger 18px text, with roomy rows and cards that are easy to tap.",
+    icon: "bi-arrows-expand",
+  },
+  {
+    value: "compact",
+    label: "Compact",
+    description: "16px text with tighter rows and cards, so more fits on a small screen.",
+    icon: "bi-arrows-collapse",
   },
 ];
 
@@ -47,9 +63,19 @@ const formatStamp = (iso) => {
     : date.toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
 };
 
-export default function Settings({ theme, setTheme, canManageBackups = false, showHeader = true, onRestored }) {
+export default function Settings({
+  theme,
+  setTheme,
+  density = "comfortable",
+  setDensity,
+  canManageBackups = false,
+  showHeader = true,
+  onRestored,
+}) {
   const [signedInUser] = useState(readSignedInUser);
   const username = signedInUser?.username || "";
+  // { card: "theme" | "density", tone, text } when a preference could not be saved.
+  const [preferenceNote, setPreferenceNote] = useState(null);
 
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState("");
@@ -59,6 +85,31 @@ export default function Settings({ theme, setTheme, canManageBackups = false, sh
   const [fileInputKey, setFileInputKey] = useState(0);
 
   const credentials = { username, password };
+
+  // Applied here at once, and saved to the account so it follows them.
+  const chooseTheme = (value) => {
+    setTheme(value);
+    setPreferenceNote(null);
+    savePreferences({ theme: value }).catch(() =>
+      setPreferenceNote({
+        card: "theme",
+        tone: "error",
+        text: "Changed on this computer only: it could not be saved to your account. Choose it again to try once more.",
+      }),
+    );
+  };
+
+  const chooseDensity = (value) => {
+    setDensity(value);
+    setPreferenceNote(null);
+    savePreferences({ density: value }).catch(() =>
+      setPreferenceNote({
+        card: "density",
+        tone: "error",
+        text: "Changed on this computer only: it could not be saved to your account. Choose it again to try once more.",
+      }),
+    );
+  };
 
   // The server's tables, in one file: the server keeps everything now.
   const buildCurrentBackup = async (creds) => {
@@ -143,47 +194,102 @@ export default function Settings({ theme, setTheme, canManageBackups = false, sh
         </div>
       )}
 
-      <section className="settings-card">
-        <div className="settings-card-head">
-          <i className="bi bi-palette-fill" aria-hidden="true"></i>
-          <div>
-            <h2>Color Preference</h2>
-            <p>Saved on this device and applied right away.</p>
+      {/* The look of the panel: one above the other, beside Backup & Restore. */}
+      <div className="settings-look">
+        <section className="settings-card">
+          <div className="settings-card-head">
+            <i className="bi bi-palette-fill" aria-hidden="true"></i>
+            <div>
+              <h2>Color Preference</h2>
+              <p>Applied right away and saved to your account, so it follows you to any computer.</p>
+            </div>
           </div>
-        </div>
 
-        <div className="settings-theme-grid" role="radiogroup" aria-label="Color preference">
-          {THEME_OPTIONS.map((option) => {
-            const selected = theme === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                className={`settings-theme-option${selected ? " selected" : ""}`}
-                onClick={() => setTheme(option.value)}
-              >
-                <span className={`settings-theme-preview preview-${option.value}`} aria-hidden="true">
-                  <span className="preview-sidebar"></span>
-                  <span className="preview-body">
-                    <span className="preview-line"></span>
-                    <span className="preview-line short"></span>
+          <div className="settings-theme-grid" role="radiogroup" aria-label="Color preference">
+            {THEME_OPTIONS.map((option) => {
+              const selected = theme === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  className={`settings-theme-option${selected ? " selected" : ""}`}
+                  onClick={() => chooseTheme(option.value)}
+                >
+                  <span className={`settings-theme-preview preview-${option.value}`} aria-hidden="true">
+                    <span className="preview-sidebar"></span>
+                    <span className="preview-body">
+                      <span className="preview-line"></span>
+                      <span className="preview-line short"></span>
+                    </span>
                   </span>
-                </span>
-                <span className="settings-theme-text">
-                  <strong>
-                    <i className={`bi ${option.icon}`} aria-hidden="true"></i>
-                    {option.label}
-                  </strong>
-                  <span>{option.description}</span>
-                </span>
-                {selected && <i className="bi bi-check-circle-fill settings-theme-check" aria-hidden="true"></i>}
-              </button>
-            );
-          })}
-        </div>
-      </section>
+                  <span className="settings-theme-text">
+                    <strong>
+                      <i className={`bi ${option.icon}`} aria-hidden="true"></i>
+                      {option.label}
+                    </strong>
+                    <span>{option.description}</span>
+                  </span>
+                  {selected && <i className="bi bi-check-circle-fill settings-theme-check" aria-hidden="true"></i>}
+                </button>
+              );
+            })}
+          </div>
+          {preferenceNote?.card === "theme" && (
+            <p className={`settings-message ${preferenceNote.tone}`} role="alert">
+              {preferenceNote.text}
+            </p>
+          )}
+        </section>
+
+        {setDensity && (
+          <section className="settings-card">
+            <div className="settings-card-head">
+              <i className="bi bi-arrows-collapse" aria-hidden="true"></i>
+              <div>
+                <h2>Compact View</h2>
+                <p>Spacing for tables, lists and cards. Saved to your account, like the color.</p>
+              </div>
+            </div>
+
+            <div className="settings-theme-grid" role="radiogroup" aria-label="Compact view">
+              {DENSITY_OPTIONS.map((option) => {
+                const selected = density === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    className={`settings-theme-option${selected ? " selected" : ""}`}
+                    onClick={() => chooseDensity(option.value)}
+                  >
+                    <span className={`settings-theme-preview settings-density-preview density-${option.value}`} aria-hidden="true">
+                      {Array.from({ length: option.value === "compact" ? 5 : 3 }, (_, index) => (
+                        <span key={index} className="preview-row"></span>
+                      ))}
+                    </span>
+                    <span className="settings-theme-text">
+                      <strong>
+                        <i className={`bi ${option.icon}`} aria-hidden="true"></i>
+                        {option.label}
+                      </strong>
+                      <span>{option.description}</span>
+                    </span>
+                    {selected && <i className="bi bi-check-circle-fill settings-theme-check" aria-hidden="true"></i>}
+                  </button>
+                );
+              })}
+            </div>
+            {preferenceNote?.card === "density" && (
+              <p className={`settings-message ${preferenceNote.tone}`} role="alert">
+                {preferenceNote.text}
+              </p>
+            )}
+          </section>
+        )}
+      </div>
 
       {canManageBackups && (
         <section className="settings-card">

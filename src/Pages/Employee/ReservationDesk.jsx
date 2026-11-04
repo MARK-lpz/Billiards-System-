@@ -3,41 +3,31 @@ import { useMemo, useState } from "react";
 import "../../styles/Employee/ReservationDesk.css";
 import ReservationStats from "../../Elements/Employee/ReservationStats";
 import ReservationQueue from "../../Elements/Employee/ReservationQueue";
-import ReservationModal from "../../Elements/Employee/ReservationModal.jsx";
+import ReceiptModal from "../../Elements/Admin/ReceiptModal";
 import PaymentCheckModal from "../../Elements/Employee/PaymentCheckModal.jsx";
 import {
   RESERVATION_GRACE_MINUTES,
   describeReservationTime,
   getArrivalWindow,
-  getAvailableReservationTables,
-  getChosenTableError,
-  getReservationValidationMessage,
-  hasReservationConflict,
   hasReservationEnded,
 } from "../../utils/reservations";
 import {
-  getCustomerNameError,
-  getPartySizeError,
   getReservationIssues,
   isBookingTable,
   isGuestPlaying,
 } from "../../utils/reservationIssues";
-import { isValidSmsNumber } from "../../utils/phone";
 import { appendAuditLog } from "../../utils/audit";
+import { describeRefundExtra } from "../../utils/bookingPayments";
 import { useNotifications } from "../../Elements/Global/useNotifications";
-import { useSiteSettings } from "../../Elements/Global/useSiteSettings";
-import {
-  createRemoteReservation,
-  updateRemoteReservation,
-} from "../../utils/reservationApi";
+import { updateRemoteReservation } from "../../utils/reservationApi";
 import { ENDED_SESSION_FIELDS, createTableCharge, endedChargeToast } from "../../utils/tableCharges";
 import RefundModal from "../../Elements/Global/RefundModal";
+import StaffReservationModal from "../../Elements/Global/StaffReservationModal";
+import useBookingPayment from "../../Elements/Global/useBookingPayment";
 import { useOnlinePayments } from "../../Elements/Global/useOnlinePayments";
 import { describeRefund, findReservationPayment, formatPayer, formatPeso } from "../../utils/onlinePayments";
 
 const getCurrentTimestamp = () => Date.now();
-const todayStr = () => new Date().toLocaleDateString("en-CA");
-const createId = () => Date.now() + Math.floor(Math.random() * 1000);
 const HISTORY_STATUSES = new Set(["completed", "cancelled", "rejected", "expired"]);
 
 // `focusReservationId`: a booking opened from the employee's bell. A pending
@@ -50,13 +40,20 @@ export default function ReservationDesk({
   setReservations,
   tableCharges = [],
   setTableCharges,
+  events = [],
+  transactions = [],
+  setTransactions,
   setLogs,
 }) {
   const { addNotification, showToast } = useNotifications();
-  // The hall's hours (Admin > Website), which bookings must keep to.
-  const { hours } = useSiteSettings().settings;
   // The website's GCash payments: each online booking's, with its receipt.
   const { payments, applySaved: applySavedPayment, refresh: refreshPayments } = useOnlinePayments();
+  const { createPaidBooking, recordBookingRefund } = useBookingPayment({
+    staff: "Employee",
+    setReservations,
+    setTransactions,
+    setLogs,
+  });
   // The payment being sent back ({ payment, booking }).
   const [refundTarget, setRefundTarget] = useState(null);
   // Problems are shown in the app, not in the browser's own alert box.
@@ -68,48 +65,16 @@ export default function ReservationDesk({
   const [reservationFilter, setReservationFilter] = useState(() =>
     focusBooking && HISTORY_STATUSES.has(focusBooking.status) ? "history" : "all"
   );
-  const [activeModal, setActiveModal] = useState(null);
+  const [bookingOpen, setBookingOpen] = useState(false);
+  // A new booking's receipt, shown right after it is paid.
+  const [receipt, setReceipt] = useState(null);
   // The online booking whose GCash payment is being checked.
   const [paymentCheckTarget, setPaymentCheckTarget] = useState(() => (focusNeedsCheck ? focusBooking : null));
   const [paymentCheckBusy, setPaymentCheckBusy] = useState(false);
-  const [walkInForm, setWalkInForm] = useState({ customerName: "", tableId: "" });
-  const [reservationForm, setReservationForm] = useState({
-    customerName: "",
-    phone: "",
-    partySize: 2,
-    date: todayStr(),
-    time: "",
-    tableId: "",
-  });
   const availableTables = useMemo(
     () => tables.filter((table) => table.status === "available"),
     [tables]
   );
-
-  const reservationTables = useMemo(
-    () =>
-      getAvailableReservationTables({
-        tables,
-        reservations,
-        date: reservationForm.date,
-        time: reservationForm.time,
-      }),
-    [reservationForm.date, reservationForm.time, reservations, tables]
-  );
-
-  // The picked table must be free at that time: not occupied, reserved or under maintenance.
-  const reservationTableError =
-    activeModal === "reservation"
-      ? getChosenTableError({
-          tables,
-          reservations,
-          tableId: reservationForm.tableId,
-          date: reservationForm.date,
-          time: reservationForm.time,
-        })
-      : "";
-  const chosenTableName =
-    tables.find((table) => String(table.id) === String(reservationForm.tableId))?.name || "";
 
   const summary = useMemo(
     () => ({
@@ -150,14 +115,6 @@ export default function ReservationDesk({
     });
   };
 
-  const updateTable = (tableId, updates) => {
-    setTables((prev) =>
-      prev.map((table) =>
-        table.id === tableId ? { ...table, ...updates } : table
-      )
-    );
-  };
-
   const updateBookingTable = (booking, updates) => {
     setTables((prev) =>
       prev.map((table) =>
@@ -166,139 +123,11 @@ export default function ReservationDesk({
     );
   };
 
-const closeModal = () => setActiveModal(null);
-
-  const handleWalkInSubmit = (e) => {
-    e.preventDefault();
-    const tableId = Number(walkInForm.tableId);
-    if (!walkInForm.customerName.trim() || !tableId) return;
-    const table = tables.find((entry) => entry.id === tableId);
-
-    updateTable(tableId, {
-      status: "occupied",
-      customer: walkInForm.customerName.trim(),
-      startTime: Date.now(),
-    });
-
-    addLog({
-      action: "Accepted walk-in",
-      detail: `${walkInForm.customerName.trim()} started on Table ${tableId}`,
-      customer: { previous: null, current: { name: walkInForm.customerName.trim() } },
-      table: { id: tableId, name: table?.name || `Table ${tableId}`, previousStatus: table?.status, currentStatus: "occupied" },
-    });
-    addNotification({ message: `Walk-in started at ${table?.name || `Table ${tableId}`}.` });
-
-    setWalkInForm({ customerName: "", tableId: "" });
-    closeModal();
-  };
-
-  const handleReservationSubmit = async (e) => {
-    e.preventDefault();
-    const tableId = Number(reservationForm.tableId);
-    if (!reservationForm.customerName.trim() || !tableId) return;
-
-    const nameError = getCustomerNameError(reservationForm.customerName);
-    if (nameError) {
-      showError("Check the customer name", nameError);
-      return;
-    }
-
-    if (!isValidSmsNumber(reservationForm.phone)) {
-      showError("Check the mobile number", "Please enter the customer's mobile number in 09XXXXXXXXX format.");
-      return;
-    }
-
-    const partySizeError = getPartySizeError(reservationForm.partySize);
-    if (partySizeError) {
-      showError("Check the party size", partySizeError);
-      return;
-    }
-
-    const reservationValidationMessage = getReservationValidationMessage(
-      reservationForm.date,
-      reservationForm.time,
-      new Date(),
-      hours
-    );
-    if (reservationValidationMessage) {
-      showError("Check the date and time", reservationValidationMessage);
-      return;
-    }
-
-    if (reservationTableError) {
-      showError("Choose another table", reservationTableError);
-      return;
-    }
-
-    const candidate = {
-      tableId,
-      date: reservationForm.date,
-      time: reservationForm.time,
-    };
-
-    if (reservationForm.date && reservationForm.time && hasReservationConflict(reservations, candidate)) {
-      const tableName = tables.find((entry) => entry.id === tableId)?.name || `Table ${tableId}`;
-      showError("Table already booked", `${tableName} is already reserved for ${reservationForm.date} at ${reservationForm.time}.`);
-      return;
-    }
-
-    const table = tables.find((entry) => entry.id === tableId);
-    const booking = {
-      id: createId(),
-      customerName: reservationForm.customerName.trim(),
-      phone: reservationForm.phone.trim(),
-      partySize: Number(reservationForm.partySize),
-      date: reservationForm.date,
-      time: reservationForm.time,
-      tableId,
-      tableName: table?.name || `Table ${tableId}`,
-      // Booked in person at the front desk, so staff confirm it on the spot: no
-      // admin approval, which would leave a lone employee unable to serve anyone.
-      status: "approved",
-      source: "new",
-    };
-
-    try {
-      const savedBooking = await createRemoteReservation(booking);
-      setReservations((prev) => [savedBooking, ...prev]);
-
-      addLog({
-        action: "Created reservation",
-        detail: `${savedBooking.customerName} was booked at the front desk for ${savedBooking.tableName} on ${savedBooking.date} ${savedBooking.time || ""}`.trim(),
-        customer: {
-          previous: null,
-          current: {
-            name: savedBooking.customerName,
-            phone: savedBooking.phone,
-            partySize: savedBooking.partySize,
-          },
-        },
-        reservation: {
-          id: savedBooking.id,
-          previousStatus: null,
-          currentStatus: "approved",
-          date: savedBooking.date,
-          time: savedBooking.time,
-        },
-        table: { id: savedBooking.tableId, name: savedBooking.tableName, previousStatus: table?.status, currentStatus: table?.status },
-      });
-      addNotification({
-        message: `${savedBooking.customerName} is booked for ${savedBooking.tableName} on ${savedBooking.date} at ${savedBooking.time}.`,
-      });
-
-      setReservationForm({
-        customerName: "",
-        phone: "",
-        partySize: 2,
-        date: todayStr(),
-        time: "",
-        tableId: "",
-      });
-
-      closeModal();
-    } catch (error) {
-      showError("Reservation not saved", error.message || "Unable to save the reservation.");
-    }
+  // Paid in the booking window; what goes wrong stays there.
+  const createBooking = async (paid) => {
+    const sale = await createPaidBooking(paid);
+    setBookingOpen(false);
+    setReceipt(sale);
   };
 
   // The server is asked first, so the desk never shows a change it refused.
@@ -435,8 +264,8 @@ const closeModal = () => setActiveModal(null);
     });
   };
 
-  // `extra`: for a cancelled website booking the hall had accepted the payment
-  // of, whether to give it back ({ refundPayment }).
+  // `extra`: for a cancelled booking that was paid for, whether to give the
+  // payment back (toRefundExtra in bookingPayments.js).
   const handleBookingStatus = async (bookingId, nextStatus, extra = {}) => {
     const booking = reservations.find((entry) => entry.id === bookingId);
     if (!booking) return;
@@ -468,6 +297,7 @@ const closeModal = () => setActiveModal(null);
     }
 
     if (!(await saveBookingStatus(booking, nextStatus, extra))) return;
+    recordBookingRefund(booking, extra);
 
     if (nextStatus === "arrived") {
       addLog({
@@ -491,9 +321,9 @@ const closeModal = () => setActiveModal(null);
         status: "occupied",
         customer: booking.customerName,
         startTime: Date.now(),
-        // An online guest paid for the hours they picked, so the timer runs that
-        // long instead of the table's default session.
-        ...(booking.source === "online" && Number(booking.durationMinutes) > 0
+        // A guest paid for the hours they picked, so the timer runs that long
+        // instead of the table's default session.
+        ...(Number(booking.durationMinutes) > 0
           ? { durationMinutes: Number(booking.durationMinutes), addedMinutes: 0 }
           : {}),
       });
@@ -524,13 +354,7 @@ const closeModal = () => setActiveModal(null);
       }
       addLog({
         action: nextStatus === "cancelled" ? "Cancelled booking" : "Completed booking",
-        detail: `${booking.customerName} ${nextStatus} for ${booking.tableName}${
-          "refundPayment" in extra
-            ? extra.refundPayment
-              ? ". The GCash payment is listed to send back."
-              : ". The GCash payment is kept."
-            : ""
-        }`,
+        detail: `${booking.customerName} ${nextStatus} for ${booking.tableName}.${describeRefundExtra(booking, extra)}`,
         customer: {
           previous: { name: booking.customerName, phone: booking.phone },
           current: nextStatus === "completed" ? { name: booking.customerName, phone: booking.phone } : null,
@@ -556,7 +380,7 @@ const closeModal = () => setActiveModal(null);
           <button
             type="button"
             className="rd-primary-btn"
-            onClick={() => setActiveModal("reservation")}
+            onClick={() => setBookingOpen(true)}
           >
             <i className="bi bi-calendar-plus me-2"></i>
             New Reservation
@@ -609,22 +433,18 @@ const closeModal = () => setActiveModal(null);
         />
       )}
 
-      {activeModal && (
-        <ReservationModal
-          mode={activeModal}
-          walkInForm={walkInForm}
-          setWalkInForm={setWalkInForm}
-          reservationForm={reservationForm}
-          setReservationForm={setReservationForm}
-          availableTables={availableTables}
-          reservationTables={reservationTables}
-          tableError={reservationTableError}
-          chosenTableName={chosenTableName}
-          onClose={closeModal}
-          onWalkInSubmit={handleWalkInSubmit}
-          onReservationSubmit={handleReservationSubmit}
+      {bookingOpen && (
+        <StaffReservationModal
+          tables={tables}
+          reservations={reservations}
+          events={events}
+          transactions={transactions}
+          onCreate={createBooking}
+          onClose={() => setBookingOpen(false)}
         />
       )}
+
+      {receipt && <ReceiptModal receipt={receipt} onClose={() => setReceipt(null)} />}
     </div>
   );
 }

@@ -1,0 +1,142 @@
+/* The booking window the admin and the front desk share
+   (Elements/Global/StaffReservationModal.jsx). Its fields, buttons and payment
+   window come from Modal.css and CartPanel.css. */
+.staff-booking-dialog {
+  width: calc(100% - 16px);
+  max-width: 560px;
+}
+
+/* .modal does not scroll, so the window keeps inside the screen and its body
+   scrolls: the title and the buttons stay in reach on a short screen. */
+.modal-content.staff-booking {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 16px);
+}
+
+.staff-booking .modal-header {
+  padding: 12px 20px;
+}
+
+.staff-booking .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px 20px;
+  overflow-y: auto;
+}
+
+.staff-booking .modal-footer {
+  padding: 10px 20px;
+}
+
+.modal-content.staff-booking textarea.form-control {
+  min-height: 58px;
+}
+
+.staff-booking-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
+}
+
+.staff-booking-grid > * {
+  min-width: 0;
+}
+
+.staff-booking-wide {
+  grid-column: 1 / -1;
+}
+
+.staff-booking .form-control:disabled,
+.staff-booking .form-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.staff-booking-error,
+.staff-booking-note,
+.staff-booking-free,
+.staff-booking-ends {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.staff-booking-error { color: #fca5a5; }
+.staff-booking-note { color: #94a3b8; }
+.staff-booking-ends { margin-top: 0; color: #6ee7b7; font-weight: 600; }
+
+.staff-booking-free {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  color: #93c5fd;
+}
+
+.staff-booking-pay {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px 14px;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.staff-booking-pay .payment-methods {
+  margin: 0;
+}
+
+.staff-booking-pay .staff-booking-note {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.staff-booking-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.staff-booking-total span {
+  display: grid;
+  font-weight: 600;
+}
+
+.staff-booking-total small {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.staff-booking-total strong {
+  color: #10b981;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+/* These beat the theme's ".light .modal-body p", which would turn them black. */
+.light .modal-body .staff-booking-error { color: #b91c1c !important; }
+.light .modal-body .staff-booking-note,
+.light .modal-body .staff-booking-total small { color: #475569 !important; }
+.light .modal-body .staff-booking-ends { color: #047857 !important; }
+.light .modal-body .staff-booking-free { color: #1d4ed8 !important; }
+.light .modal-body .staff-booking-total strong { color: #047857 !important; }
+
+/* A booking with no payment shows no chip. */
+.rd-pay-status:empty,
+.reservations-pay-status:empty {
+  display: none;
+}
+
+/* The refund asked when a paid desk booking is cancelled. */
+.pay-choice-reference {
+  margin-top: 8px;
+}
+
+@media (max-width: 480px) {
+  .staff-booking-grid,
+  .staff-booking-pay {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

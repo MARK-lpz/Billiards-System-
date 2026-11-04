@@ -269,6 +269,20 @@
   padding-inline: 1.6rem;
 }
 
+/* Full, or signed up for at the hall: says so where Register was. */
+.tshow .tshow-register-closed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-color: rgba(226, 236, 230, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+  color: #aeb6b0;
+  cursor: default;
+  pointer-events: none;
+}
+
 /* ---------- The rest ---------- */
 
 .tshow-more-title {

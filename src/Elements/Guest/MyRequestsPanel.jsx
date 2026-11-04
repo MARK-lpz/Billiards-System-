@@ -38,7 +38,8 @@ export default function MyRequestsPanel({ requests, onForget, onClose }) {
           </button>
         </header>
         <p className="my-requests-intro">
-          Table bookings and tournament sign-ups sent from this phone or computer. They update by themselves.
+          Table bookings and tournament sign-ups sent from this phone or computer. They update by themselves, within
+          seconds while one is waiting for its payment to be checked.
         </p>
 
         {requests.length ? (

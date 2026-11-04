@@ -7,6 +7,8 @@ import TournamentForm from './Pages/Guest/billiards-form'
 import OnlineReservationForm from './Pages/Guest/OnlineReservationForm'
 import GuestLanding from './Pages/Guest/GuestLanding'
 import TournamentsPage from './Pages/Guest/TournamentsPage'
+import AnnouncementsPage from './Pages/Guest/AnnouncementsPage'
+import AboutPage from './Pages/Guest/AboutPage'
 import LoadingBar from './Elements/Global/Loading'
 import SplashScreen from './Elements/Global/SplashScreen'
 import './styles/Modal.css'
@@ -22,6 +24,10 @@ import './styles/brand.css'
 // Each staff panel's layout; after the brand layer, scoped to its own shell.
 import './styles/Admin/AdminLayout.css'
 import './styles/Employee/EmployeeLayout.css'
+// The number cards and the table bookings pop-up, which both panels use.
+import './styles/DashboardCards.css'
+// Compact view (Settings): tighter spacing over every page above, so it comes last.
+import './styles/compact.css'
 import { NotificationProvider } from './Elements/Global/NotifContext'
 import { SiteSettingsProvider } from './Elements/Global/SiteSettingsProvider'
 import { OnlinePaymentsProvider } from './Elements/Global/OnlinePaymentsProvider'
@@ -41,6 +47,7 @@ import { mergeChanges } from './utils/listSync'
 import { TABLE_CHARGES_STORAGE_KEY } from './utils/tableCharges'
 import { applyTableHolds } from './utils/tableHolds'
 import { clearSignedInUser, getAuthToken, getSignedInUser, noteSignInEnded } from './utils/session'
+import { getMyPreferences } from './utils/preferences'
 import { SESSION_ENDED_EVENT, apiFetch } from './utils/apiFetch'
 import { fetchRemoteIssues } from './utils/issueApi'
 import { isExpiredReport } from './utils/issues'
@@ -152,6 +159,11 @@ const issueSyncKey = (issue) => [
   issue?.staff || "",
   issue?.timestamp || `${issue?.date || ""} ${issue?.time || ""}`,
 ].join("|")
+
+// The switch is asked every few seconds: the same answer keeps the old object,
+// so nothing re-renders for it.
+const sameOrNew = (previous, next) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next)
+
 function App() {
   const isStaffApp = typeof window !== "undefined" && isStaffHost(window.location.hostname)
   const [currentView, setCurrentView] = useState(() => (
@@ -163,6 +175,9 @@ function App() {
   const [splash, setSplash] = useState(() => (isStaffApp && readSavedRole() ? 'shown' : null))
   const [loading, setLoading] = useState(false)
   const [onlineReservationsOpen, setOnlineReservationsOpen] = useState(true)
+  // Why it is closed and until when, and who changed it (staff only): the
+  // server's whole answer (backend/config/reservation_settings.php).
+  const [onlineReservationsStatus, setOnlineReservationsStatus] = useState({})
   const [isUpdatingOnlineReservations, setIsUpdatingOnlineReservations] = useState(false)
   // The tournament a player picked before opening the registration form, and
   // the page the form's Back button returns to.
@@ -183,6 +198,15 @@ function App() {
       return localStorage.getItem('theme') || 'dark'
     } catch {
       return 'dark'
+    }
+  })
+
+  // "comfortable" or "compact" (Settings); kept like the theme.
+  const [density, setDensity] = useState(() => {
+    try {
+      return localStorage.getItem('density') === 'compact' ? 'compact' : 'comfortable'
+    } catch {
+      return 'comfortable'
     }
   })
 
@@ -241,6 +265,7 @@ function App() {
         const settings = await fetchReservationSettings()
         if (!cancelled) {
           setOnlineReservationsOpen(settings.onlineReservationsOpen !== false)
+          setOnlineReservationsStatus((previous) => sameOrNew(previous, settings))
         }
       } catch (error) {
         console.warn('Unable to sync online reservation availability', error)
@@ -521,6 +546,23 @@ function App() {
     catch (error) { console.warn('Unable to persist theme', error) }
   }, [theme])
 
+  useEffect(() => {
+    try { localStorage.setItem('density', density) }
+    catch (error) { console.warn('Unable to persist density', error) }
+  }, [density])
+
+  // Closing or leaving the tab while signed in asks first (the browser's own
+  // "Leave site?"), as Logout does in the menu. The browser asks on a reload too.
+  useEffect(() => {
+    if (!staffSignedIn) return
+    const askFirst = (event) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', askFirst)
+    return () => window.removeEventListener('beforeunload', askFirst)
+  }, [staffSignedIn])
+
 
   useEffect(() => {
     try { localStorage.setItem('customers', JSON.stringify(customers)) }
@@ -590,6 +632,10 @@ function App() {
 
   const handleLogin = (role) => {
     if (!role) return
+    // The look this account chose in Settings, on whichever computer it was.
+    const { theme: accountTheme, density: accountDensity } = getMyPreferences()
+    if (accountTheme) setTheme(accountTheme)
+    if (accountDensity) setDensity(accountDensity)
     setLoading(true)
     setTimeout(() => {
       setUserRole(role.toLowerCase())
@@ -622,8 +668,20 @@ function App() {
         window.history.pushState({}, "", nextPath)
       }
       setCurrentView(view)
+      // Each page opens at its top, not where the last one was scrolled to.
+      window.scrollTo(0, 0)
       setLoading(false)
     }, 300)
+  }
+
+  // What every public page's header needs (Elements/Guest/GuestHeader.jsx):
+  // the way to the other pages and to the booking form, and whether it is open.
+  const guestPageProps = {
+    events,
+    onNavigate: navigateTo,
+    onOpenReservation: () => navigateTo('reservation'),
+    onlineReservationsOpen,
+    onlineReservationsStatus,
   }
 
   const openTournamentForm = (eventId = null, returnView = 'guest') => {
@@ -632,13 +690,16 @@ function App() {
     navigateTo('form')
   }
 
-  const handleOnlineReservationAvailability = async (nextAvailability) => {
+  // `closing`: { reason, note, until } when closing (OnlineReservationsSwitch).
+  const handleOnlineReservationAvailability = async (nextAvailability, closing = null) => {
     setIsUpdatingOnlineReservations(true)
     try {
       const settings = await updateReservationSettings({
         onlineReservationsOpen: nextAvailability,
+        closing,
       })
       setOnlineReservationsOpen(settings.onlineReservationsOpen !== false)
+      setOnlineReservationsStatus((previous) => sameOrNew(previous, settings))
     } catch (error) {
       console.warn('Unable to update online reservation availability', error)
       throw error
@@ -654,7 +715,7 @@ function App() {
     >
       <SiteSettingsProvider>
       <OnlinePaymentsProvider enabled={staffSignedIn}>
-      <div className={theme}>
+      <div className={density === 'compact' ? `${theme} compact` : theme}>
         <SyncNotices />
         <LoadingBar loading={loading} />
         {splash && <SplashScreen leaving={splash === 'leaving'} />}
@@ -665,21 +726,21 @@ function App() {
 
         {!isStaffApp && currentView === 'guest' && (
           <GuestLanding
-            onOpenReservation={() => navigateTo('reservation')}
+            {...guestPageProps}
             onOpenTournamentForm={(eventId) => openTournamentForm(eventId, 'guest')}
-            onOpenTournaments={() => navigateTo('tournaments')}
-            onlineReservationsOpen={onlineReservationsOpen}
-            events={events}
           />
         )}
 
         {!isStaffApp && currentView === 'tournaments' && (
           <TournamentsPage
-            events={events}
-            onGoBack={() => navigateTo('guest')}
+            {...guestPageProps}
             onRegister={(eventId) => openTournamentForm(eventId, 'tournaments')}
           />
         )}
+
+        {!isStaffApp && currentView === 'announcements' && <AnnouncementsPage {...guestPageProps} />}
+
+        {!isStaffApp && currentView === 'about' && <AboutPage {...guestPageProps} />}
 
         {!isStaffApp && currentView === 'reservation' && (
           <OnlineReservationForm
@@ -689,6 +750,7 @@ function App() {
             setReservations={setReservations}
             onGoBack={() => navigateTo('guest')}
             onlineReservationsOpen={onlineReservationsOpen}
+            onlineReservationsStatus={onlineReservationsStatus}
           />
         )}
 
@@ -730,7 +792,10 @@ function App() {
             setEvents={setEvents}
             theme={theme}
             setTheme={setTheme}
+            density={density}
+            setDensity={setDensity}
             onlineReservationsOpen={onlineReservationsOpen}
+            onlineReservationsStatus={onlineReservationsStatus}
             isUpdatingOnlineReservations={isUpdatingOnlineReservations}
             onOnlineReservationsChange={handleOnlineReservationAvailability}
           />
@@ -758,9 +823,12 @@ function App() {
             setEvents={setEvents}
             theme={theme}
             setTheme={setTheme}
+            density={density}
+            setDensity={setDensity}
             customers={customers}
             setCustomers={setCustomers}
             onlineReservationsOpen={onlineReservationsOpen}
+            onlineReservationsStatus={onlineReservationsStatus}
             isUpdatingOnlineReservations={isUpdatingOnlineReservations}
             onOnlineReservationsChange={handleOnlineReservationAvailability}
           />

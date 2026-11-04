@@ -1,13 +1,14 @@
 import { useState } from "react";
 import "../../styles/Admin/Reservations.css";
 import ReservationFilters from "../../Elements/Admin/ReservationFilters";
+import ReceiptModal from "../../Elements/Admin/ReceiptModal";
 import ReservationHeader from "../../Elements/Admin/ReservationHeader";
-import ReservationModal from "../../Elements/Admin/ReservationModal";
 import ReservationsTable from "../../Elements/Admin/ReservationsTable";
 import useAdminReservations from "../../Elements/Admin/useAdminReservations";
 import Pagination from "../../Elements/Global/Pagination";
 import PaymentReviewModal from "../../Elements/Global/PaymentReviewModal";
 import RefundModal from "../../Elements/Global/RefundModal";
+import StaffReservationModal from "../../Elements/Global/StaffReservationModal";
 import { useOnlinePayments } from "../../Elements/Global/useOnlinePayments";
 import { appendAuditLog } from "../../utils/audit";
 import { describeReservationTime } from "../../utils/reservations";
@@ -22,6 +23,9 @@ export default function Reservations({
   setTables,
   tableCharges,
   setTableCharges,
+  events = [],
+  transactions = [],
+  setTransactions,
   setLogs,
 }) {
   const reservationState = useAdminReservations({
@@ -32,6 +36,7 @@ export default function Reservations({
     setTables,
     tableCharges,
     setTableCharges,
+    setTransactions,
     setLogs,
   });
   // The website's GCash payments: one opened with its receipt, or being sent back
@@ -127,18 +132,20 @@ export default function Reservations({
       )}
 
       {reservationState.modal === "form" && (
-        <ReservationModal
-          form={reservationState.form}
-          setForm={reservationState.setForm}
-          editId={reservationState.editId}
-          scheduleError={reservationState.scheduleError}
-          tableError={reservationState.tableError}
-          chosenTableName={reservationState.chosenTableName}
-          tables={reservationState.availableTables}
-          onClose={() => reservationState.setModal(null)}
-          onSave={reservationState.saveReservation}
+        <StaffReservationModal
+          key={reservationState.editedReservation?.id ?? "new"}
+          booking={reservationState.editedReservation}
+          tables={tables}
+          reservations={reservations}
+          events={events}
+          transactions={transactions}
+          onCreate={reservationState.createBooking}
+          onSaveEdit={reservationState.saveEdit}
+          onClose={reservationState.closeForm}
         />
       )}
+
+      {reservationState.receipt && <ReceiptModal receipt={reservationState.receipt} onClose={reservationState.closeReceipt} />}
     </div>
   );
 }

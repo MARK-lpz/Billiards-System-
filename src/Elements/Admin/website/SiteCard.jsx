@@ -15,9 +15,10 @@ const describeSaved = ({ savedAt, savedBy }) => {
  * sets and a status chip, then the fields on the left and what customers see
  * on the right (`preview`; below the fields on a narrow screen), then its own
  * Save. `draft` is what useSiteSectionDraft returns. `blocked` says what to fix
- * before the changes can be saved (Save stays off; Undo stays on).
+ * before the changes can be saved (Save stays off; Undo stays on). `readOnly`
+ * leaves Save out, for staff who may only look (the employee's GCash).
  */
-export default function SiteCard({ icon, title, description, chip, draft, blocked = "", preview, previewDark = false, children }) {
+export default function SiteCard({ icon, title, description, chip, draft, blocked = "", preview, previewDark = false, readOnly = false, children }) {
   // An id has no spaces ("Opening hours" -> "website-opening-hours"), or aria-labelledby reads it as two ids.
   const headingId = `website-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   const reportDirty = useContext(WebsiteTabsContext);
@@ -48,11 +49,13 @@ export default function SiteCard({ icon, title, description, chip, draft, blocke
       </div>
 
       <div className="website-card-foot">
-        <button type="button" className="website-btn primary" onClick={draft.save} disabled={!draft.dirty || draft.saving || Boolean(blocked)}>
-          <i className="bi bi-check2-circle" aria-hidden="true"></i>
-          {draft.saving ? "Saving..." : "Save"}
-        </button>
-        {draft.dirty && !draft.saving && (
+        {!readOnly && (
+          <button type="button" className="website-btn primary" onClick={draft.save} disabled={!draft.dirty || draft.saving || Boolean(blocked)}>
+            <i className="bi bi-check2-circle" aria-hidden="true"></i>
+            {draft.saving ? "Saving..." : "Save"}
+          </button>
+        )}
+        {!readOnly && draft.dirty && !draft.saving && (
           <button type="button" className="website-btn ghost" onClick={draft.reset}>
             Undo changes
           </button>

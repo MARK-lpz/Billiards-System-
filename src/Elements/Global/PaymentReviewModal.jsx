@@ -41,7 +41,7 @@ export default function PaymentReviewModal({
   return (
     <>
       <div className="modal show" tabIndex="-1" role="dialog" aria-modal="true" aria-labelledby="payment-review-title" style={{ display: "flex" }}>
-        <div className="modal-dialog modal-dialog-centered">
+        <div className="modal-dialog modal-dialog-centered pay-check-dialog has-receipt">
           <div className="modal-content">
             <div className="modal-header">
               <h5 className="modal-title" id="payment-review-title">
@@ -59,95 +59,99 @@ export default function PaymentReviewModal({
                 </p>
               )}
 
-              <div className="payment-review-summary">
-                {[
-                  ...lines,
-                  ["Paid from", formatPayer(payment) || "Not given"],
-                  ["Status", <PaymentStatusChip key="status" payment={payment} />],
-                ].map(([label, value]) => (
-                  <div className="payment-review-row" key={label}>
-                    <span>{label}</span>
-                    <strong>{value}</strong>
+              <div className="pay-check-layout">
+                <div className="payment-review-summary">
+                  {[
+                    ...lines,
+                    ["Paid from", formatPayer(payment) || "Not given"],
+                    ["Status", <PaymentStatusChip key="status" payment={payment} />],
+                  ].map(([label, value]) => (
+                    <div className="payment-review-row" key={label}>
+                      <span>{label}</span>
+                      <strong>{value}</strong>
+                    </div>
+                  ))}
+                  <div className="payment-review-total">
+                    <span>{checking ? "Amount to find" : "Amount"}</span>
+                    <strong>{formatPeso(payment.amount)}</strong>
                   </div>
-                ))}
-                <div className="payment-review-total">
-                  <span>{checking ? "Amount to find" : "Amount"}</span>
-                  <strong>{formatPeso(payment.amount)}</strong>
+                </div>
+
+                <ReceiptImage payment={payment} />
+
+                <div className="pay-check-action">
+                  {confirmingReject ? (
+                    <div className="payment-final-confirmation payment-check-step" role="alert">
+                      <i className="bi bi-exclamation-triangle"></i>
+                      <div>
+                        <strong>Turn this payment down?</strong>
+                        <span>{rejectText || "Use this when the payment cannot be found. It is listed to send back."}</span>
+                      </div>
+                    </div>
+                  ) : checking ? (
+                    <div className="payment-verify-panel">
+                      <div className="payment-verify-heading">
+                        <i className="bi bi-search"></i>
+                        <div>
+                          <strong>Find the payment in GCash</strong>
+                          <span>
+                            Look for {formatPeso(payment.amount)} whose reference starts with the digits below, then type the last{" "}
+                            {VERIFY_DIGITS} digits of that reference.
+                          </span>
+                        </div>
+                      </div>
+                      <div className="payment-verify-reference">
+                        <span>Reference from the customer</span>
+                        <strong>{maskReference(reference)}</strong>
+                      </div>
+                      <label className="payment-field-label" htmlFor="payment-review-digits">
+                        Last {VERIFY_DIGITS} digits in GCash
+                      </label>
+                      <input
+                        id="payment-review-digits"
+                        type="text"
+                        className={`payment-verify-input ${verification.mismatch ? "is-invalid-reference" : ""} ${
+                          verification.matches ? "is-valid-reference" : ""
+                        }`}
+                        placeholder={"0".repeat(VERIFY_DIGITS)}
+                        inputMode="numeric"
+                        autoComplete="off"
+                        maxLength={VERIFY_DIGITS}
+                        value={verifyDigits}
+                        onChange={(event) => setVerifyDigits(sanitizeVerifyDigits(event.target.value))}
+                        aria-invalid={verification.mismatch}
+                        disabled={busy}
+                      />
+                      {verification.mismatch && (
+                        <p className="payment-field-error" role="alert">
+                          These digits do not match the customer&apos;s reference. Check that you found the right payment.
+                        </p>
+                      )}
+                      {verification.matches && (
+                        <p className="payment-verify-success" role="status">
+                          <i className="bi bi-check-circle-fill"></i> Payment found. You can accept it.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="pay-review-history">
+                      {payment.status === "refunded"
+                        ? describeRefund(payment)
+                        : payment.status === "accepted"
+                          ? `Accepted${payment.decidedBy ? ` by ${payment.decidedBy}` : ""}. Reference ${payment.reference}.`
+                          : payment.status === "refund_due"
+                            ? `Turned down${payment.decidedBy ? ` by ${payment.decidedBy}` : ""}: send ${formatPeso(payment.amount)} back to ${formatPayer(payment)}.`
+                            : `Reference ${payment.reference}. Not checked yet.`}
+                    </p>
+                  )}
+
+                  {error && (
+                    <p className="payment-field-error" role="alert">
+                      {error}
+                    </p>
+                  )}
                 </div>
               </div>
-
-              <ReceiptImage payment={payment} />
-
-              {confirmingReject ? (
-                <div className="payment-final-confirmation payment-check-step" role="alert">
-                  <i className="bi bi-exclamation-triangle"></i>
-                  <div>
-                    <strong>Turn this payment down?</strong>
-                    <span>{rejectText || "Use this when the payment cannot be found. It is listed to send back."}</span>
-                  </div>
-                </div>
-              ) : checking ? (
-                <div className="payment-verify-panel">
-                  <div className="payment-verify-heading">
-                    <i className="bi bi-search"></i>
-                    <div>
-                      <strong>Find the payment in GCash</strong>
-                      <span>
-                        Look for {formatPeso(payment.amount)} whose reference starts with the digits below, then type the last{" "}
-                        {VERIFY_DIGITS} digits of that reference.
-                      </span>
-                    </div>
-                  </div>
-                  <div className="payment-verify-reference">
-                    <span>Reference from the customer</span>
-                    <strong>{maskReference(reference)}</strong>
-                  </div>
-                  <label className="payment-field-label" htmlFor="payment-review-digits">
-                    Last {VERIFY_DIGITS} digits in GCash
-                  </label>
-                  <input
-                    id="payment-review-digits"
-                    type="text"
-                    className={`payment-verify-input ${verification.mismatch ? "is-invalid-reference" : ""} ${
-                      verification.matches ? "is-valid-reference" : ""
-                    }`}
-                    placeholder={"0".repeat(VERIFY_DIGITS)}
-                    inputMode="numeric"
-                    autoComplete="off"
-                    maxLength={VERIFY_DIGITS}
-                    value={verifyDigits}
-                    onChange={(event) => setVerifyDigits(sanitizeVerifyDigits(event.target.value))}
-                    aria-invalid={verification.mismatch}
-                    disabled={busy}
-                  />
-                  {verification.mismatch && (
-                    <p className="payment-field-error" role="alert">
-                      These digits do not match the customer&apos;s reference. Check that you found the right payment.
-                    </p>
-                  )}
-                  {verification.matches && (
-                    <p className="payment-verify-success" role="status">
-                      <i className="bi bi-check-circle-fill"></i> Payment found. You can accept it.
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <p className="pay-review-history">
-                  {payment.status === "refunded"
-                    ? describeRefund(payment)
-                    : payment.status === "accepted"
-                      ? `Accepted${payment.decidedBy ? ` by ${payment.decidedBy}` : ""}. Reference ${payment.reference}.`
-                      : payment.status === "refund_due"
-                        ? `Turned down${payment.decidedBy ? ` by ${payment.decidedBy}` : ""}: send ${formatPeso(payment.amount)} back to ${formatPayer(payment)}.`
-                        : `Reference ${payment.reference}. Not checked yet.`}
-                </p>
-              )}
-
-              {error && (
-                <p className="payment-field-error" role="alert">
-                  {error}
-                </p>
-              )}
             </div>
 
             <div className="modal-footer">

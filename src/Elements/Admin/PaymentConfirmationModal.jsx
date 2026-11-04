@@ -9,6 +9,7 @@ import {
   sanitizeVerifyDigits,
   validateReference,
 } from "../../utils/paymentReference";
+import { numberKeys } from "../../utils/numberField";
 import { checkGcashReference, recordCounterGcash } from "../../utils/paymentsApi";
 import { formatMobile } from "../../utils/siteSettings";
 import { useCounterGcash } from "../Global/useCounterGcash";
@@ -23,14 +24,20 @@ const OFFLINE_MESSAGE =
 // More change than this is almost surely a typo in the cash received.
 const MAX_CHANGE = 10000;
 
+// `onSubmit(details)`, when given, saves the payment together with what it pays
+// for, GCash reference included, instead of `onConfirm`. What it throws stays in
+// this window. `intro` and `finalNote` replace the words meant for a sale.
 export default function PaymentConfirmationModal({
   cart,
   total,
   method,
   billLabel = "",
+  intro = null,
+  finalNote = "This will record the sale and clear the running bill.",
   usedReferences = [],
   onCancel,
   onConfirm,
+  onSubmit = null,
 }) {
   const [cashReceived, setCashReceived] = useState(String(total));
   const [referenceNumber, setReferenceNumber] = useState("");
@@ -140,6 +147,17 @@ export default function PaymentConfirmationModal({
       referenceClosingDigits: isEwallet ? expectedClosingDigits : null,
       referenceVerifiedAt: isEwallet ? verifiedTimestamp() : null,
     };
+    if (onSubmit) {
+      setBusy("saving");
+      setServerError("");
+      try {
+        await onSubmit(details);
+      } catch (error) {
+        setBusy("");
+        setServerError(error.status ? error.message : OFFLINE_MESSAGE);
+      }
+      return;
+    }
     if (!isEwallet) {
       onConfirm(details);
       return;
@@ -182,7 +200,9 @@ export default function PaymentConfirmationModal({
 
             <div className="modal-body">
               <p className="payment-confirmation-copy">
-                {billLabel ? (
+                {intro ? (
+                  intro
+                ) : billLabel ? (
                   <>
                     Paying <strong>{billLabel}</strong> only. Other open bills stay as they are.
                   </>
@@ -301,6 +321,7 @@ export default function PaymentConfirmationModal({
                         inputMode="decimal"
                         value={cashReceived}
                         onChange={(event) => setCashReceived(event.target.value)}
+                        {...numberKeys({ decimal: true })}
                         autoFocus
                       />
                     </div>
@@ -381,9 +402,14 @@ export default function PaymentConfirmationModal({
                   <i className="bi bi-question-circle"></i>
                   <div>
                     <strong>Complete this payment?</strong>
-                    <span>This will record the sale and clear the running bill.</span>
+                    <span>{finalNote}</span>
                   </div>
                 </div>
+              )}
+              {finalConfirmationOpen && !isEwallet && serverError && (
+                <p className="payment-field-error" role="alert">
+                  {serverError}
+                </p>
               )}
             </div>
 
@@ -393,7 +419,7 @@ export default function PaymentConfirmationModal({
                   <button type="button" className="btn btn-secondary" onClick={backToDetails} disabled={busy === "saving"}>
                     No, Go Back
                   </button>
-                  <button type="button" className="btn btn-success" onClick={confirm} disabled={!canComplete}>
+                  <button type="button" className="btn btn-success" onClick={confirm} disabled={!canComplete || Boolean(busy)}>
                     <i className="bi bi-check-circle"></i>
                     {busy === "saving" ? "Saving..." : isEwallet ? "Approve Payment" : "Yes, Complete Payment"}
                   </button>

@@ -4,14 +4,15 @@ import { getTableOrders, getTablePayments, getUnpaidOrderLines, sumOrders } from
 
 /**
  * A table charge is the bill for one table session: the table time and the food
- * and drinks ordered at the table, less what was paid online or in Sales / POS
- * while the customer kept playing. Ending a session from Pool Tables takes what
- * is left there and then; one ended from a booking waits in Sales / POS.
+ * and drinks ordered at the table, less what was paid with the booking or in
+ * Sales / POS while the customer kept playing. Ending a session from Pool Tables
+ * takes what is left there and then; one ended from a booking waits in Sales / POS.
  */
 
 export const TABLE_CHARGES_STORAGE_KEY = "tableCharges";
 
-// Only a booking whose GCash payment was checked by staff counts as paid.
+// A website booking counts as paid once staff checked its GCash; one made at the
+// desk is paid before it is saved.
 const PREPAID_STATUSES = ["approved", "reserved", "arrived", "seated"];
 
 const sameName = (first, second) =>
@@ -37,26 +38,32 @@ export const formatClockTime = (timestamp) =>
   new Date(Number(timestamp)).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" });
 
 /**
- * The bill for a session, as of `now`. An online booking was paid in full
- * through GCash before the customer came, so that amount is taken off and only
- * added time is left to pay; a booking is credited once, never twice. What was
- * paid while playing is taken off too: table time by amount, orders line by line.
+ * The bill for a session, as of `now`. A booking was paid in full before the
+ * customer came, on the website or at the desk, so that amount is taken off and
+ * only added time is left to pay; a booking is credited once, never twice. What
+ * was paid while playing is taken off too: table time by amount, orders line by line.
  */
 export const createTableCharge = ({ table, reservations = [], tableCharges = [], endedBy, now }) => {
   if (!table?.startTime) return null;
 
-  const sessionTotal = getSessionTotal(table);
   const reservation = findTableReservation(table, reservations);
   const alreadyCredited =
     reservation && tableCharges.some((charge) => String(charge.prepaid?.reservationId) === String(reservation.id));
-  const paidOnline =
+  const paidAhead =
     Boolean(reservation) &&
-    reservation.source === "online" &&
     Number(reservation.paymentAmount) > 0 &&
     PREPAID_STATUSES.includes(reservation.status) &&
     sameName(reservation.customerName, table.customer) &&
     !alreadyCredited;
-  const prepaidAmount = paidOnline ? Math.min(sessionTotal, Number(reservation.paymentAmount)) : 0;
+  // Hours already paid for stay at what was paid, even if the table's rate
+  // changed since; only time beyond them is at today's rate.
+  const sessionTotal = paidAhead
+    ? roundPeso(
+        Number(reservation.paymentAmount) +
+          (Math.max(0, Number(table.durationMinutes || 60) - (Number(reservation.durationMinutes) || 60)) / 60) * Number(table.rate || 0)
+      )
+    : getSessionTotal(table);
+  const prepaidAmount = paidAhead ? Number(reservation.paymentAmount) : 0;
   const payments = getTablePayments(table).map(({ transactionId, amount, time, method, at }) => ({
     transactionId,
     amount: Number(amount || 0),
@@ -66,7 +73,7 @@ export const createTableCharge = ({ table, reservations = [], tableCharges = [],
   }));
   const paidEarlier = roundPeso(payments.reduce((sum, payment) => sum + payment.amount, 0));
   const paidTime = payments.reduce((sum, payment) => sum + payment.time, 0);
-  // The online payment covered table time only; the orders are paid in full.
+  // The booking's payment covered table time only; the orders are paid in full.
   const timeDue = roundPeso(Math.max(0, sessionTotal - prepaidAmount - paidTime));
   const orders = getTableOrders(table).map(({ id, productId, name, category, price, qty, paidQty }) => ({
     id,
@@ -93,7 +100,7 @@ export const createTableCharge = ({ table, reservations = [], tableCharges = [],
     addedMinutes: Number(table.addedMinutes || 0),
     playedMinutes: getPlayedMinutes(table, now),
     sessionTotal,
-    prepaid: paidOnline
+    prepaid: paidAhead
       ? {
           amount: prepaidAmount,
           reservationId: reservation.id,
@@ -121,7 +128,7 @@ export const describeEndedCharge = (charge) =>
     ? `${charge.tableName} session ended. ${formatPeso(charge.amountDue)} is waiting for payment in Sales / POS.`
     : charge.paidEarlier > 0
       ? `${charge.tableName} session ended. Already paid while playing (${formatPeso(charge.paidEarlier)}).`
-      : `${charge.tableName} session ended. Already paid online (${formatPeso(charge.sessionTotal)}).`;
+      : `${charge.tableName} session ended. Already paid with the booking (${formatPeso(charge.sessionTotal)}).`;
 
 /** The pop-up note for an ended session (Toast.jsx); a bill still to pay links to Sales / POS. */
 export const endedChargeToast = (charge) => ({

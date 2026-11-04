@@ -82,3 +82,55 @@ export const summarizeAuditLogs = (logs = []) => ({
   byStaff: countBy(logs, (log) => log.staff || "System"),
   byLevel: countBy(logs, auditLevel),
 });
+
+const capitalize = (text) => {
+  const value = String(text || "");
+  return value.charAt(0).toUpperCase() + value.slice(1);
+};
+
+/** The same report for Excel (see reportExcel.js): totals by kind, staff and level, then every event. */
+export const auditReportDocument = ({ logs, summary, periodLabel, showing, generatedAt, preparedBy }) => ({
+  title: "Audit Trail Report",
+  subtitle: periodLabel,
+  details: [
+    ["Period", periodLabel],
+    ["Showing", showing],
+    ["Generated", generatedAt],
+    ...(preparedBy ? [["Prepared by", preparedBy]] : []),
+  ],
+  sections: [
+    ...[
+      ["By kind", "Kind", summary.byType],
+      ["By staff", "Staff", summary.byStaff],
+      ["By level", "Level", summary.byLevel],
+    ].map(([title, column, rows]) => ({
+      title: `Summary · ${title}`,
+      columns: [{ label: column }, { label: "Events", format: "int" }],
+      rows: rows.map(([name, count]) => [capitalize(name), count]),
+      total: ["TOTAL", summary.total],
+      empty: "No activity.",
+    })),
+    {
+      title: `Events (${logs.length})`,
+      columns: [
+        { label: "Date", format: "date" },
+        { label: "Time" },
+        { label: "Staff" },
+        { label: "Kind" },
+        { label: "Action" },
+        { label: "Details", format: "wrap" },
+        { label: "Level" },
+      ],
+      rows: logs.map((log) => [
+        String(log.date || "").slice(0, 10),
+        log.time || "",
+        log.staff || "System",
+        auditTypeLabel(log.type),
+        capitalize(log.action),
+        log.detail || "",
+        capitalize(auditLevel(log)),
+      ]),
+      empty: `No activity recorded for ${periodLabel}.`,
+    },
+  ],
+});

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 // The GCash verification look the POS already uses, in dark and light mode.
 import "../../styles/Admin/CartPanel.css";
+import "../../styles/OnlinePayments.css";
 import {
   VERIFY_DIGITS,
   checkClosingDigits,
@@ -54,7 +55,7 @@ export default function PaymentCheckModal({ booking, payment = null, busy = fals
   return (
     <>
       <div className="modal show" tabIndex="-1" role="dialog" aria-modal="true" aria-labelledby="payment-check-title">
-        <div className="modal-dialog modal-dialog-centered">
+        <div className={`modal-dialog modal-dialog-centered pay-check-dialog${payment ? " has-receipt" : ""}`}>
           <div className="modal-content">
             <div className="modal-header">
               <h5 className="modal-title" id="payment-check-title">
@@ -70,122 +71,126 @@ export default function PaymentCheckModal({ booking, payment = null, busy = fals
                 GCash account. The screenshot helps you find it, but a screenshot can be edited.
               </p>
 
-              <div className="payment-review-summary">
-                {[
-                  ["Customer", booking.customerName],
-                  ["Contact", booking.phone || "Not given"],
-                  ["Table", booking.tableName || `Table ${booking.tableId}`],
-                  ["Date", formatDate(booking.date)],
-                  ["Time", describeReservationTime(booking) || "No time set"],
-                  ...(payment ? [["Paid from", formatPayer(payment) || "Not given"]] : []),
-                ].map(([label, value]) => (
-                  <div className="payment-review-row" key={label}>
-                    <span>{label}</span>
-                    <strong>{value}</strong>
+              <div className="pay-check-layout">
+                <div className="payment-review-summary">
+                  {[
+                    ["Customer", booking.customerName],
+                    ["Contact", booking.phone || "Not given"],
+                    ["Table", booking.tableName || `Table ${booking.tableId}`],
+                    ["Date", formatDate(booking.date)],
+                    ["Time", describeReservationTime(booking) || "No time set"],
+                    ...(payment ? [["Paid from", formatPayer(payment) || "Not given"]] : []),
+                  ].map(([label, value]) => (
+                    <div className="payment-review-row" key={label}>
+                      <span>{label}</span>
+                      <strong>{value}</strong>
+                    </div>
+                  ))}
+                  <div className="payment-review-total">
+                    <span>Amount to find</span>
+                    <strong>{amount > 0 ? peso(amount) : "Not recorded"}</strong>
                   </div>
-                ))}
-                <div className="payment-review-total">
-                  <span>Amount to find</span>
-                  <strong>{amount > 0 ? peso(amount) : "Not recorded"}</strong>
+                </div>
+
+                {payment && <ReceiptImage payment={payment} />}
+
+                <div className="pay-check-action">
+                  {confirmingReject ? (
+                    <div className="payment-final-confirmation payment-check-step" role="alert">
+                      <i className="bi bi-exclamation-triangle"></i>
+                      <div>
+                        <strong>Reject this reservation?</strong>
+                        <span>
+                          Use this when the payment cannot be found. The table time is freed for other guests, and this
+                          cannot be undone.
+                          {payment ? ` The payment is listed to send back to ${formatPayer(payment)}.` : ""}
+                        </span>
+                      </div>
+                    </div>
+                  ) : hasReference ? (
+                    <div className="payment-verify-panel">
+                      <div className="payment-verify-heading">
+                        <i className="bi bi-search"></i>
+                        <div>
+                          <strong>Find the payment in GCash</strong>
+                          <span>
+                            Look for a payment{amount > 0 ? ` of ${peso(amount)}` : ""} whose reference starts with the digits
+                            below, then type the last {VERIFY_DIGITS} digits of that reference.
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="payment-verify-reference">
+                        <span>Reference from the customer</span>
+                        <strong>{maskReference(reference)}</strong>
+                      </div>
+
+                      <label className="payment-field-label" htmlFor="payment-check-digits">
+                        Last {VERIFY_DIGITS} digits in GCash
+                      </label>
+                      <input
+                        id="payment-check-digits"
+                        type="text"
+                        className={`payment-verify-input ${verification.mismatch ? "is-invalid-reference" : ""} ${
+                          verification.matches ? "is-valid-reference" : ""
+                        }`}
+                        placeholder={"0".repeat(VERIFY_DIGITS)}
+                        inputMode="numeric"
+                        autoComplete="off"
+                        maxLength={VERIFY_DIGITS}
+                        value={verifyDigits}
+                        onChange={(event) => setVerifyDigits(sanitizeVerifyDigits(event.target.value))}
+                        aria-invalid={verification.mismatch}
+                        disabled={busy}
+                        autoFocus
+                      />
+
+                      {verification.mismatch && (
+                        <p className="payment-field-error" role="alert">
+                          These digits do not match the customer&apos;s reference. Check that you found the right payment. If
+                          there is none, reject the reservation.
+                        </p>
+                      )}
+                      {verification.matches && (
+                        <p className="payment-verify-success" role="status">
+                          <i className="bi bi-check-circle-fill"></i> Payment found. You can approve this reservation.
+                        </p>
+                      )}
+                      {!verification.isComplete && (
+                        <p className="payment-method-note">Approval stays locked until the digits match.</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="payment-verify-panel">
+                      <div className="payment-verify-heading">
+                        <i className="bi bi-exclamation-circle"></i>
+                        <div>
+                          <strong>No GCash reference recorded</strong>
+                          <span>
+                            This reservation was saved without a GCash reference. Approve it only if you have confirmed the
+                            payment another way.
+                          </span>
+                        </div>
+                      </div>
+                      <label className="payment-check-confirm">
+                        <input
+                          type="checkbox"
+                          checked={paidWithoutReference}
+                          onChange={(event) => setPaidWithoutReference(event.target.checked)}
+                          disabled={busy}
+                        />
+                        <span>I confirmed this customer has paid{amount > 0 ? ` ${peso(amount)}` : ""}.</span>
+                      </label>
+                    </div>
+                  )}
+
+                  {ended && !confirmingReject && (
+                    <p className="payment-field-error payment-check-ended" role="alert">
+                      This reservation&apos;s time has already ended, so it can no longer be approved. Reject it instead.
+                    </p>
+                  )}
                 </div>
               </div>
-
-              {payment && <ReceiptImage payment={payment} />}
-
-              {confirmingReject ? (
-                <div className="payment-final-confirmation payment-check-step" role="alert">
-                  <i className="bi bi-exclamation-triangle"></i>
-                  <div>
-                    <strong>Reject this reservation?</strong>
-                    <span>
-                      Use this when the payment cannot be found. The table time is freed for other guests, and this
-                      cannot be undone.
-                      {payment ? ` The payment is listed to send back to ${formatPayer(payment)}.` : ""}
-                    </span>
-                  </div>
-                </div>
-              ) : hasReference ? (
-                <div className="payment-verify-panel">
-                  <div className="payment-verify-heading">
-                    <i className="bi bi-search"></i>
-                    <div>
-                      <strong>Find the payment in GCash</strong>
-                      <span>
-                        Look for a payment{amount > 0 ? ` of ${peso(amount)}` : ""} whose reference starts with the digits
-                        below, then type the last {VERIFY_DIGITS} digits of that reference.
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="payment-verify-reference">
-                    <span>Reference from the customer</span>
-                    <strong>{maskReference(reference)}</strong>
-                  </div>
-
-                  <label className="payment-field-label" htmlFor="payment-check-digits">
-                    Last {VERIFY_DIGITS} digits in GCash
-                  </label>
-                  <input
-                    id="payment-check-digits"
-                    type="text"
-                    className={`payment-verify-input ${verification.mismatch ? "is-invalid-reference" : ""} ${
-                      verification.matches ? "is-valid-reference" : ""
-                    }`}
-                    placeholder={"0".repeat(VERIFY_DIGITS)}
-                    inputMode="numeric"
-                    autoComplete="off"
-                    maxLength={VERIFY_DIGITS}
-                    value={verifyDigits}
-                    onChange={(event) => setVerifyDigits(sanitizeVerifyDigits(event.target.value))}
-                    aria-invalid={verification.mismatch}
-                    disabled={busy}
-                    autoFocus
-                  />
-
-                  {verification.mismatch && (
-                    <p className="payment-field-error" role="alert">
-                      These digits do not match the customer&apos;s reference. Check that you found the right payment. If
-                      there is none, reject the reservation.
-                    </p>
-                  )}
-                  {verification.matches && (
-                    <p className="payment-verify-success" role="status">
-                      <i className="bi bi-check-circle-fill"></i> Payment found. You can approve this reservation.
-                    </p>
-                  )}
-                  {!verification.isComplete && (
-                    <p className="payment-method-note">Approval stays locked until the digits match.</p>
-                  )}
-                </div>
-              ) : (
-                <div className="payment-verify-panel">
-                  <div className="payment-verify-heading">
-                    <i className="bi bi-exclamation-circle"></i>
-                    <div>
-                      <strong>No GCash reference recorded</strong>
-                      <span>
-                        This reservation was saved without a GCash reference. Approve it only if you have confirmed the
-                        payment another way.
-                      </span>
-                    </div>
-                  </div>
-                  <label className="payment-check-confirm">
-                    <input
-                      type="checkbox"
-                      checked={paidWithoutReference}
-                      onChange={(event) => setPaidWithoutReference(event.target.checked)}
-                      disabled={busy}
-                    />
-                    <span>I confirmed this customer has paid{amount > 0 ? ` ${peso(amount)}` : ""}.</span>
-                  </label>
-                </div>
-              )}
-
-              {ended && !confirmingReject && (
-                <p className="payment-field-error payment-check-ended" role="alert">
-                  This reservation&apos;s time has already ended, so it can no longer be approved. Reject it instead.
-                </p>
-              )}
             </div>
 
             <div className="modal-footer">

@@ -19,18 +19,25 @@ export default function ProfileAvatar({ profile, className = "" }) {
   );
 }
 
-/** The picture in the top bar, beside the bell: it opens the Profile page. */
+/**
+ * The picture in the top bar, beside the bell: it opens the Profile page. A dot
+ * on it means there is no mobile number yet, so a forgotten password could not
+ * be reset by text (see ProfileDetails).
+ */
 export function ProfileButton({ profile, onOpen }) {
   const name = profile?.fullName || profile?.username;
+  const needsPhone = Boolean(profile) && !profile.phone;
+  const label = name ? `My profile (${name})` : "My profile";
   return (
     <button
       type="button"
       className="header-icon-btn topbar-profile-btn"
       onClick={onOpen}
-      aria-label={name ? `My profile (${name})` : "My profile"}
-      title="My profile"
+      aria-label={needsPhone ? `${label}: add your mobile number` : label}
+      title={needsPhone ? "My profile: add your mobile number" : "My profile"}
     >
       <ProfileAvatar profile={profile} />
+      {needsPhone && <span className="topbar-profile-dot" aria-hidden="true"></span>}
     </button>
   );
 }

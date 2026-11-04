@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import "../../styles/OnlinePayments.css";
 import { fetchReceiptUrl } from "../../utils/paymentsApi";
 
@@ -6,7 +7,8 @@ import { fetchReceiptUrl } from "../../utils/paymentsApi";
  * The receipt screenshot a customer sent with a GCash payment. The server
  * gives it to signed-in staff only, so it is fetched with the sign-in and shown
  * from this page's own copy, which is dropped when the picture closes. Tapping
- * it shows it full size.
+ * it shows it full size, over the whole screen rather than inside the window
+ * it sits in.
  */
 export default function ReceiptImage({ payment }) {
   const id = payment?.id || "";
@@ -86,13 +88,14 @@ export default function ReceiptImage({ payment }) {
         </>
       )}
 
-      {zoomed && status === "ready" && (
+      {zoomed && status === "ready" && createPortal(
         <div className="pay-receipt-zoom" role="dialog" aria-modal="true" aria-label="Receipt, full size" onClick={() => setZoomed(false)}>
           <img src={shown.url} alt={`GCash receipt sent by ${payment.customerName}, full size`} />
           <button type="button" className="pay-receipt-zoom-close" onClick={() => setZoomed(false)}>
             <i className="bi bi-x-lg" aria-hidden="true"></i> Close
           </button>
-        </div>
+        </div>,
+        document.body,
       )}
     </figure>
   );

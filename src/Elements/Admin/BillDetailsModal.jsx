@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import FieldError from "../Global/FieldError";
 import useFormErrors from "../Global/useFormErrors";
 import { MAX_BILL_NAME, buildBillLabel, findTableBill, getBillErrors } from "../../utils/posBills";
+import { readTitleField } from "../../utils/textField";
 
 const FIELDS = ["tableId", "customer"];
 
@@ -130,7 +131,7 @@ export default function BillDetailsModal({ bill = null, tables = [], bills = [],
                 <input
                   type="text"
                   value={form.customer}
-                  onChange={(event) => setForm({ ...form, customer: event.target.value })}
+                  onChange={(event) => setForm({ ...form, customer: readTitleField(event) })}
                   placeholder={table ? "Who is playing on this table?" : "e.g. Maria"}
                   maxLength={MAX_BILL_NAME + 10}
                   autoComplete="off"

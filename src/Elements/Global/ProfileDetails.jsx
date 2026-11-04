@@ -4,6 +4,7 @@ import useFormErrors from "./useFormErrors";
 import { getTextError } from "../../utils/formValidation";
 import { isValidSmsNumber, sanitizePhoneInput } from "../../utils/phone";
 import { saveMyDetails } from "../../utils/profileApi";
+import { readNameField } from "../../utils/textField";
 
 const FIELDS = ["fullName", "phone", "email", "currentPassword"];
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -25,7 +26,8 @@ const getDetailsErrors = (form, phoneChanged) => {
   return errors;
 };
 
-function DetailsForm({ profile, onSaved, onCancel }) {
+// `focusField`: the field the cursor starts in, "fullName" or "phone".
+function DetailsForm({ profile, focusField, onSaved, onCancel }) {
   const [form, setForm] = useState({ fullName: profile.fullName, phone: profile.phone, email: profile.email, currentPassword: "" });
   const [refusal, setRefusal] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -68,12 +70,13 @@ function DetailsForm({ profile, onSaved, onCancel }) {
     <form className="profile-form" onSubmit={save} noValidate>
       <label className="profile-field profile-field-wide">
         <span>Full name</span>
-        <input autoFocus value={form.fullName} maxLength={120} autoComplete="name" onChange={(event) => update("fullName", event.target.value)} {...fieldProps("fullName")} />
+        <input autoFocus={focusField === "fullName"} value={form.fullName} maxLength={120} autoComplete="name" onChange={(event) => update("fullName", readNameField(event))} {...fieldProps("fullName")} />
         <FieldError id="profile-fullName-error" message={messageFor("fullName")} />
       </label>
       <label className="profile-field">
         <span>Mobile no. <em>(gets your password reset codes)</em></span>
         <input
+          autoFocus={focusField === "phone"}
           value={form.phone}
           inputMode="numeric"
           maxLength={11}
@@ -88,6 +91,7 @@ function DetailsForm({ profile, onSaved, onCancel }) {
         <span>Email <em>(optional)</em></span>
         <input value={form.email} maxLength={120} type="email" autoComplete="email" onChange={(event) => update("email", event.target.value)} {...fieldProps("email")} />
         <FieldError id="profile-email-error" message={messageFor("email")} />
+        {!messageFor("email") && <small className="profile-field-hint">Where a reset code is emailed if you forget your password.</small>}
       </label>
       {phoneChanged && (
         <label className="profile-field profile-field-wide">
@@ -114,13 +118,18 @@ function DetailsForm({ profile, onSaved, onCancel }) {
   );
 }
 
-/** Personal details: shown as a list, edited in place. */
+/**
+ * Personal details: shown as a list, edited in place. Without a mobile number a
+ * forgotten password cannot be reset from the sign-in screen (it texts a code to
+ * that number), so until there is one a warning says so.
+ */
 export default function ProfileDetails({ profile, onSaved }) {
-  const [editing, setEditing] = useState(false);
+  // The field the form opens on, or "" while it is closed.
+  const [editing, setEditing] = useState("");
   const [note, setNote] = useState("");
-  const startEditing = () => {
+  const startEditing = (field = "fullName") => {
     setNote("");
-    setEditing(true);
+    setEditing(field);
   };
 
   return (
@@ -132,7 +141,7 @@ export default function ProfileDetails({ profile, onSaved }) {
           <p>Your name and how to reach you.</p>
         </div>
         {!editing && (
-          <button type="button" className="profile-btn-ghost" onClick={startEditing}>
+          <button type="button" className="profile-btn-ghost" onClick={() => startEditing()}>
             <i className="bi bi-pencil" aria-hidden="true"></i>
             Edit
           </button>
@@ -142,21 +151,38 @@ export default function ProfileDetails({ profile, onSaved }) {
       {editing ? (
         <DetailsForm
           profile={profile}
-          onCancel={() => setEditing(false)}
+          focusField={editing}
+          onCancel={() => setEditing("")}
           onSaved={(saved, phoneChanged) => {
             onSaved(saved, phoneChanged);
-            setEditing(false);
+            setEditing("");
             setNote(phoneChanged ? "Saved. Password reset codes now go to your new mobile number." : "Saved.");
           }}
         />
       ) : (
         <>
+          {!profile.phone && (
+            <div className="profile-warning" role="note">
+              <i className="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+              <div>
+                <strong>Add your mobile number</strong>
+                <span>
+                  Without it, you cannot reset a forgotten password from the sign-in screen
+                  {profile.role === "employee" ? ", and only the admin can set a new one for you." : "."}
+                </span>
+              </div>
+              <button type="button" className="profile-btn-ghost profile-warning-btn" onClick={() => startEditing("phone")}>
+                <i className="bi bi-phone" aria-hidden="true"></i>
+                Add number
+              </button>
+            </div>
+          )}
           <dl className="profile-rows">
             <div>
               <dt>Full name</dt>
               <dd>
                 {profile.fullName || (
-                  <button type="button" className="profile-link profile-add-link" onClick={startEditing}>
+                  <button type="button" className="profile-link profile-add-link" onClick={() => startEditing()}>
                     <i className="bi bi-plus-lg" aria-hidden="true"></i>
                     Add your name
                   </button>
@@ -165,7 +191,16 @@ export default function ProfileDetails({ profile, onSaved }) {
             </div>
             <div>
               <dt>Mobile no.</dt>
-              <dd>{profile.phone ? formatPhone(profile.phone) : <span className="profile-empty">Not set: you cannot reset your password by text</span>}</dd>
+              <dd>
+                {profile.phone ? (
+                  formatPhone(profile.phone)
+                ) : (
+                  <button type="button" className="profile-link profile-add-link" onClick={() => startEditing("phone")}>
+                    <i className="bi bi-plus-lg" aria-hidden="true"></i>
+                    Add mobile number
+                  </button>
+                )}
+              </dd>
             </div>
             <div>
               <dt>Email</dt>

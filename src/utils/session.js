@@ -48,6 +48,17 @@ export const saveSignedInUser = (user, token) => {
   }
 };
 
+// Changes part of the account this tab keeps, e.g. its preferences once saved.
+export const updateSignedInUser = (changes) => {
+  const user = getSignedInUser();
+  if (!user) return;
+  try {
+    sessionStorage.setItem(USER_KEY, JSON.stringify({ ...user, ...changes }));
+  } catch (error) {
+    console.warn("Unable to update the sign-in for this tab", error);
+  }
+};
+
 export const noteSignInEnded = () => {
   try {
     sessionStorage.setItem(ENDED_KEY, "1");

@@ -12,7 +12,7 @@ import GcashPayment from "../../Elements/Guest/GcashPayment";
 import { validateReference } from "../../utils/paymentReference";
 import { sendCustomerConfirmation } from "../../utils/customerMessageApi";
 import { formatEventWhen, gameTypeLabel, getEventNotices, getOpenEvents } from "../../utils/eventUpdates";
-import { getAgeError, getPersonNameError } from "../../utils/formValidation";
+import { getAgeError, getOptionalEmailError, getPersonNameError } from "../../utils/formValidation";
 import { useSiteSettings } from "../../Elements/Global/useSiteSettings";
 import AnnouncementBar from "../../Elements/Guest/AnnouncementBar";
 import { useMyRequests } from "../../Elements/Guest/useMyRequests";
@@ -22,6 +22,7 @@ import { formatMobile } from "../../utils/siteSettings";
 import FormSteps, { FormReview, FormStepHead, FormStepNav } from "../../Elements/Guest/FormSteps";
 import { useFormSteps } from "../../Elements/Guest/useFormSteps";
 import { buildParticipantLabel, skillLevelLabel } from "../../utils/tournamentRegistrations";
+import { isEventFull, takesCashAtHall, takesWebsiteSignUp } from "../../utils/tournamentFees";
 
 // What the player is told about the entry fee before and after sending.
 const HELD_NOTE =
@@ -32,7 +33,7 @@ const HELD_NOTE =
 const LAST_STEP = 2;
 const DETAIL_FIELDS = ["firstName", "lastName", "contact", "age"];
 const EMPTY_FORM = {
-  firstName: "", lastName: "", contact: "", age: "", skillLevel: "",
+  firstName: "", lastName: "", contact: "", email: "", age: "", skillLevel: "",
   eventId: "", teamName: "", paymentReference: "",
   // The GCash number the fee came from; null keeps it the same as the contact number.
   payerNumber: null,
@@ -97,17 +98,30 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
     : "";
   const contactWarning = getSmsWarning(form.contact);
   const playerName = [form.firstName, form.lastName].map((part) => part.trim()).filter(Boolean).join(" ");
+  // Optional: when given, the sign-up's updates are emailed too.
+  const email = form.email.trim().toLowerCase();
   const alreadyRegistered =
     Boolean(selectedEvent && playerName) &&
     (selectedEvent.participants || []).some((participant) => playerKey(participant) === playerKey(playerName));
   // Each typed field is checked as soon as it has something in it, and said on
   // the step it belongs to.
-  const detailsError =
-    (form.firstName && getPersonNameError(form.firstName, "first name")) ||
-    (form.lastName && getPersonNameError(form.lastName, "last name")) ||
-    (form.age !== "" && getAgeError(form.age)) ||
-    "";
+  const fieldErrors = {
+    firstName: form.firstName ? getPersonNameError(form.firstName, "first name") : "",
+    lastName: form.lastName ? getPersonNameError(form.lastName, "last name") : "",
+    age: form.age !== "" ? getAgeError(form.age) : "",
+    email: getOptionalEmailError(email),
+  };
+  const detailsError = fieldErrors.firstName || fieldErrors.lastName || fieldErrors.age || fieldErrors.email || "";
+  // The admin may have filled the tournament, or set it to register in person only.
+  const signUpClosed = !selectedEvent
+    ? ""
+    : isEventFull(selectedEvent)
+      ? `${selectedEvent.name} is full. Please choose another tournament.`
+      : !takesWebsiteSignUp(selectedEvent)
+        ? `${selectedEvent.name} is for in-person registration only. Please visit Break & Chill to register and pay the entry fee.`
+        : "";
   const tournamentError =
+    signUpClosed ||
     (form.teamName.trim().length > 40 && "Keep the team name to 40 characters or fewer.") ||
     (alreadyRegistered && `${playerName} is already registered for ${selectedEvent.name}.`) ||
     "";
@@ -118,8 +132,9 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
   const detailsFilled = isFilled(form, DETAIL_FIELDS);
   const skillChosen = Boolean(skillLevelLabel(form.skillLevel));
   const detailsReady = detailsFilled && contactIsValid && skillChosen && !detailsError;
+  // A field's own mistake is said at the field; here only that one needs fixing.
   const detailsHint =
-    detailsError ||
+    (detailsError && "Check the details above.") ||
     (!detailsFilled
       ? "Fill in your name, contact number and age to continue."
       : !contactIsValid
@@ -144,7 +159,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
 
     setForm((prev) => ({
       ...prev,
-      [name]: name === "contact" ? sanitizePhoneInput(value) : value,
+      [name]: name === "contact" ? sanitizePhoneInput(value) : name === "email" ? value.replace(/\s/g, "") : value,
     }));
   };
 
@@ -183,7 +198,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
         participant: playerLabel,
         // A paid one sends the fee's reference, the number it came from and the receipt.
         payment: paymentRequired
-          ? { phone: form.contact, payerNumber, paymentReference: paymentCheck.digits, receipt: receipt.dataUrl }
+          ? { phone: form.contact, email, payerNumber, paymentReference: paymentCheck.digits, receipt: receipt.dataUrl }
           : null,
       });
 
@@ -213,6 +228,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
             context: "tournament",
             referenceId: String(selectedEvent.id),
             phone: form.contact,
+            email,
             participant: playerLabel,
             paymentReference: paymentRequired ? paymentCheck.digits : "",
           })
@@ -310,9 +326,9 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
                       count={steps.length}
                       titleRef={stepTitle}
                       title="Your details"
-                      note="We text updates about your registration to this number."
+                      note="We text updates about your registration to your number, and email them too if you add an email."
                     />
-                    <PersonalInfoForm form={form} onChange={handleChange} contactWarning={contactWarning} />
+                    <PersonalInfoForm form={form} onChange={handleChange} contactWarning={contactWarning} errors={fieldErrors} />
                   </>
                 )}
 
@@ -354,7 +370,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
                           icon: "bi-person",
                           label: "Player",
                           value: playerName,
-                          more: [formatMobile(form.contact), form.age ? `Age ${form.age}` : "", skillLevelLabel(form.skillLevel)],
+                          more: [formatMobile(form.contact), email, form.age ? `Age ${form.age}` : "", skillLevelLabel(form.skillLevel)],
                           onChange: () => openStep(0),
                           changeLabel: "Change your details",
                         },
@@ -400,6 +416,13 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
                         heldNote={HELD_NOTE}
                       />
                     )}
+                    {/* The admin also takes cash at the counter for this one. */}
+                    {paymentRequired && selectedEvent && takesCashAtHall(selectedEvent) && (
+                      <p className="tourna-pay-elsewhere">
+                        <i className="bi bi-cash-coin" aria-hidden="true"></i>
+                        Prefer to pay in cash? You can also register and pay in person at Break &amp; Chill.
+                      </p>
+                    )}
                   </>
                 )}
               </div>
@@ -439,6 +462,7 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
                       request={myRequests.requests.find((request) => request.key === followed.key)}
                       fallback={describeJustSent("tournament", followed.label, followed.paid)}
                       textedTo={customerMessage?.status === "sent" ? form.contact : ""}
+                      emailedTo={customerMessage?.emailStatus === "sent" ? email : ""}
                     />
                   )
                 }
@@ -458,7 +482,10 @@ export default function TournamentForm({ events = [], setEvents, onGoBack, initi
                     </strong>
                   </div>
                   <p className="customer-message-body">{customerMessage.text}</p>
-                  <p className="customer-message-note">Keep this for your records.</p>
+                  <p className="customer-message-note">
+                    {customerMessage.emailStatus === "sent" ? `Also emailed to ${email}. ` : ""}
+                    Keep this for your records.
+                  </p>
                 </div>
               )}
             </>

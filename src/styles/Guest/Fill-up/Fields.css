@@ -18,19 +18,25 @@
   background: rgba(255, 210, 63, 0.2);
 }
 
+/* Two fields side by side; each keeps its own height when only one has a warning. */
 .form-grid-2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 12px 14px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 480px) {
+  .form-grid-2.form-grid-stack-phone { grid-template-columns: minmax(0, 1fr); }
 }
 
 .form-field {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .form-field-full {
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 
 .label {
@@ -65,6 +71,13 @@
   background: rgba(255, 210, 63, 0.05);
   box-shadow: 0 0 0 3px rgba(255, 210, 63, 0.12);
 }
+
+/* A field with a mistake: red, with its warning under it */
+.field-input.is-invalid { border-color: #f87171; }
+.field-input.is-invalid:focus { border-color: #f87171; box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.18); }
+
+/* How much of a limited field is used (Notes: 12/200) */
+.field-count { margin-top: 4px; text-align: right; }
 
 /* Skill level: three choices side by side, each with its rating */
 .skill-levels {
@@ -306,7 +319,7 @@
 
 /* Booked times for the chosen date */
 .reservation-booked-times {
-  margin: 14px 0 0;
+  margin: 14px 0;
   padding: 14px 16px;
   border: 1px solid rgba(155, 165, 158, 0.28);
   border-radius: 10px;
@@ -783,7 +796,7 @@
    last look before sending, and Back / Next. */
 .form-steps {
   display: flex;
-  margin: 0 0 26px;
+  margin: 0 0 18px;
   padding: 0;
   list-style: none;
 }
@@ -905,7 +918,7 @@
   .form-step-body { animation: none; }
 }
 
-.form-step-head { margin-bottom: 16px; }
+.form-step-head { margin-bottom: 14px; }
 
 .form-step-count {
   display: block;
@@ -1096,6 +1109,32 @@
 }
 
 .tourna-event-facts .is-wide { grid-column: 1 / -1; }
+
+.tourna-event-slots {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: rgba(79, 224, 106, 0.14);
+  color: #86f09b;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.tourna-event-slots.is-full { background: rgba(255, 91, 93, 0.16); color: #ff9b9b; }
+
+/* Under the GCash step: the hall also takes cash for this tournament. */
+.tourna-pay-elsewhere {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.9rem 0 0;
+  color: #b9c2bb;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.tourna-pay-elsewhere i { color: var(--bc-yellow); }
 
 .tourna-event-facts dt {
   display: flex;

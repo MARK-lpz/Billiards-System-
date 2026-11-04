@@ -679,6 +679,7 @@
   font-family: "Courier New", monospace;
   font-size: 14px;
   letter-spacing: 1.5px;
+  white-space: nowrap;
 }
 
 .payment-verify-input {

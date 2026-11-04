@@ -135,7 +135,7 @@ const toTimeValue = (minutesOfDay) => {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 };
 
-const formatClock = (time) => formatTime(toDateTime("2000-01-01", time));
+export const formatClock = (time) => formatTime(toDateTime("2000-01-01", time));
 
 /** "11:53 AM", from a booking's "11:53". Anything unreadable is shown as given. */
 export const formatReservationTime = (time) =>
@@ -556,91 +556,8 @@ export const hasReservationConflict = (reservations, candidate, excludeId = null
   });
 };
 
-export const getAvailableReservationTables = ({
-  tables = [],
-  reservations = [],
-  events = [],
-  date = "",
-  time = "",
-  durationMinutes,
-  excludeId = null,
-  now = new Date(),
-}) => {
-  if (!date || !time) return tables;
-
-  return tables.filter((table) =>
-    getTableReservationAvailability({
-      table,
-      reservations,
-      events,
-      candidate: { tableId: table.id, date, time, durationMinutes },
-      excludeId,
-      now,
-    }).available
-  );
-};
-
-/**
- * Why the table picked in a staff booking form cannot take that booking, or ""
- * when it can (or the form is not filled in yet). The table list only offers
- * free tables, but a table picked before the date or time was changed stays
- * picked, so it is checked again here: occupied, already reserved, under
- * maintenance or held for a tournament.
- */
-export const getChosenTableError = ({
-  tables = [],
-  reservations = [],
-  events = [],
-  tableId,
-  date,
-  time,
-  durationMinutes,
-  excludeId = null,
-  now = new Date(),
-}) => {
-  if (!tableId || !date || !time) return "";
-
-  const table = tables.find((entry) => Number(entry.id) === Number(tableId));
-  if (!table) return "That table is no longer in the list. Please choose another table.";
-
-  const { available, reason } = getTableReservationAvailability({
-    table,
-    reservations,
-    events,
-    candidate: { tableId: table.id, date, time, durationMinutes },
-    excludeId,
-    now,
-  });
-  return available ? "" : `${reason} Please choose another table or time.`;
-};
-
-export const getReservationValidationMessage = (date, time, now = new Date(), hours = DEFAULT_RESERVATION_HOURS) => {
-  if (!date || !time) return "Please select both a reservation date and time.";
-
-  const selectedDateTime = toDateTime(date, time);
-  if (Number.isNaN(selectedDateTime.getTime())) return "Please select a valid reservation date and time.";
-  if (selectedDateTime <= now) return "Past dates and times can no longer be reserved.";
-  if (time >= hours.close) {
-    return `Reservations are accepted only before ${formatClock(hours.close)}.`;
-  }
-
-  return "";
-};
-
 /** Today as "2026-10-07", the value a date input uses. */
 export const getTodayDate = (now = new Date()) => now.toLocaleDateString("en-CA");
-
-/**
- * Why staff cannot book this date and time, or "" when they can or have not
- * filled both in yet. A past date is caught as soon as it is picked, before
- * any time is chosen.
- */
-export const getReservationScheduleError = (date, time, now = new Date(), hours = DEFAULT_RESERVATION_HOURS) => {
-  if (!date) return "";
-  if (date < getTodayDate(now)) return "This date has already passed. Please choose today or a later date.";
-  if (!time) return "";
-  return getReservationValidationMessage(date, time, now, hours);
-};
 
 // For per-booking checks (reservationIssues.js), which judge each booking by the same rules.
 export { ACTIVE_STATUSES, getCandidateRange as getReservationRange, getOccupiedTableRange, formatTime as formatTimeOfDay };

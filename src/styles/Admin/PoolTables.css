@@ -408,9 +408,11 @@
   flex-wrap: wrap;
 }
 
-/* Order at the left, edit and delete at the right, under the main buttons. */
+/* Order and Bookings at the left, edit and delete at the right, under the main
+   buttons; edit and delete drop under them on a card too narrow for all four. */
 .pool-table-secondary-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -880,7 +882,7 @@
   background: transparent;
   color: #60a5fa;
   border: 1px solid rgba(96, 165, 250, 0.55);
-  padding: 8px 12px;
+  padding: 8px 10px;
 }
 
 .pool-table-actions .pool-table-order-btn:hover {
@@ -897,6 +899,34 @@
   padding: 0 5px;
   border-radius: 9px;
   background: #2563eb;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* Opens the table's reservations; in the booking note's cyan. */
+.pool-table-actions .pool-table-bookings-btn {
+  width: auto;
+  background: transparent;
+  color: #7dd3fc;
+  border: 1px solid rgba(125, 211, 252, 0.5);
+  padding: 8px 10px;
+}
+
+.pool-table-actions .pool-table-bookings-btn:hover {
+  background: rgba(125, 211, 252, 0.12);
+  color: #bae6fd;
+}
+
+.pool-table-bookings-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #0e7490;
   color: #fff;
   font-size: 11px;
   line-height: 1;
@@ -1033,12 +1063,34 @@
   opacity: 0.35;
 }
 
-.table-order-stepper span {
-  min-width: 22px;
+/* The amount, typed or set with - and +. */
+.table-order-stepper input {
+  width: 42px;
+  height: 30px;
+  padding: 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.55);
   color: #f8fafc;
+  font: inherit;
   font-weight: 700;
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+.table-order-stepper input::placeholder {
+  color: #64748b;
+}
+
+.table-order-stepper input:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+}
+
+.table-order-stepper input:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
 }
 
 .table-order-empty {
@@ -1394,6 +1446,8 @@
 /* Light theme */
 .light .pool-table-actions .pool-table-order-btn { color: #1d4ed8; border-color: #93c5fd; }
 .light .pool-table-actions .pool-table-order-btn:hover { background: #eff6ff; color: #1e40af; }
+.light .pool-table-actions .pool-table-bookings-btn { color: #075985; border-color: #7dd3fc; }
+.light .pool-table-actions .pool-table-bookings-btn:hover { background: #f0f9ff; color: #0c4a6e; }
 .light .pool-end-copy,
 .light .table-order-for,
 .light .table-order-product-meta,
@@ -1410,11 +1464,12 @@
 .light .table-order-product.is-out { background: transparent; }
 .light .table-order-product.is-out .table-order-product-meta { color: #b91c1c; }
 .light .table-order-product-name,
-.light .table-order-stepper span,
 .light .table-order-placed-line,
 .light .pool-end-bill-row,
 .light .pool-end-bill-total { color: var(--text-primary); }
 .light .table-order-stepper button { border-color: var(--border-strong); color: var(--text-primary); }
+.light .table-order-stepper input { border-color: var(--border-strong); background: #ffffff; color: var(--text-primary); }
+.light .table-order-stepper input::placeholder { color: #94a3b8; }
 .light .table-order-placed-head { color: var(--text-muted); }
 .light .table-order-status.waiting { background: #fef3c7; color: #92400e; }
 .light .table-order-status.served { background: #d1fae5; color: #065f46; }

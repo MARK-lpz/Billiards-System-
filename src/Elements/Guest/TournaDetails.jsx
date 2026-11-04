@@ -1,4 +1,5 @@
 import { formatEventWhen, gameTypeLabel, wasRescheduled } from "../../utils/eventUpdates";
+import { describePlayers, describeSlots, describeWebsitePayment, isEventFull, takesWebsiteSignUp } from "../../utils/tournamentFees";
 
 const peso = (value) => `₱${Number(value || 0).toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
 
@@ -11,6 +12,8 @@ export default function TournamentDetailsForm({ form, onChange, events = [], sel
   const entryFee = Number(selectedEvent?.entryFee || 0);
   const prize = Number(selectedEvent?.prize || 0);
   const players = (selectedEvent?.participants || []).length;
+  const slots = selectedEvent ? describeSlots(selectedEvent) : "";
+  const payWith = selectedEvent ? describeWebsitePayment(selectedEvent) : "";
 
   return (
     <>
@@ -25,12 +28,17 @@ export default function TournamentDetailsForm({ form, onChange, events = [], sel
           required
         >
           <option value="">Select Tournament</option>
-          {events.map((event) => (
-            <option key={event.id} value={event.id}>
-              {event.name}
-              {wasRescheduled(event) ? " (Rescheduled)" : ""}
-            </option>
-          ))}
+          {/* A full one, or one registered for in person only, is listed but can't be picked. */}
+          {events.map((event) => {
+            const closed = isEventFull(event) ? " (Full)" : !takesWebsiteSignUp(event) ? " (Register in person)" : "";
+            return (
+              <option key={event.id} value={event.id} disabled={Boolean(closed) && String(event.id) !== String(form.eventId)}>
+                {event.name}
+                {wasRescheduled(event) ? " (Rescheduled)" : ""}
+                {closed}
+              </option>
+            );
+          })}
         </select>
       </div>
 
@@ -59,8 +67,17 @@ export default function TournamentDetailsForm({ form, onChange, events = [], sel
             )}
             <div>
               <dt><i className="bi bi-people" aria-hidden="true"></i>Players</dt>
-              <dd>{players ? `${players} registered` : "None yet"}</dd>
+              <dd>
+                {players || slots ? describePlayers(selectedEvent) : "None yet"}
+                {slots && <span className={`tourna-event-slots${isEventFull(selectedEvent) ? " is-full" : ""}`}>{slots}</span>}
+              </dd>
             </div>
+            {payWith && (
+              <div className="is-wide">
+                <dt><i className="bi bi-wallet2" aria-hidden="true"></i>How to pay</dt>
+                <dd>{payWith}</dd>
+              </div>
+            )}
           </dl>
           {wasRescheduled(selectedEvent) && (
             <p className="tourna-event-moved">
@@ -83,9 +100,10 @@ export default function TournamentDetailsForm({ form, onChange, events = [], sel
           value={form.teamName}
           onChange={onChange}
           placeholder="e.g. Team Cue"
+          maxLength={40}
           aria-describedby="tourna-teamName-help"
         />
-        <p className="field-helper" id="tourna-teamName-help">Shown next to your name on the players list.</p>
+        <p className="field-helper" id="tourna-teamName-help">Shown next to your name on the players list. Up to 40 characters.</p>
       </div>
     </>
   );

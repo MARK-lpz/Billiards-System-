@@ -27,20 +27,26 @@ const post = async (payload, fallbackMessage) => {
 };
 
 /**
- * "sms-code" once an SMS provider key is set on the server, otherwise
- * "disabled": reset never happens without a texted code.
+ * The ways the server can send a code: "email" (from the hall's Gmail) once
+ * its app password is set, "sms" once the SMS key is. Empty when neither is:
+ * reset never happens without a code.
  */
-export const fetchResetMode = async () => {
+export const fetchResetChannels = async () => {
   const response = await apiFetch(`${RESET_API_URL}?mode=1`);
   const data = await parseResponse(response, "Unable to load password reset options.");
-  return data.mode === "sms-code" ? "sms-code" : "disabled";
+  return Array.isArray(data.channels) ? data.channels.filter((channel) => channel === "email" || channel === "sms") : [];
 };
 
-export const sendResetCode = async ({ username, role, phone }) =>
-  post({ action: "send-code", username, role, phone }, "Unable to send the code right now.");
+// The server finds whether the account is an admin's or an employee's.
+// `channel`: "email" (to `email`, the one in the Profile) or "sms" (to `phone`).
+export const sendResetCode = async ({ username, channel, email, phone }) =>
+  post({ action: "send-code", username, channel, email, phone }, "Unable to send the code right now.");
 
-export const resetPassword = async ({ username, role, phone, code, newPassword }) =>
-  (await post({ action: "reset", username, role, phone, code, newPassword }, "Unable to reset the password right now.")).reset;
+export const resetPassword = async ({ username, channel, email, phone, code, newPassword }) =>
+  (await post(
+    { action: "reset", username, channel, email, phone, code, newPassword },
+    "Unable to reset the password right now."
+  )).reset;
 
 export const fetchPasswordResets = async () => {
   const response = await apiFetch(RESET_API_URL);

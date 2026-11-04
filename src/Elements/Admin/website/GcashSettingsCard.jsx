@@ -5,6 +5,7 @@ import { WebsiteStaffContext } from "./WebsiteTabsContext";
 import { uploadEventMedia } from "../../../utils/eventMedia";
 import { formatMobile, gcashQrUrl } from "../../../utils/siteSettings";
 import { isValidSmsNumber, sanitizePhoneInput } from "../../../utils/phone";
+import { readTitleField } from "../../../utils/textField";
 
 // The QR is a picture customers scan: no GIFs or videos.
 const QR_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -15,7 +16,8 @@ const isQrPicture = (file) => QR_TYPES.includes(file.type) || /\.(png|jpe?g|webp
  * (Receive, then Download QR), the account name they check before sending, and
  * the number (optional). Online payment is on only once the QR and the name
  * are saved; until then the website takes no paid bookings or registrations.
- * An employee can change it too; the admin's bell is told what changed.
+ * Only the admin changes it (the server refuses anyone else); an employee sees
+ * what customers see, to check payments against.
  */
 export default function GcashSettingsCard({ setLogs }) {
   const draft = useSiteSectionDraft({
@@ -53,45 +55,59 @@ export default function GcashSettingsCard({ setLogs }) {
     }
   };
 
-  return (
-    <SiteCard
-      icon="bi-phone"
-      title="GCash"
-      description="The account customers pay into when they book a table or join a paid tournament online."
-      chip={ready ? { tone: "on", label: "Online payment on" } : { tone: "off", label: "Online payment off" }}
-      draft={draft}
-      preview={
-        qr && name ? (
-          <div className="website-gcash-preview">
-            <img src={gcashQrUrl({ qr })} alt="The GCash QR customers will scan" />
-            <p>
-              Pay to <strong>{name}</strong>
-            </p>
-            {number && isValidSmsNumber(number) && (
-              <p>
-                GCash number <strong>{formatMobile(number)}</strong>
-              </p>
-            )}
-          </div>
-        ) : (
-          <p className="website-preview-empty">
-            &ldquo;Online payment is not available yet. Please pay at the hall.&rdquo; Bookings and paid tournament sign-ups
-            wait until the QR and the account name are saved.
+  const card = {
+    icon: "bi-phone",
+    title: "GCash",
+    description: "The account customers pay into when they book a table or join a paid tournament online.",
+    chip: ready ? { tone: "on", label: "Online payment on" } : { tone: "off", label: "Online payment off" },
+    draft,
+    preview:
+      qr && name ? (
+        <div className="website-gcash-preview">
+          <img src={gcashQrUrl({ qr })} alt="The GCash QR customers will scan" />
+          <p>
+            Pay to <strong>{name}</strong>
           </p>
-        )
-      }
-    >
+          {number && isValidSmsNumber(number) && (
+            <p>
+              GCash number <strong>{formatMobile(number)}</strong>
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="website-preview-empty">
+          &ldquo;Online payment is not available yet. Please pay at the hall.&rdquo; Bookings and paid tournament sign-ups
+          wait until the QR and the account name are saved.
+        </p>
+      ),
+  };
+
+  // The employee only looks: what customers see, nothing to upload or type.
+  if (byEmployee) {
+    return (
+      <SiteCard {...card} readOnly>
+        <p className="website-note info">
+          <i className="bi bi-lock" aria-hidden="true"></i>
+          Only the admin can add or change the QR and the account details. Check customers&apos; payments against them here.
+        </p>
+        {!ready && (
+          <p className="website-note warning">
+            <i className="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            Until the admin saves the QR and the account name, the website takes no online bookings or paid tournament
+            registrations.
+          </p>
+        )}
+      </SiteCard>
+    );
+  }
+
+  return (
+    <SiteCard {...card}>
       {!ready && (
         <p className="website-note warning">
           <i className="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
           Until the QR and the account name are saved, the website takes no online bookings or paid tournament
           registrations.
-        </p>
-      )}
-      {byEmployee && (
-        <p className="website-note info">
-          <i className="bi bi-bell" aria-hidden="true"></i>
-          The admin is told when these details change.
         </p>
       )}
 
@@ -132,7 +148,7 @@ export default function GcashSettingsCard({ setLogs }) {
             value={accountName || ""}
             maxLength={60}
             placeholder="As GCash shows it, e.g. JU** D** C."
-            onChange={(event) => draft.update("accountName", event.target.value)}
+            onChange={(event) => draft.update("accountName", readTitleField(event))}
           />
           <em>Customers check this name before they send.</em>
         </label>

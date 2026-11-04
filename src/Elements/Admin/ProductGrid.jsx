@@ -1,4 +1,11 @@
-﻿export default function ProductGrid({ products, cart, onAddToCart }) {
+﻿import { getTodayDate } from "../../utils/reservations";
+import { isExpired } from "../../utils/productShelf";
+import { formatExpiryDate } from "../../utils/inventoryValidation";
+
+// An expired product stays on the grid, greyed like one out of stock, so the
+// counter sees why it cannot be sold (useSalesPOS refuses it too).
+export default function ProductGrid({ products, cart, onAddToCart }) {
+  const today = getTodayDate();
   // Each category's color on the navy theme, and the deeper shade of it that the
   // light theme uses for the text (the pale one is too faint on white).
   const getCategoryColor = (category) => {
@@ -28,6 +35,7 @@
         const [categoryColor, categoryInk] = getCategoryColor(product.category);
         const stockLeft = Number(product.stock) || 0;
         const minStock = Number(product.minStock) > 0 ? Number(product.minStock) : 5;
+        const expired = isExpired(product, today);
         const outOfStock = stockLeft <= 0;
         const lowStock = !outOfStock && stockLeft <= minStock;
 
@@ -35,11 +43,17 @@
           <div
             key={product.id}
             className={`product-card ${inCart ? "in-cart" : ""} ${
-              outOfStock ? "out-of-stock" : lowStock ? "low-stock" : ""
+              expired ? "out-of-stock is-expired" : outOfStock ? "out-of-stock" : lowStock ? "low-stock" : ""
             }`}
             onClick={() => onAddToCart(product)}
-            aria-disabled={outOfStock}
-            title={outOfStock ? `${product.name} is out of stock. Restock it in Inventory.` : undefined}
+            aria-disabled={outOfStock || expired}
+            title={
+              expired
+                ? `${product.name} expired on ${formatExpiryDate(product.expiryDate)}. Expired stock cannot be sold.`
+                : outOfStock
+                  ? `${product.name} is out of stock. Restock it in Inventory.`
+                  : undefined
+            }
           >
             {inCart && <div className="product-cart-badge">{inCart.qty}</div>}
 
@@ -57,16 +71,25 @@
             <div className="product-name">{product.name}</div>
             <div className="product-price">₱{Number(product.price).toFixed(2)}</div>
 
-            <div className={`product-stock ${outOfStock ? "is-out" : lowStock ? "is-low" : ""}`}>
-              <i
-                className={`bi ${
-                  outOfStock ? "bi-x-circle-fill" : lowStock ? "bi-exclamation-triangle-fill" : "bi-box"
-                } me-1`}
-              ></i>
-              Stock: {stockLeft} pcs
-            </div>
+            {expired ? (
+              <div className="product-stock is-out">
+                <i className="bi bi-calendar-x-fill me-1"></i>
+                Expired {formatExpiryDate(product.expiryDate)}
+              </div>
+            ) : (
+              <div className={`product-stock ${outOfStock ? "is-out" : lowStock ? "is-low" : ""}`}>
+                <i
+                  className={`bi ${
+                    outOfStock ? "bi-x-circle-fill" : lowStock ? "bi-exclamation-triangle-fill" : "bi-box"
+                  } me-1`}
+                ></i>
+                Stock: {stockLeft} pcs
+              </div>
+            )}
 
-            {outOfStock ? (
+            {expired ? (
+              <div className="product-out-badge">Expired</div>
+            ) : outOfStock ? (
               <div className="product-out-badge">Out of Stock</div>
             ) : lowStock ? (
               <div className="product-low-badge">Low Stock</div>

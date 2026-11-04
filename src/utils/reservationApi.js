@@ -9,8 +9,8 @@ const RESERVATION_API_URL = import.meta.env.VITE_RESERVATION_API_URL || (
 );
 
 // `extra`: what goes with the request but is not part of the booking, such as
-// whether to give a cancelled booking's GCash payment back (`refundPayment`).
-// Resolves with the server's whole answer.
+// whether to give a cancelled booking's payment back (see toRefundExtra in
+// bookingPayments.js). Resolves with the server's whole answer.
 const send = async (method, reservation, extra = {}) => {
   const response = await apiFetch(RESERVATION_API_URL, {
     method,
@@ -20,13 +20,15 @@ const send = async (method, reservation, extra = {}) => {
   const data = await response.json();
 
   if (!response.ok || !data.success) {
-    throw new Error(data.message || 'Unable to save reservation.');
+    const error = new Error(data.message || 'Unable to save reservation.');
+    error.status = response.status;
+    throw error;
   }
 
   return data;
 };
 
-const request = async (method, reservation, extra = {}) => (await send(method, reservation, extra)).reservation;
+const request =async (method, reservation, extra = {}) => (await send(method, reservation, extra)).reservation;
 
 export const createRemoteReservation = (reservation) => request('POST', reservation);
 

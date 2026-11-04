@@ -1,4 +1,5 @@
-import { numberFieldValue, readNumberField } from "../../utils/numberField";
+import { numberFieldValue, numberKeys, readNumberField } from "../../utils/numberField";
+import { readTitleField } from "../../utils/textField";
 import FieldError from "../Global/FieldError";
 import useFormErrors from "../Global/useFormErrors";
 
@@ -33,7 +34,7 @@ export default function PoolTableModal({ form, setForm, editId, errors = {}, onC
                 <input
                   type="text"
                   value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  onChange={e => setForm({ ...form, name: readTitleField(e) })}
                   placeholder="e.g. Table 10"
                   maxLength={40}
                   {...fieldProps("name")}
@@ -46,6 +47,7 @@ export default function PoolTableModal({ form, setForm, editId, errors = {}, onC
                   type="number"
                   value={numberFieldValue(form.rate)}
                   onChange={e => setForm({ ...form, rate: readNumberField(e) })}
+                  {...numberKeys({ decimal: true })}
                   min="0"
                   step="0.01"
                   placeholder="0"
@@ -59,6 +61,7 @@ export default function PoolTableModal({ form, setForm, editId, errors = {}, onC
                   type="number"
                   value={numberFieldValue(form.durationMinutes)}
                   onChange={e => setForm({ ...form, durationMinutes: readNumberField(e) })}
+                  {...numberKeys()}
                   min="15"
                   step="15"
                   placeholder="60"

@@ -3,6 +3,7 @@ import useSiteSectionDraft from "./useSiteSectionDraft";
 import { useSiteSettings } from "../../Global/useSiteSettings";
 import { DEFAULT_SITE_SETTINGS, FOOTER_TAGLINE_MAX_LENGTH } from "../../../utils/siteSettings";
 import { formatOpeningHours } from "../../../utils/reservations";
+import { readTextField } from "../../../utils/textField";
 
 /**
  * The line at the bottom of the home and Tournaments pages, beside the hall's
@@ -47,7 +48,7 @@ export default function FooterSettingsCard({ setLogs }) {
             value={tagline}
             maxLength={FOOTER_TAGLINE_MAX_LENGTH}
             placeholder={`e.g. ${original}`}
-            onChange={(event) => draft.update("tagline", event.target.value)}
+            onChange={(event) => draft.update("tagline", readTextField(event))}
           />
           <em>
             {tagline.length}/{FOOTER_TAGLINE_MAX_LENGTH} characters. Leave it empty to show only the name and the hours.

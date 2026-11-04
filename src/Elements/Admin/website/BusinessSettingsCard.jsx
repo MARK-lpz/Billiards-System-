@@ -2,13 +2,14 @@ import SiteCard from "./SiteCard";
 import useSiteSectionDraft from "./useSiteSectionDraft";
 import { useSiteSettings } from "../../Global/useSiteSettings";
 import { formatOpeningHours } from "../../../utils/reservations";
+import { readTextField } from "../../../utils/textField";
 
 // A first look while typing; the server checks the links fully on Save.
 const linkWarning = (url, example) =>
   url && !/^https:\/\//i.test(url) ? `Paste the whole link, starting with https:// (e.g. ${example}).` : "";
 
 /**
- * Where the hall is and how to reach it, shown in Visit us on the website's
+ * Where the hall is and how to reach it, shown in About us on the website's
  * home page: the address, the Google Maps link (Open in Maps), a contact number
  * (Call) and the Facebook page or Messenger link (Message us). Each is optional.
  */
@@ -24,7 +25,7 @@ export default function BusinessSettingsCard({ setLogs }) {
   const mapsWarning = linkWarning(mapsUrl, "https://maps.app.goo.gl/...");
   const facebookWarning = linkWarning(facebookUrl, "https://www.facebook.com/...");
   const filled = [address, mapsUrl, phone, facebookUrl].filter(Boolean).length;
-  // Visit us on the home page, as it will read: only what is set, and the hours.
+  // About us on the home page, as it will read: only what is set, and the hours.
   const buttons = [
     mapsUrl && { icon: "bi-map", label: "Open in Maps" },
     phone && { icon: "bi-telephone", label: "Call" },
@@ -35,7 +36,7 @@ export default function BusinessSettingsCard({ setLogs }) {
     <SiteCard
       icon="bi-geo-alt"
       title="Business info"
-      description="Shown in Visit us on the home page, so customers can find and reach the hall."
+      description="Shown in About us on the home page, so customers can find and reach the hall."
       chip={filled ? { tone: "on", label: `${filled} of 4 set` } : { tone: "off", label: "Not set" }}
       draft={draft}
       preview={
@@ -84,7 +85,7 @@ export default function BusinessSettingsCard({ setLogs }) {
             value={address || ""}
             maxLength={200}
             placeholder="Street, barangay, city"
-            onChange={(event) => draft.update("address", event.target.value)}
+            onChange={(event) => draft.update("address", readTextField(event))}
           />
         </label>
         <label className="website-field">

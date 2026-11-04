@@ -399,6 +399,23 @@
   overflow: hidden;
 }
 
+/* The Inventory's six cards: one row on a wide screen, then three a row, then two. */
+.admin-shell .inventory-container > .stats-grid.inventory-stats {
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+}
+
+@media (max-width: 1280px) {
+  .admin-shell .inventory-container > .stats-grid.inventory-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-shell .inventory-container > .stats-grid.inventory-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
 .admin-shell :is(.events-container > .row.g-3, .audit-trail-container > .row.g-3, .reports-container .row.g-3) > [class*="col-"] {
   display: contents;
 }
@@ -422,6 +439,14 @@
 
 .admin-shell .equipment-stat-clickable:hover {
   background: var(--ax-active-soft) !important;
+}
+
+.admin-shell .audit-stat-clickable:is(:hover, .selected) {
+  background: var(--ax-active-soft) !important;
+}
+
+.admin-shell .audit-stat-clickable.selected {
+  box-shadow: inset 1px 0 0 var(--ax-divider), inset 0 -3px 0 var(--ax-active) !important;
 }
 
 .admin-shell :is(.inventory-stat-card, .events-stat-card, .audit-stat-card, .reports-stat-card, .equipment-stat-card) .card-body {
@@ -527,30 +552,19 @@
   background: var(--bg-subtle) !important;
 }
 
+/* Each card only as tall as what it holds: the tables card grew with a row
+   per four tables, and Reported Issues was stretched to match it. */
 .admin-shell .admin-dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
   gap: 1.25rem;
   margin: 0 0 1.25rem;
-  align-items: stretch;
+  align-items: start;
 }
 
 .admin-shell .admin-dashboard-grid > .content-card {
-  height: 100%;
   border-radius: 16px;
   box-shadow: var(--ax-shadow);
-}
-
-/* A few tables share the card's whole width instead of bunching at the left;
-   each keeps a pool table's shape as it grows. */
-.admin-shell .active-tables-card .active-tables-grid {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-}
-
-.admin-shell .active-tables-card .mini-table-card {
-  aspect-ratio: 2 / 1;
-  justify-content: center;
-  max-height: 180px;
 }
 
 .admin-shell .admin-dashboard-grid .task-list {
@@ -635,7 +649,7 @@
 }
 
 /* The search + Add Product / Create Event sit at the right end of their filter bars */
-.admin-shell .inventory-filters > .inventory-search,
+.admin-shell .inventory-filters > .inventory-toolbar-end,
 .admin-shell .events-toolbar > .events-add-btn {
   margin-left: auto;
 }
@@ -753,24 +767,6 @@
 }
 
 /* ================================================================
-   Accounts: employee accounts on the right, admin and resets stacked left
-   ================================================================ */
-
-.admin-shell .account-management-sections {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-  align-items: start;
-}
-
-.admin-shell .account-management-sections > :nth-child(2) {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-}
-
-.admin-shell .account-management-sections > :nth-child(3) {
-  grid-column: 1;
-}
-
-/* ================================================================
    Small screens: the sidebar becomes a drawer
    ================================================================ */
 
@@ -785,15 +781,6 @@
 }
 
 @media (max-width: 1024px) {
-  .admin-shell .account-management-sections {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-shell .account-management-sections > :is(:nth-child(2), :nth-child(3)) {
-    grid-column: auto;
-    grid-row: auto;
-  }
-
   .admin-shell .events-list {
     grid-template-columns: 1fr;
   }

@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { numberFieldValue, readNumberField } from "../../utils/numberField";
+import { numberFieldValue, numberKeys, readNumberField } from "../../utils/numberField";
 import { MAX_EVENT_REASON_LENGTH, formatEventWhen } from "../../utils/eventUpdates";
 import { getTodayDate } from "../../utils/reservations";
 import FieldError from "../Global/FieldError";
 import useFormErrors from "../Global/useFormErrors";
 import EventMediaField from "./EventMediaField";
+import { ENTRY_FEE_METHODS } from "../../utils/tournamentFees";
+import { readTextField, readTitleField } from "../../utils/textField";
 
-const FIELDS = ["name", "prize", "entryFee", "tables"];
+const FIELDS = ["name", "prize", "entryFee", "maxPlayers", "paymentMethods", "tables"];
 
 export default function EventsModal({
   form,
@@ -15,7 +17,7 @@ export default function EventsModal({
   isEdit = false,
   scheduleChange = null,
   scheduleError = "",
-  // From getEventErrors (formValidation.js): name, prize, entryFee, tables.
+  // From getEventErrors (formValidation.js): name, prize, entryFee, maxPlayers, paymentMethods, tables.
   errors = {},
   onClose,
   onSave,
@@ -25,6 +27,18 @@ export default function EventsModal({
   const [uploads, setUploads] = useState([]);
   const uploading = uploads.filter((upload) => upload.status !== "error").length;
   const setMedia = (update) => setForm((previous) => ({ ...previous, media: update(previous.media || []) }));
+  const paid = Number(form.entryFee) > 0;
+  const methods = form.paymentMethods || [];
+  const toggleMethod = (id) => {
+    touch("paymentMethods");
+    setForm((previous) => {
+      const chosen = previous.paymentMethods || [];
+      return {
+        ...previous,
+        paymentMethods: chosen.includes(id) ? chosen.filter((entry) => entry !== id) : [...chosen, id],
+      };
+    });
+  };
   const fieldProps = (field) => ({
     id: `event-${field}`,
     onBlur: () => touch(field),
@@ -64,7 +78,7 @@ export default function EventsModal({
                   <input
                     type="text"
                     value={form.name}
-                    onChange={e => setForm({ ...form, name: e.target.value })}
+                    onChange={e => setForm({ ...form, name: readTitleField(e) })}
                     placeholder="e.g. Monthly 8-Ball Tournament"
                     maxLength={100}
                     {...fieldProps("name")}
@@ -146,7 +160,7 @@ export default function EventsModal({
                       className="form-control"
                       maxLength={MAX_EVENT_REASON_LENGTH}
                       value={form.rescheduleReason || ""}
-                      onChange={e => setForm({ ...form, rescheduleReason: e.target.value })}
+                      onChange={e => setForm({ ...form, rescheduleReason: readTextField(e) })}
                       placeholder="e.g. The hall is closed for maintenance that day"
                     />
                   </div>
@@ -160,6 +174,7 @@ export default function EventsModal({
                       type="number"
                       value={numberFieldValue(form.prize)}
                       onChange={e => setForm({ ...form, prize: readNumberField(e) })}
+                      {...numberKeys({ decimal: true })}
                       min="0"
                       step="0.01"
                       placeholder="0"
@@ -173,6 +188,7 @@ export default function EventsModal({
                       type="number"
                       value={numberFieldValue(form.entryFee)}
                       onChange={e => setForm({ ...form, entryFee: readNumberField(e) })}
+                      {...numberKeys({ decimal: true })}
                       min="0"
                       step="0.01"
                       placeholder="0"
@@ -183,8 +199,55 @@ export default function EventsModal({
                   </div>
                 </div>
                 <small className="form-text text-muted events-modal-help" id="event-entryFee-help">
-                  Players pay the entry fee through GCash when they register. Leave it at 0 for a free tournament.
+                  Leave it at 0 for a free tournament.
                 </small>
+
+                {/* How the entry fee may be paid; a free tournament takes everyone. */}
+                {paid && (
+                  <fieldset className="events-modal-methods" id="event-paymentMethods" tabIndex={-1}>
+                    <legend className="form-label">Ways to pay the entry fee</legend>
+                    <div className="events-method-options">
+                      {ENTRY_FEE_METHODS.map((method) => (
+                        <label key={method.id} className={`events-method-option${methods.includes(method.id) ? " is-on" : ""}`}>
+                          <input
+                            type="checkbox"
+                            checked={methods.includes(method.id)}
+                            onChange={() => toggleMethod(method.id)}
+                          />
+                          <i className={`bi ${method.icon}`} aria-hidden="true"></i>
+                          {method.label}
+                        </label>
+                      ))}
+                    </div>
+                    <FieldError id="event-paymentMethods-error" message={errorFor("paymentMethods")} />
+                    <small className="form-text text-muted events-modal-help">
+                      {!methods.includes("online")
+                        ? "Players register in person only; the website shows \"Register in person\" for it."
+                        : methods.length === 1
+                          ? "Players sign up and pay on the website only; the counter can't add walk-ins."
+                          : "GCash on the website is checked before the player is confirmed."}
+                    </small>
+                  </fieldset>
+                )}
+
+                <div className="events-modal-max">
+                  <label className="form-label" htmlFor="event-maxPlayers">Max Players</label>
+                  <input
+                    type="number"
+                    value={form.maxPlayers ?? ""}
+                    onChange={e => setForm({ ...form, maxPlayers: e.target.value })}
+                    {...numberKeys()}
+                    min="2"
+                    step="1"
+                    placeholder="No limit"
+                    {...fieldProps("maxPlayers")}
+                    aria-describedby={errorFor("maxPlayers") ? "event-maxPlayers-error" : "event-maxPlayers-help"}
+                  />
+                  <FieldError id="event-maxPlayers-error" message={errorFor("maxPlayers")} />
+                  <small className="form-text text-muted events-modal-help" id="event-maxPlayers-help">
+                    Registration closes, on the website and at the counter, once this many have signed up. Leave it empty for no limit.
+                  </small>
+                </div>
               </section>
 
               <div className="events-modal-side">
